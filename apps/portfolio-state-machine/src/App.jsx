@@ -1,11 +1,11 @@
-import React from 'react'
-import './App.css'
+import './App.css';
 
 export default function App() {
   return (
-    <div className="app-container">
-      <h1>React App Template</h1>
-      <p>Edit <code>App.jsx</code> and save to test HMR updates.</p>
+    <div className="app-placeholder">
+      <h1>Example App</h1>
+      <p>This is a nearly blank example app kept for reference.</p>
+      <p>Replace this copy when the real interface is ready.</p>
     </div>
-  )
+  );
 }

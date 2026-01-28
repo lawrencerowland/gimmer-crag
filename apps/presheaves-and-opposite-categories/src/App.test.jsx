@@ -1,15 +1,9 @@
-import { render, screen } from '@testing-library/react';
 import { expect, test } from 'vitest';
-import App from './App.jsx';
+import { render, screen } from '@testing-library/react';
+import App from './App';
 
-test('renders heading', () => {
+test('renders placeholder heading', () => {
   render(<App />);
-  const heading = screen.getByText(/Presheaf Visualization/i);
+  const heading = screen.getByText(/Placeholder App/i);
   expect(heading).toBeDefined();
-});
-
-test('shows push forward button', () => {
-  render(<App />);
-  const button = screen.getByRole('button', { name: /Try Push Forward/i });
-  expect(button).toBeDefined();
 });

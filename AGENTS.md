@@ -21,3 +21,9 @@ This repository contains a basic React/Vite setup that can host many small appli
 - Keep asset paths relative (avoid leading `/`) so the site works when published to GitHub Pages. In React apps pass `basename={import.meta.env.BASE_URL}` to `BrowserRouter`.
 - Embed small datasets inline so each app can be opened directly without a server.
 
+## Style Guide for Placeholder Apps and Pages
+- Keep the existing file and folder structure intact, even when content is reduced to placeholders.
+- For app `index.html` files, preserve the back link to `../../index.html` and include the shared `common.css` stylesheet.
+- Keep placeholder content intentionally brief: a single heading and one short sentence is enough.
+- For the website routes in `apps/website/src/pages`, use short placeholder sections that name the page and nothing more.
+- When simplifying React apps, keep a minimal `App.jsx`, a small `App.css`, and ensure tests assert the placeholder heading.

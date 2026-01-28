@@ -1,11 +1,10 @@
-.app-container {
-  padding: 1rem;
+.app-placeholder {
+  max-width: 640px;
+  margin: 2.5rem auto;
+  padding: 1.5rem;
+  text-align: left;
 }
 
-.top-right-image {
-  position: fixed;
-  top: 0;
-  right: 0;
-  width: 200px;
-  z-index: 10;
+.app-placeholder h1 {
+  margin-bottom: 0.5rem;
 }
