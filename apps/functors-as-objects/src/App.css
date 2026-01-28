@@ -1,3 +1,10 @@
-.app-container {
-  padding: 1rem;
+.app-placeholder {
+  max-width: 640px;
+  margin: 2.5rem auto;
+  padding: 1.5rem;
+  text-align: left;
+}
+
+.app-placeholder h1 {
+  margin-bottom: 0.5rem;
 }

@@ -1,9 +1,9 @@
-import { render, screen } from '@testing-library/react';
 import { expect, test } from 'vitest';
+import { render, screen } from '@testing-library/react';
 import App from './App';
 
-test('renders heading', () => {
+test('renders placeholder heading', () => {
   render(<App />);
-  const heading = screen.getByText(/Category Theory: Interactive Comparison/i);
+  const heading = screen.getByText(/Placeholder App/i);
   expect(heading).toBeDefined();
 });
