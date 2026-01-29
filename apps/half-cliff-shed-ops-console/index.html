@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Half-Cliff Shed – Ops Console (Prototype v0.3)</title>
+  <link rel="stylesheet" href="../../common.css" />
+  <style>
+    :root{
+      --bg:#0f172a;
+      --panel:#1e293b;
+      --panel2:#172033;
+      --line:#334155;
+      --accent:#14b8a6;
+      --warn:#f59e0b;
+      --bad:#ef4444;
+      --ok:#22c55e;
+      --txt:#f1f5f9;
+      --muted:#94a3b8;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg);color:var(--txt);line-height:1.45;min-height:100vh;display:flex;flex-direction:column}
+
+    header{padding:0.9rem 1.25rem;border-bottom:1px solid var(--line);display:flex;gap:1rem;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    header h1{font-size:1.1rem;font-weight:650;letter-spacing:0.2px}
+
+    .top-controls{display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap}
+    .pill{display:flex;align-items:center;gap:0.5rem;background:var(--panel);border:1px solid var(--line);padding:0.45rem 0.6rem;border-radius:999px}
+    .pill label{font-size:0.82rem;color:var(--muted)}
+    .pill input[type="range"]{width:160px}
+    .pill .value{font-weight:650;font-size:0.88rem}
+
+    .btn{border:none;background:var(--accent);color:#052b27;font-weight:750;padding:0.5rem 0.75rem;border-radius:0.5rem;cursor:pointer}
+    .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--txt);font-weight:650}
+    .btn:active{transform:translateY(1px)}
+
+    .status{
+      display:flex;align-items:center;gap:0.35rem;
+      background:rgba(20,184,166,0.12);
+      border:1px solid rgba(20,184,166,0.3);
+      padding:0.35rem 0.55rem;border-radius:999px;
+      font-size:0.82rem
+    }
+    .dot{width:8px;height:8px;border-radius:99px;background:var(--accent);display:inline-block}
+    .dot.warn{background:var(--warn)}
+    .dot.bad{background:var(--bad)}
+
+    main{flex:1;display:grid;grid-template-columns:16rem 1fr;min-height:0}
+    nav{background:var(--panel);border-right:1px solid var(--line);padding:0.9rem;display:flex;flex-direction:column;gap:0.65rem}
+    nav button{all:unset;padding:0.55rem 0.7rem;border-radius:0.5rem;cursor:pointer;opacity:0.82}
+    nav button.active,nav button:hover{background:rgba(20,184,166,0.18);border:1px solid rgba(20,184,166,0.35);opacity:1}
+
+    section{padding:1.1rem 1.25rem;overflow:auto;display:none;min-height:0}
+    section.active{display:block}
+
+    .grid2{display:grid;grid-template-columns:1.2fr 0.8fr;gap:0.9rem;align-items:start}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:0.75rem;box-shadow:0 1px 3px rgba(0,0,0,0.45)}
+    .card .hd{padding:0.9rem 0.95rem;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:0.75rem}
+    .card .hd h2{font-size:0.98rem;font-weight:750}
+    .card .bd{padding:0.95rem}
+
+    .subtle{color:var(--muted);font-size:0.85rem}
+    .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:0.6rem}
+    .kpi .tile{background:var(--panel2);border:1px solid var(--line);border-radius:0.6rem;padding:0.6rem}
+    .kpi .tile .big{font-size:1.15rem;font-weight:800;margin-top:0.15rem}
+
+    .info-btn{border:none;background:transparent;color:var(--accent);font-weight:800;cursor:pointer;font-size:1rem}
+
+    /* Timeline bars */
+    .bars{margin-top:0.6rem}
+    .bar{height:34px;border-radius:0.5rem;margin:0.45rem 0;position:relative;transition:transform 0.15s ease, outline 0.15s ease}
+    .bar:hover{transform:scale(1.01);cursor:pointer}
+    .bar .label{position:absolute;left:0.6rem;top:50%;transform:translateY(-50%);font-size:0.8rem;color:#052b27;font-weight:850;text-shadow:0 1px 0 rgba(255,255,255,0.15)}
+    .bar .meta{position:absolute;right:0.6rem;top:50%;transform:translateY(-50%);font-size:0.78rem;color:#052b27;font-weight:850}
+    .bar.outside{outline:2px dashed rgba(148,163,184,0.55)}
+    .bar.inwindow{outline:2px solid rgba(20,184,166,0.75)}
+
+    /* Tables */
+    table{width:100%;border-collapse:collapse;font-size:0.9rem}
+    th,td{padding:0.4rem 0.45rem;text-align:left;vertical-align:middle}
+    th{border-bottom:1px solid var(--line);font-size:0.85rem;color:var(--muted);font-weight:700}
+    tr:nth-child(odd){background:var(--panel2)}
+
+    progress{width:100%;height:10px;background:var(--line);border-radius:999px}
+    progress::-webkit-progress-bar{background:var(--line);border-radius:999px}
+    progress::-webkit-progress-value{background:var(--accent);border-radius:999px}
+
+    .chip{display:inline-flex;align-items:center;gap:0.35rem;padding:0.15rem 0.45rem;border-radius:999px;font-size:0.78rem;border:1px solid var(--line);background:rgba(148,163,184,0.1);color:var(--txt)}
+    .chip.ok{border-color:rgba(34,197,94,0.45);background:rgba(34,197,94,0.12)}
+    .chip.warn{border-color:rgba(245,158,11,0.45);background:rgba(245,158,11,0.12)}
+    .chip.bad{border-color:rgba(239,68,68,0.45);background:rgba(239,68,68,0.12)}
+
+    /* Sensors */
+    .sensor-row{display:grid;grid-template-columns:1.2fr 0.9fr 0.65fr 0.7fr;gap:0.6rem;padding:0.5rem 0.45rem}
+    .sensor-row.head{font-weight:800;color:var(--muted);border-bottom:1px solid var(--line)}
+    .sensor-row:nth-child(odd):not(.head){background:var(--panel2)}
+    .sensor-row:hover:not(.head){outline:1px solid rgba(20,184,166,0.25);cursor:pointer}
+
+    /* Log */
+    .log-row{border-bottom:1px solid var(--line);padding:0.55rem 0;display:flex;gap:0.65rem;align-items:flex-start}
+    .log-row .time{color:var(--muted);font-size:0.82rem;min-width:6.6rem}
+    .log-row .body{flex:1}
+    .log-row .body .line1{font-weight:750}
+    .log-row .body .line2{color:var(--muted);font-size:0.85rem;margin-top:0.12rem}
+
+    .form{display:grid;grid-template-columns:1fr;gap:0.6rem}
+    .form label{font-size:0.82rem;color:var(--muted)}
+    .form input,.form textarea,.form select{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:0.55rem 0.6rem;border-radius:0.5rem;outline:none}
+    .form textarea{min-height:72px;resize:vertical}
+    .row2{display:grid;grid-template-columns:1fr 1fr;gap:0.6rem}
+
+    /* Modal */
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,0.65);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:.2s}
+    .modal.open{opacity:1;pointer-events:auto}
+    .modal .content{background:var(--panel);border:1px solid var(--line);border-radius:0.9rem;max-width:720px;width:92%;position:relative;box-shadow:0 10px 30px rgba(0,0,0,0.55)}
+    .modal .content .hd{padding:0.9rem 1rem;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:0.7rem}
+    .modal .content .hd h3{font-size:0.98rem;font-weight:850}
+    .modal .content .bd{padding:1rem}
+    .modal .close{border:none;background:transparent;color:var(--accent);font-size:1.35rem;font-weight:900;cursor:pointer;line-height:1}
+
+    @media(max-width:980px){
+      .grid2{grid-template-columns:1fr}
+      .kpi{grid-template-columns:repeat(2,1fr)}
+    }
+    @media(max-width:768px){
+      main{grid-template-columns:1fr}
+      nav{flex-direction:row;overflow-x:auto;gap:0.5rem}
+      nav button{white-space:nowrap}
+      .pill input[type="range"]{width:120px}
+    }
+  </style>
+</head>
+<body>
+  <p><a href="../../index.html">Back to app index</a></p>
+  <header>
+    <h1>Half-Cliff Shed – Ops Console <span class="subtle">(v0.3)</span></h1>
+
+    <div class="top-controls">
+      <div class="pill" title="Temporal Binding Window: how fresh a signal must be to count as ‘now’">
+        <label for="tbw">TBW</label>
+        <input id="tbw" type="range" min="5" max="120" step="5" value="30"/>
+        <span class="value"><span id="tbwVal">30</span>m</span>
+        <button class="info-btn" data-explain="tbw" title="Explain temporal binding">?</button>
+      </div>
+
+      <div class="status" id="ignition" title="Prediction-error spikes + out-of-window signals drive ‘global workspace’ attention">
+        <span class="dot" id="ignDot"></span>
+        <span id="ignText">Stable</span>
+        <button class="info-btn" data-explain="ignition" title="Explain global workspace">?</button>
+      </div>
+
+      <button class="btn ghost" id="simulateLag" title="Randomise sensor timestamps (simulate lag & asynchrony)">Simulate lag</button>
+      <button class="btn" id="refreshBtn" title="Randomise all stub data">↻ Refresh</button>
+    </div>
+  </header>
+
+  <main>
+    <nav>
+      <button data-target="timeline" class="active">⏱ Timeline</button>
+      <button data-target="sensors">🛰 Sensors</button>
+      <button data-target="log">🗂 Event Log</button>
+    </nav>
+
+    <!-- TIMELINE -->
+    <section id="timeline" class="active">
+      <div class="grid2">
+        <div class="card">
+          <div class="hd">
+            <h2>Prediction Δ Heat-map <span class="subtle">(click bars)</span></h2>
+            <div class="flex" style="display:flex;gap:0.4rem;align-items:center">
+              <button class="info-btn" data-explain="prediction">?</button>
+              <button class="info-btn" data-explain="temporal_binding_timeline" title="How this uses temporal binding">⏳</button>
+            </div>
+          </div>
+          <div class="bd">
+            <div class="subtle">A bar is an hourly prediction-error snapshot (green = low, red = high). Selecting a bar defines the <b>reference moment</b>; items within the TBW are highlighted.</div>
+
+            <div class="kpi mt-4" style="margin-top:0.8rem">
+              <div class="tile">
+                <div class="subtle">Reference time</div>
+                <div class="big" id="refTime">—</div>
+              </div>
+              <div class="tile">
+                <div class="subtle">In-window bars</div>
+                <div class="big" id="inWindowBars">—</div>
+              </div>
+              <div class="tile">
+                <div class="subtle">High-error bars</div>
+                <div class="big" id="highErrBars">—</div>
+              </div>
+            </div>
+
+            <div class="bars" id="timelineBars"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="hd">
+            <h2>Tasks: Planned vs Actual</h2>
+            <div style="display:flex;gap:0.4rem;align-items:center">
+              <button class="info-btn" data-explain="tasks">?</button>
+              <button class="info-btn" data-explain="temporal_binding_tasks" title="Temporal binding in progress reporting">⏳</button>
+            </div>
+          </div>
+          <div class="bd">
+            <div class="subtle">Progress is only meaningful when you bind it to the correct reference moment (the chosen bar) and respect the TBW for freshness.</div>
+            <table id="tasksTbl" style="margin-top:0.7rem">
+              <thead>
+                <tr>
+                  <th>Task</th>
+                  <th>Planned</th>
+                  <th>Actual</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+            <div class="subtle" style="margin-top:0.7rem">Click a task row to create an <b>event-file</b> entry (context + action + outcome) in the log.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SENSORS -->
+    <section id="sensors">
+      <div class="card">
+        <div class="hd">
+          <h2>Live Site Sensors <span class="subtle">(click rows)</span></h2>
+          <div style="display:flex;gap:0.4rem;align-items:center">
+            <button class="info-btn" data-explain="sensors">?</button>
+            <button class="info-btn" data-explain="temporal_binding_sensors" title="Temporal binding in sensor fusion">⏳</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="subtle">Signals older than TBW are marked as <b>out-of-window</b> (stale). Click a sensor to see its binding-status and optionally log a corrective action.</div>
+
+          <div class="sensor-row head" style="margin-top:0.75rem">
+            <div>Signal</div>
+            <div>Value</div>
+            <div>Age</div>
+            <div>Window</div>
+          </div>
+          <div id="sensorRows"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOG -->
+    <section id="log">
+      <div class="grid2">
+        <div class="card">
+          <div class="hd">
+            <h2>Event Log <span class="subtle">(event-files)</span></h2>
+            <div style="display:flex;gap:0.4rem;align-items:center">
+              <button class="info-btn" data-explain="event_files">?</button>
+              <button class="info-btn" data-explain="temporal_binding_log" title="Temporal binding & agency in audits">⏳</button>
+            </div>
+          </div>
+          <div class="bd">
+            <div class="subtle">Each entry binds: <b>context</b> (what was happening), <b>action</b> (what we did), and <b>outcome</b> (what changed) — plus an explicit action→outcome delay.</div>
+            <div id="logRows" style="margin-top:0.8rem"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="hd">
+            <h2>Add an event</h2>
+            <button class="info-btn" data-explain="intentional_binding" title="Intentional binding (action↔outcome)">?</button>
+          </div>
+          <div class="bd">
+            <div class="form">
+              <div class="row2">
+                <div>
+                  <label>Context</label>
+                  <input id="evContext" placeholder="e.g., Wind gust spike during roof membrane"/>
+                </div>
+                <div>
+                  <label>Action</label>
+                  <input id="evAction" placeholder="e.g., Pause lift; re-rig anchors"/>
+                </div>
+              </div>
+              <div>
+                <label>Outcome</label>
+                <textarea id="evOutcome" placeholder="e.g., Lift resumed after gusts settled; zero incidents"></textarea>
+              </div>
+              <div class="row2">
+                <div>
+                  <label>Action→Outcome delay (minutes)</label>
+                  <input id="evDelay" type="number" min="0" step="1" value="10"/>
+                </div>
+                <div>
+                  <label>Severity</label>
+                  <select id="evSeverity">
+                    <option value="ok">OK</option>
+                    <option value="warn">WARN</option>
+                    <option value="bad">BAD</option>
+                  </select>
+                </div>
+              </div>
+              <button class="btn" id="addEvent">Add to log</button>
+              <div class="subtle">Tip: if delay ≫ TBW, you’re likely to mis-attribute cause/effect (classic temporal binding failure, now in organisational form).</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL -->
+  <div id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="content">
+      <div class="hd">
+        <h3 id="modalTitle">—</h3>
+        <button class="close" aria-label="Close">×</button>
+      </div>
+      <div class="bd">
+        <div id="modalBody" style="white-space:pre-wrap"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// =========================
+// State + utilities
+// =========================
+const state = {
+  tbwMinutes: 30,
+  referenceEpoch: null,
+  timeline: [],
+  tasks: [],
+  sensors: [],
+  log: []
+};
+
+const fmtHM = (epoch)=>new Date(epoch).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+const fmtMDHM = (epoch)=>new Date(epoch).toLocaleString([], {month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit'});
+const clamp = (x,a,b)=>Math.max(a,Math.min(b,x));
+const rand = (min,max)=>Math.random()*(max-min)+min;
+
+function ageMinutes(epoch){
+  const mins = Math.max(0, (Date.now()-epoch)/60000);
+  return Math.round(mins);
+}
+
+function withinTBW(epoch, refEpoch){
+  if(!refEpoch) return true;
+  const dtM = Math.abs(epoch-refEpoch)/60000;
+  return dtM <= state.tbwMinutes;
+}
+
+function severityChip(kind, label){
+  const dotClass = kind==='bad'?'bad':kind==='warn'?'warn':'';
+  return `<span class="chip ${kind}"><span class="dot ${dotClass}" style="width:7px;height:7px"></span>${label}</span>`;
+}
+
+// =========================
+// Explanations (focused on temporal binding)
+// =========================
+const EXPLAIN = {
+  tbw:
+`Temporal Binding Window (TBW)
+
+In perception, the brain fuses events into a single “unit” if they occur within a tight temporal window; outside it, it treats them as unrelated. In projects the scales dilate (minutes/hours/days), but the logic is identical: if a sensor reading or progress update is too old, your mind (and the team) will mis-bind it to today’s decisions.
+
+Here TBW gates what counts as “now”: out-of-window signals are still visible, but flagged as stale so you don’t perform causal inference on the wrong timestamp.`,
+
+  ignition:
+`Global workspace (“ignition”) as a management primitive
+
+When prediction-error spikes, brains broadcast it to a global workspace so attention snaps to the dissonance. This console imitates that: high schedule error + stale signals raise the ignition state, nudging you to pull data/decisions into a single shared focus (one ‘meeting’ worth of reality).
+
+Temporal binding enters because ignition should trigger only when the underlying signals are time-aligned; otherwise you’re igniting on artefacts.`,
+
+  prediction:
+`Predictive coding → Project oversight
+
+Higher-level models predict what should be true (deliveries, crew, weather windows). The point isn’t perfect forecasting; it’s to surface where the world deviates enough to justify attention.
+
+Temporal binding is the hidden constraint: prediction errors are only interpretable when the ‘actual’ observation is within a defined window relative to the predicted reference moment.`,
+
+  temporal_binding_timeline:
+`Timeline bars as temporal binding anchors
+
+Clicking a bar sets a reference moment: you are explicitly choosing what “now” means. Bars within TBW are outlined — the console is enforcing a temporal binding window across the time-series.
+
+This prevents a common organisational illusion: treating a late update as if it belonged to the present (a project analogue of the ventriloquist / intentional-binding distortions).`,
+
+  tasks:
+`Tasks as bound objects (feature binding)
+
+A task status is a conjunction: scope, progress, quality, safety constraints, prerequisites. The console treats a task row as an object-file you can act upon.
+
+Temporal binding: a progress % is only meaningful relative to the chosen reference time and the freshness of the evidence behind it.`,
+
+  temporal_binding_tasks:
+`Temporal binding in progress reporting
+
+Planned vs actual becomes cognitively toxic if the underlying measurements were collected at different moments. This panel encourages: choose a reference time; treat only in-window updates as valid for causal inference; and log deviations with their action→outcome delay.
+
+In effect you’re creating an organisational ‘temporal binding window’ for accountability.`,
+
+  sensors:
+`Sensor fusion (multisensory binding)
+
+Wind, rain, temperature, rock-face creep, crew count — different modalities, different update cycles. Without a TBW you will bind them incorrectly into a single “site state”.
+
+The row ‘Window’ column is a blunt but reliable fix: it makes time-alignment explicit.`,
+
+  temporal_binding_sensors:
+`Temporal binding for sensor fusion
+
+Signals are treated as co-causal only if their timestamps fall within TBW. Outside TBW, you still see them, but the UI warns you not to fuse them into the same narrative.
+
+This is the anti-hallucination feature for humans.`,
+
+  event_files:
+`Event files (Theory of Event Coding)
+
+Brains bind stimulus + action + outcome into a single episodic trace; later any part can cue the whole. Projects need the same: a compact record that preserves context and prevents folklore.
+
+Temporal binding is explicit here via the action→outcome delay field: it’s your organisational agency signal.`,
+
+  intentional_binding:
+`Intentional binding (action↔outcome)
+
+Humans feel more agency when action and effect are temporally close; when delays are long or noisy, attribution collapses. In projects, long delays between decisions and measurable outcomes create pseudo-causality (people bind the wrong cause to the effect).
+
+By recording action→outcome delay and comparing it to TBW, you diagnose when to trust attribution — and when to treat it as speculative.`,
+
+  temporal_binding_log:
+`Temporal binding & audit discipline
+
+A log entry is not “what happened”; it’s a binding decision: which causes belong to which effects. The console keeps you honest by forcing timestamps and delays, so the narrative doesn’t drift.
+
+If you want a hard version: set TBW aggressively small, and only allow “causal” statements when delay is within a bounded window.`
+};
+
+// =========================
+// Stub data (with timestamps)
+// =========================
+function genTimeline(){
+  const start = Date.now();
+  const bars=[];
+  for(let i=0;i<12;i++){
+    const epoch = start + i*3600000;
+    bars.push({epoch, err: Math.random(), label: fmtHM(epoch)});
+  }
+  return bars;
+}
+
+function genTasks(){
+  const names=['Anchor bolts','Footing pour','Frame erection','Sheathing','Roof membrane','Cliff-path logistics'];
+  return names.map((name)=>{
+    const planned = Math.round(rand(20,95));
+    const actual = clamp(planned + Math.round(rand(-35,35)),0,100);
+    const delta = actual - planned;
+    let status = 'ok';
+    if(delta < -15) status='warn';
+    if(delta < -30) status='bad';
+    return {name, planned, actual, status};
+  });
+}
+
+function genSensors(){
+  const base = Date.now();
+  const items=[
+    {sig:'Wind speed', val:()=>rand(0,25).toFixed(1)+' m/s'},
+    {sig:'Rainfall (1h)', val:()=>rand(0,10).toFixed(1)+' mm'},
+    {sig:'Temperature', val:()=>rand(5,22).toFixed(1)+' °C'},
+    {sig:'Rock-face creep', val:()=>rand(0,2).toFixed(2)+' mm'},
+    {sig:'Crew on-site', val:()=>Math.round(rand(4,12))+' people'},
+    {sig:'Delivery ETA confidence', val:()=>Math.round(rand(40,98))+' %'}
+  ];
+  return items.map((it)=>{
+    // simulate different update cycles: 0–120 minutes old
+    const ageM = Math.round(rand(0,120));
+    const epoch = base - ageM*60000;
+    return {sig:it.sig, value:it.val(), epoch};
+  });
+}
+
+function seedLog(){
+  const now = Date.now();
+  const rows=[
+    {epoch: now - 95*60000, context:'Gusts rising during lift', action:'Paused lift; re-checked anchors', outcome:'Lift resumed after gusts eased', delayM:18, severity:'warn'},
+    {epoch: now - 210*60000, context:'Footing pour scheduled', action:'Adjusted mix; extended curing cover', outcome:'Surface finish within tolerance', delayM:55, severity:'ok'},
+    {epoch: now - 35*60000, context:'Rock-face creep up-tick', action:'Requested drone scan; restricted path', outcome:'No new movement detected', delayM:25, severity:'warn'}
+  ];
+  return rows;
+}
+
+// =========================
+// Rendering
+// =========================
+function renderTimeline(){
+  const wrap = document.getElementById('timelineBars');
+  wrap.innerHTML='';
+
+  const highErr = state.timeline.filter(b=>b.err>=0.65).length;
+  document.getElementById('highErrBars').textContent = String(highErr);
+
+  const refLabel = state.referenceEpoch ? fmtHM(state.referenceEpoch) : '—';
+  document.getElementById('refTime').textContent = refLabel;
+
+  const inWin = state.timeline.filter(b=>withinTBW(b.epoch, state.referenceEpoch)).length;
+  document.getElementById('inWindowBars').textContent = state.referenceEpoch ? String(inWin) : '—';
+
+  state.timeline.forEach((b)=>{
+    const bar=document.createElement('div');
+    bar.className='bar';
+    const hue=(1-b.err)*120;
+    bar.style.background=`hsl(${hue} 75% 45%)`;
+
+    const dtM = state.referenceEpoch ? Math.round(Math.abs(b.epoch-state.referenceEpoch)/60000) : 0;
+    const isIn = state.referenceEpoch ? withinTBW(b.epoch, state.referenceEpoch) : true;
+    if(state.referenceEpoch){
+      bar.classList.add(isIn?'inwindow':'outside');
+    }
+
+    bar.innerHTML = `
+      <div class="label">${b.label}</div>
+      <div class="meta">Δ ${(b.err*100).toFixed(1)}%${state.referenceEpoch?` · ${dtM}m`:' '}</div>
+    `;
+
+    bar.addEventListener('click',()=>{
+      state.referenceEpoch = b.epoch;
+      updateAllDerived();
+      renderAll();
+      openModal(
+        `Prediction error @ ${b.label}`,
+        `Reference moment set to ${b.label}.\n\nPrediction-error Δ = ${(b.err*100).toFixed(1)}%.\n\nTemporal binding: other signals are only treated as co-present if they fall within TBW (±${state.tbwMinutes}m) of this reference.`
+      );
+    });
+
+    wrap.appendChild(bar);
+  });
+}
+
+function taskRowStatus(task){
+  const delta = task.actual - task.planned;
+  const label = delta>=0 ? `Ahead +${delta}%` : `Behind ${delta}%`;
+  const kind = task.status;
+  return severityChip(kind, label);
+}
+
+function renderTasks(){
+  const tbody=document.querySelector('#tasksTbl tbody');
+  tbody.innerHTML='';
+
+  state.tasks.forEach((t)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-weight:750">${t.name}</td>
+      <td><progress max="100" value="${t.planned}"></progress> ${t.planned}%</td>
+      <td><progress max="100" value="${t.actual}"></progress> ${t.actual}%</td>
+      <td>${taskRowStatus(t)}</td>
+    `;
+
+    tr.addEventListener('click',()=>{
+      const now = Date.now();
+      const delay = Math.round(rand(5, 90));
+      const sev = t.status;
+      addLog({
+        epoch: now,
+        context: `Task status check: ${t.name}`,
+        action: `Reviewed plan vs actual (P${t.planned}% / A${t.actual}%)`,
+        outcome: `Recorded variance; next step depends on constraints (weather/safety/procurement).`,
+        delayM: delay,
+        severity: sev
+      });
+
+      openModal(
+        `Event-file created: ${t.name}`,
+        `Context: task status check\nAction: recorded variance\nOutcome: logged a bound episode\n\nAction→Outcome delay = ${delay}m.\nTBW = ${state.tbwMinutes}m.\n\nIf delay ≫ TBW, attribution becomes speculative — you risk binding the wrong cause to the observed effect.`
+      );
+
+      renderLog();
+      updateAllDerived();
+    });
+
+    tbody.appendChild(tr);
+  });
+}
+
+function sensorWindowChip(epoch){
+  if(!state.referenceEpoch){
+    // In absence of a chosen reference, use present moment as implicit anchor.
+    const inNow = withinTBW(epoch, Date.now());
+    return inNow ? severityChip('ok','In-window') : severityChip('warn','Stale');
+  }
+  const inRef = withinTBW(epoch, state.referenceEpoch);
+  return inRef ? severityChip('ok','In-window') : severityChip('warn','Out-of-window');
+}
+
+function renderSensors(){
+  const wrap=document.getElementById('sensorRows');
+  wrap.innerHTML='';
+
+  state.sensors.forEach((s)=>{
+    const row=document.createElement('div');
+    row.className='sensor-row';
+
+    const ageM = ageMinutes(s.epoch);
+    row.innerHTML = `
+      <div style="font-weight:750">${s.sig}</div>
+      <div>${s.value}</div>
+      <div>${ageM}m</div>
+      <div>${sensorWindowChip(s.epoch)}</div>
+    `;
+
+    row.addEventListener('click',()=>{
+      const ref = state.referenceEpoch || Date.now();
+      const dtM = Math.round(Math.abs(s.epoch-ref)/60000);
+      const inWin = withinTBW(s.epoch, ref);
+      const windowLabel = inWin ? 'IN-WINDOW' : 'OUT-OF-WINDOW';
+      openModal(
+        `Sensor: ${s.sig}`,
+        `Value: ${s.value}\nUpdated: ${fmtMDHM(s.epoch)}\nAge: ${ageM} minutes\n\nRelative to reference: ±${dtM}m\nTBW: ±${state.tbwMinutes}m\nStatus: ${windowLabel}\n\nTemporal binding rule of thumb: never fuse this signal with others (or with plan variance) if their timestamps are outside TBW.`
+      );
+
+      // Optionally: auto-log a corrective action suggestion for out-of-window items.
+      if(!inWin){
+        addLog({
+          epoch: Date.now(),
+          context: `Stale signal detected (${s.sig})`,
+          action: `Requested refreshed reading / re-synchronised data source`,
+          outcome: `Awaiting update inside TBW to re-bind site state`,
+          delayM: Math.round(rand(10,60)),
+          severity: 'warn'
+        });
+        renderLog();
+        updateAllDerived();
+      }
+    });
+
+    wrap.appendChild(row);
+  });
+}
+
+function addLog(entry){
+  state.log.unshift(entry);
+  // Cap for UI sanity
+  state.log = state.log.slice(0, 40);
+}
+
+function renderLog(){
+  const wrap=document.getElementById('logRows');
+  wrap.innerHTML='';
+
+  if(state.log.length===0){
+    wrap.innerHTML='<div class="subtle">No events yet.</div>';
+    return;
+  }
+
+  state.log
+    .slice()
+    .sort((a,b)=>b.epoch-a.epoch)
+    .forEach((e)=>{
+      const row=document.createElement('div');
+      row.className='log-row';
+
+      const delayVsTBW = e.delayM - state.tbwMinutes;
+      const delayChip = delayVsTBW<=0 ? severityChip('ok',`Delay ${e.delayM}m ≤ TBW`) : severityChip('warn',`Delay ${e.delayM}m > TBW`);
+      const sevChip = severityChip(e.severity, e.severity.toUpperCase());
+
+      row.innerHTML = `
+        <div class="time">${fmtMDHM(e.epoch)}</div>
+        <div class="body">
+          <div class="line1">${sevChip} ${delayChip}</div>
+          <div class="line2"><b>Context:</b> ${escapeHTML(e.context)} · <b>Action:</b> ${escapeHTML(e.action)}</div>
+          <div class="line2"><b>Outcome:</b> ${escapeHTML(e.outcome)}</div>
+        </div>
+      `;
+
+      row.addEventListener('click',()=>{
+        openModal(
+          'Event-file details',
+          `Timestamp: ${fmtMDHM(e.epoch)}\n\nContext: ${e.context}\nAction: ${e.action}\nOutcome: ${e.outcome}\n\nAction→Outcome delay: ${e.delayM}m\nTBW: ${state.tbwMinutes}m\n\nIf delay exceeds TBW, treat causality as hypothesis until you obtain intermediate signals that bridge the gap (i.e., create a chain of smaller bindings).`
+        );
+      });
+
+      wrap.appendChild(row);
+    });
+}
+
+function updateIgnition(){
+  // Simple rule: ignition rises with high prediction errors + stale sensors.
+  const highErr = state.timeline.filter(b=>b.err>=0.65).length;
+  const ref = state.referenceEpoch || Date.now();
+  const staleSensors = state.sensors.filter(s=>!withinTBW(s.epoch, ref)).length;
+
+  const score = highErr*2 + staleSensors;
+  const dot = document.getElementById('ignDot');
+  const text = document.getElementById('ignText');
+
+  if(score===0){
+    dot.className='dot';
+    text.textContent='Stable';
+  } else if(score<=3){
+    dot.className='dot warn';
+    text.textContent=`Attention (${score})`;
+  } else {
+    dot.className='dot bad';
+    text.textContent=`Ignition (${score})`;
+  }
+}
+
+function updateAllDerived(){
+  // Currently ignition is the only derived; this is the hook for later.
+  updateIgnition();
+}
+
+function renderAll(){
+  document.getElementById('tbwVal').textContent = String(state.tbwMinutes);
+  renderTimeline();
+  renderTasks();
+  renderSensors();
+  renderLog();
+  updateIgnition();
+}
+
+// =========================
+// Modal + safe rendering
+// =========================
+function openModal(title, body){
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').textContent = body;
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){
+  document.getElementById('modal').classList.remove('open');
+}
+
+document.querySelector('#modal .close').addEventListener('click', closeModal);
+window.addEventListener('click',(e)=>{ if(e.target && e.target.id==='modal') closeModal(); });
+window.addEventListener('keydown',(e)=>{ if(e.key==='Escape') closeModal(); });
+
+function escapeHTML(str){
+  return String(str)
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'",'&#039;');
+}
+
+// =========================
+// Wiring: tabs + controls
+// =========================
+// Tabs
+Array.from(document.querySelectorAll('nav button')).forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    Array.from(document.querySelectorAll('nav button')).forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    Array.from(document.querySelectorAll('section')).forEach(sec=>sec.classList.remove('active'));
+    document.getElementById(btn.dataset.target).classList.add('active');
+  });
+});
+
+// TBW control
+const tbw = document.getElementById('tbw');
+tbw.addEventListener('input',()=>{
+  state.tbwMinutes = Number(tbw.value);
+  updateAllDerived();
+  renderAll();
+});
+
+// Explain buttons
+Array.from(document.querySelectorAll('[data-explain]')).forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const key = btn.dataset.explain;
+    const txt = EXPLAIN[key] || 'No explainer found.';
+    const title = key.replaceAll('_',' ').replace(/\b\w/g, c=>c.toUpperCase());
+    openModal(title, txt);
+  });
+});
+
+// Refresh
+function refreshAll(){
+  state.timeline = genTimeline();
+  state.tasks = genTasks();
+  state.sensors = genSensors();
+  // Keep reference if within new range; otherwise clear.
+  if(state.referenceEpoch){
+    const minT = state.timeline[0].epoch;
+    const maxT = state.timeline[state.timeline.length-1].epoch;
+    if(state.referenceEpoch < minT || state.referenceEpoch > maxT){
+      state.referenceEpoch = null;
+    }
+  }
+  updateAllDerived();
+  renderAll();
+}
+
+document.getElementById('refreshBtn').addEventListener('click', refreshAll);
+
+// Simulate lag (only sensors)
+document.getElementById('simulateLag').addEventListener('click',()=>{
+  // Randomise sensor ages more aggressively
+  const base = Date.now();
+  state.sensors = state.sensors.map(s=>{
+    const ageM = Math.round(rand(0,180));
+    return {...s, epoch: base - ageM*60000};
+  });
+  updateAllDerived();
+  renderSensors();
+  renderLog();
+});
+
+// Add event
+function addEventFromForm(){
+  const ctx = document.getElementById('evContext').value.trim();
+  const act = document.getElementById('evAction').value.trim();
+  const out = document.getElementById('evOutcome').value.trim();
+  const delayM = Math.max(0, Number(document.getElementById('evDelay').value||0));
+  const severity = document.getElementById('evSeverity').value;
+
+  if(!ctx || !act || !out){
+    openModal('Add event', 'Please fill Context, Action, and Outcome.');
+    return;
+  }
+
+  addLog({epoch: Date.now(), context: ctx, action: act, outcome: out, delayM, severity});
+
+  document.getElementById('evContext').value='';
+  document.getElementById('evAction').value='';
+  document.getElementById('evOutcome').value='';
+
+  renderLog();
+  updateIgnition();
+
+  const verdict = (delayM<=state.tbwMinutes) ? 'Within TBW: attribution relatively safe.' : 'Exceeds TBW: treat causality as provisional; gather intermediate evidence.';
+  openModal('Event recorded', `Event-file stored.\n\nDelay: ${delayM}m · TBW: ${state.tbwMinutes}m\n${verdict}`);
+}
+
+document.getElementById('addEvent').addEventListener('click', addEventFromForm);
+
+// =========================
+// Boot
+// =========================
+state.log = seedLog();
+refreshAll();
+</script>
+</body>
+</html>
