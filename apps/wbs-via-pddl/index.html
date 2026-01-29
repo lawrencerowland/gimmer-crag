@@ -1,0 +1,1466 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PDDL → Explainable WBS (Emergency Shelter @ Gimmer Crag)</title>
+  <link rel="stylesheet" href="../../common.css" />
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --panel:#101824;
+      --panel2:#0f1620;
+      --text:#e8eef6;
+      --muted:#a7b5c6;
+      --line:#223246;
+      --accent:#79c0ff;
+      --accent2:#8ce99a;
+      --warn:#ffcc66;
+      --bad:#ff6b6b;
+      --chip:#132131;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      color:var(--text);
+      background: radial-gradient(1200px 500px at 20% -10%, #14263a 0%, transparent 60%),
+                  radial-gradient(1200px 500px at 90% 0%, #162b44 0%, transparent 55%),
+                  var(--bg);
+    }
+    .back-link{
+      margin: 0;
+      padding: 12px 18px 0;
+    }
+    header{
+      padding:18px 18px 10px;
+      border-bottom:1px solid var(--line);
+      background: linear-gradient(180deg, rgba(16,24,36,.9), rgba(11,15,20,.3));
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(8px);
+    }
+    h1{
+      margin:0 0 6px;
+      font-size:18px;
+      letter-spacing:.2px;
+      font-weight:700;
+    }
+    header .sub{
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.35;
+      max-width: 1100px;
+    }
+    header .sub b{color:#fff}
+    .wrap{
+      display:flex;
+      gap:14px;
+      padding:14px 14px 18px;
+      max-width: 1400px;
+      margin:0 auto;
+    }
+    .col{
+      flex:1;
+      min-width: 320px;
+    }
+    .left{flex: 0 0 430px}
+    .card{
+      background: linear-gradient(180deg, rgba(16,24,36,.92), rgba(15,22,32,.85));
+      border:1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    }
+    .card + .card{margin-top: 12px}
+    .row{display:flex; gap:10px; align-items:center; flex-wrap: wrap}
+    label{font-size:12px; color:var(--muted)}
+    select, button, input[type="text"]{
+      background: #0e1520;
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 10px;
+      font-size: 13px;
+      outline: none;
+    }
+    select{min-width: 260px}
+    button{
+      cursor:pointer;
+      transition: transform .04s ease, border-color .2s ease, background .2s ease;
+      font-weight: 650;
+    }
+    button:hover{border-color:#335379}
+    button:active{transform: translateY(1px)}
+    button.primary{
+      background: linear-gradient(180deg, rgba(121,192,255,.17), rgba(121,192,255,.05));
+      border-color: #2a4e74;
+    }
+    button.ghost{
+      background: transparent;
+    }
+    .hint{
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.35;
+    }
+    .warning{
+      border-left: 3px solid var(--warn);
+      padding-left: 10px;
+      margin-top: 8px;
+    }
+    .bad{
+      border-left: 3px solid var(--bad);
+      padding-left: 10px;
+      margin-top: 8px;
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      background: var(--chip);
+      border:1px solid var(--line);
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .pill b{color: var(--text)}
+    .sectionTitle{
+      font-size:12px;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      color: var(--muted);
+      margin: 2px 0 10px;
+    }
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .facts{
+      border: 1px solid var(--line);
+      background: rgba(10,14,20,.35);
+      border-radius: 12px;
+      padding: 10px;
+      max-height: 420px;
+      overflow:auto;
+    }
+    .facts .group{
+      margin: 0 0 12px;
+    }
+    .facts .group:last-child{margin-bottom:0}
+    .facts h3{
+      margin: 0 0 8px;
+      font-size: 12px;
+      color: #d9e6f6;
+      font-weight: 700;
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .facts h3 span{
+      font-weight: 600;
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .check{
+      display:flex;
+      align-items:flex-start;
+      gap: 8px;
+      padding: 6px 6px;
+      border-radius: 10px;
+    }
+    .check:hover{background: rgba(255,255,255,.03)}
+    .check input{margin-top: 2px}
+    .check div{
+      line-height: 1.25;
+    }
+    .check .name{
+      font-size: 13px;
+      color: var(--text);
+    }
+    .check .desc{
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+    .tabs{
+      display:flex;
+      gap:8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .tab{
+      padding: 8px 10px;
+      border:1px solid var(--line);
+      background: rgba(10,14,20,.35);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 12px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .tab.active{
+      border-color:#2a4e74;
+      color: var(--text);
+      background: linear-gradient(180deg, rgba(121,192,255,.14), rgba(121,192,255,.03));
+    }
+    .mono{
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .out{
+      border:1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      background: rgba(10,14,20,.35);
+    }
+    .out .meta{
+      display:flex;
+      gap:8px;
+      flex-wrap: wrap;
+      align-items:center;
+      margin-bottom: 8px;
+    }
+    .out .meta .pill{padding:6px 10px}
+    .table{
+      width:100%;
+      border-collapse: collapse;
+      overflow:hidden;
+      border-radius: 12px;
+      border:1px solid var(--line);
+      background: rgba(10,14,20,.35);
+      margin-top: 10px;
+    }
+    .table th, .table td{
+      padding: 10px 10px;
+      border-bottom: 1px solid rgba(34,50,70,.75);
+      vertical-align: top;
+      font-size: 12.8px;
+      line-height: 1.35;
+    }
+    .table th{
+      text-align:left;
+      color: #cfe1f7;
+      font-size: 12px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      background: rgba(16,24,36,.55);
+    }
+    .table tr:last-child td{border-bottom: 0}
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding: 5px 9px;
+      border-radius: 999px;
+      border:1px solid var(--line);
+      background: rgba(19,33,49,.7);
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .badge.ok{border-color: rgba(140,233,154,.35); color:#c9f5d2}
+    .badge.warn{border-color: rgba(255,204,102,.35); color:#ffe7b3}
+    .badge.bad{border-color: rgba(255,107,107,.35); color:#ffd1d1}
+    details{
+      border:1px solid var(--line);
+      background: rgba(10,14,20,.35);
+      border-radius: 12px;
+      padding: 8px 10px;
+      margin-top: 10px;
+    }
+    details summary{
+      cursor:pointer;
+      user-select:none;
+      color: #d9e6f6;
+      font-weight: 700;
+      font-size: 13px;
+    }
+    details summary span{
+      color: var(--muted);
+      font-weight: 600;
+      margin-left: 8px;
+      font-size: 12px;
+    }
+    details .inner{
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .tree{
+      margin-top: 10px;
+      border:1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      background: rgba(10,14,20,.35);
+      max-height: 640px;
+      overflow:auto;
+    }
+    .node{
+      margin: 6px 0;
+      padding-left: 16px;
+      position: relative;
+    }
+    .node::before{
+      content:"";
+      position:absolute;
+      left: 6px;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: rgba(34,50,70,.75);
+    }
+    .node:first-child::before{top: 14px}
+    .node:last-child::before{bottom: 14px}
+    .node > .line{
+      display:flex;
+      align-items:flex-start;
+      gap: 10px;
+    }
+    .toggle{
+      width: 20px;
+      height: 20px;
+      border:1px solid var(--line);
+      border-radius: 6px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      user-select:none;
+      flex:0 0 20px;
+      background: rgba(19,33,49,.7);
+      color: var(--muted);
+      margin-top: 1px;
+    }
+    .node.leaf > .line .toggle{
+      opacity: .35;
+      cursor: default;
+    }
+    .label{
+      flex:1;
+    }
+    .label .title{
+      font-size: 13px;
+      color: var(--text);
+      font-weight: 700;
+    }
+    .label .why{
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height:1.35;
+    }
+    .children{margin-left: 6px; padding-left: 10px}
+    .children.hidden{display:none}
+    .kbd{
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 2px 6px;
+      border:1px solid var(--line);
+      border-radius: 6px;
+      background: rgba(19,33,49,.7);
+      color: #d9e6f6;
+    }
+    footer{
+      color: var(--muted);
+      font-size: 12px;
+      padding: 0 14px 18px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .mini{
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+    .split{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    @media (max-width: 1020px){
+      .wrap{flex-direction: column}
+      .left{flex: 1 1 auto}
+      .split{grid-template-columns: 1fr}
+      select{min-width: unset; width: 100%}
+    }
+  </style>
+</head>
+<body>
+<p class="back-link"><a href="../../index.html">Back to app index</a></p>
+<header>
+  <h1>PDDL → Explainable WBS (Interactive) — Emergency Shelter “halfway up” Gimmer Crag, Langdale</h1>
+  <div class="sub">
+    The model is a small <b>STRIPS/PDDL-style</b> planning problem: a target end-state (goal literals) + a catalogue of actions (preconditions/effects).
+    Clicking <span class="kbd">Generate plan &amp; WBS</span> runs a lightweight best‑first planner, then compiles an explainable Work Breakdown Structure by <b>goal decomposition</b> + <b>causal links</b>.
+    <span class="warning">This stays high-level (no technical rigging/installation instructions); treat it as a planning/specification aid and consult qualified professionals for real-world execution.</span>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- LEFT: Inputs -->
+  <div class="col left">
+    <div class="card">
+      <div class="sectionTitle">About this workbench</div>
+      <div class="row">
+        <button class="ghost" id="explainerBtn">Explainer</button>
+        <button class="ghost" id="promptBtn">Prompt used</button>
+      </div>
+      <div class="out" id="aboutOutput" aria-live="polite">
+        <div class="mini" id="aboutTitle">Choose a button to view details.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sectionTitle">Scenario</div>
+      <div class="row">
+        <label for="scenarioSelect">Preset</label>
+        <select id="scenarioSelect" aria-label="Scenario preset">
+          <option value="gimmer">Emergency shelter at Gimmer Crag (Langdale)</option>
+        </select>
+        <button class="ghost" id="resetBtn" title="Reset to preset">Reset</button>
+      </div>
+      <div class="hint">
+        Think of literals as “auditably true statements.” Toggle assumptions; the planner will either produce a plan (action sequence) or prove it can’t reach the goal with the current domain.
+      </div>
+      <div class="warning hint">
+        For cliff/rock contexts: professional oversight, rescue readiness, and legal/landowner constraints are non‑negotiable in practice; the toggles here are epistemic switches for modelling.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sectionTitle">Initial state & goals</div>
+
+      <div class="grid2">
+        <div>
+          <div class="pill" style="width:100%; justify-content:space-between">
+            <span><b>Init</b> (facts already true)</span>
+            <span id="initCount" class="mini">—</span>
+          </div>
+        </div>
+        <div>
+          <div class="pill" style="width:100%; justify-content:space-between">
+            <span><b>Goal</b> (end-state)</span>
+            <span id="goalCount" class="mini">—</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="split" style="margin-top:10px">
+        <div class="facts" id="initFacts" aria-label="Initial state facts"></div>
+        <div class="facts" id="goalFacts" aria-label="Goal facts"></div>
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <button class="primary" id="runBtn">Generate plan &amp; WBS</button>
+        <button class="ghost" id="exportBtn" title="Export WBS as JSON">Export WBS JSON</button>
+        <span class="pill" id="statusPill"><b>Status</b>: idle</span>
+      </div>
+
+      <div class="bad hint" id="plannerError" style="display:none"></div>
+    </div>
+
+    <div class="card">
+      <div class="sectionTitle">Planning model (PDDL-style)</div>
+      <div class="hint">The UI edits the problem (<span class="kbd">:init</span> and <span class="kbd">:goal</span>); the domain is fixed but readable/exportable.</div>
+
+      <details open>
+        <summary>Domain (actions) <span id="domainMeta"></span></summary>
+        <div class="inner">
+          <div class="out mono" id="domainPddl"></div>
+        </div>
+      </details>
+
+      <details>
+        <summary>Problem (init &amp; goal) <span id="problemMeta"></span></summary>
+        <div class="inner">
+          <div class="out mono" id="problemPddl"></div>
+        </div>
+      </details>
+
+      <details>
+        <summary>How the WBS is derived <span>(explainability rule)</span></summary>
+        <div class="inner">
+          <ul>
+            <li><b>End-state literals</b> are clustered into deliverables (work packages) like “Access &amp; Rescue Readiness.”</li>
+            <li>Each plan action is assigned to the <b>first deliverable</b> whose target literals it contributes to (direct effects), and is displayed with its <b>causal justification</b>.</li>
+            <li>Within each deliverable, actions are ordered as in the plan, giving a traceable “because → therefore” chain.</li>
+          </ul>
+          <div class="hint">
+            This is deliberately “explainable by construction”: every work package is grounded in explicit predicates, not informal phase labels.
+          </div>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <!-- RIGHT: Outputs -->
+  <div class="col">
+    <div class="card">
+      <div class="sectionTitle">Outputs</div>
+
+      <div class="tabs" role="tablist" aria-label="Output tabs">
+        <div class="tab active" data-tab="wbs">WBS (tree)</div>
+        <div class="tab" data-tab="plan">Plan (actions)</div>
+        <div class="tab" data-tab="why">Explain (causal links)</div>
+      </div>
+
+      <div id="tab_wbs">
+        <div class="hint">
+          Tip: click the squares to collapse/expand. Each node has a short “why” grounded in literals the planner used.
+        </div>
+        <div class="tree" id="wbsTree" aria-label="WBS tree"></div>
+      </div>
+
+      <div id="tab_plan" style="display:none">
+        <div class="out" id="planSummary"></div>
+        <table class="table" id="planTable" aria-label="Plan action table">
+          <thead>
+            <tr>
+              <th style="width:64px">#</th>
+              <th>Action</th>
+              <th>Preconditions</th>
+              <th>Effects</th>
+            </tr>
+          </thead>
+          <tbody id="planBody"></tbody>
+        </table>
+      </div>
+
+      <div id="tab_why" style="display:none">
+        <div class="hint">
+          Causal links show <b>support edges</b>: which earlier action (or initial state) established each precondition for each step.
+        </div>
+        <div class="out mono" id="causalOut"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sectionTitle">Safety & realism notes (non-optional)</div>
+      <div class="hint">
+        This planner treats “actions” as abstract commitments; it cannot capture real cliffside uncertainty (rock quality, anchor integrity, wind loading, human factors).
+        In practice you’d add (at least) probabilistic risk models, verification gates, professional sign-off, and explicit constraints (e.g., “no single-point failures”).
+      </div>
+      <div class="warning hint">
+        If you use the model, use it for <b>documentation</b> and <b>explainability</b>—not for operational instructions. Treat every “access/anchor/rig” step as requiring qualified specialists and local authority guidance.
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="mini">
+    Keyboard: <span class="kbd">Ctrl</span> + <span class="kbd">Enter</span> runs “Generate plan &amp; WBS”.
+    Export produces a compact JSON WBS you can paste into your PM tooling.
+  </div>
+</footer>
+
+<script>
+/**
+ * A tiny STRIPS/PDDL-ish planner and an "explainable WBS" compiler.
+ * - Literals are strings like "risk_assessed".
+ * - Actions have preconditions (pos literals) and add effects.
+ * - No delete effects in this version (intentional: keeps causal explanation simple & safe).
+ *
+ * This is not a full PDDL parser. It *exports* PDDL-style text to make the model inspectable and portable.
+ */
+
+(function(){
+  const EXPLAINER_TEXT = "a “PDDL → plan → explainable WBS” workbench for the Gimmer Crag emergency-shelter scenario: it encodes an end-state as goal literals, searches for an action sequence that reaches them (STRIPS/PDDL-style), then compiles an explainable WBS by mapping actions to deliverable-subgoals and displaying causal links (“this step is in this work package because it establishes these predicates that later steps require”). It’s intentionally high-level (no rigging/anchor how-to), but the point is that every WBS node comes with a predicate-level justification chain back to the specified end-state, so you can audit why each work package exists and what would break if you removed it.";
+  const PROMPT_TEXT = "Ends: Build robust WBS for projects using reasoning in PDDL about both the end state, and the processes to achieve the end state. This should achieve a WBS that is explainable. Do this for the project scenarios given by the user or for those listed below. Ways: PDDL Means: write a single html file with interactive features to model and capture and explain and illustrate your results Project scenarios: 1. build a emergency shelter half way up Gimmer crag in langdale.";
+
+  // ---------- Domain: literals (with human descriptions) ----------
+  const FACTS = {
+    // Governance / context
+    emergency_context: "An emergency need exists (changes urgency; may affect permitted processes).",
+    landowner_contacted: "Relevant landowner/authority contacted (initial comms done).",
+    permissions_obtained: "Permission / authority clearance obtained (or lawful emergency authorisation documented).",
+    risk_assessed: "High-level hazard/risk assessment completed (incl. cliff objective hazards).",
+    weather_window: "A plausible weather window is identified (wind/precip/temps acceptable for the build).",
+    environmental_plan: "Environmental protection plan in place (minimise damage, debris control, leave-no-trace).",
+
+    // Access & rescue
+    access_route_mapped: "Access/egress route mapped (including haul lines and staging).",
+    rescue_plan: "Rescue & medevac plan prepared (roles, comms, escalation).",
+    team_briefed: "Team briefed on plan, comms, roles, stop conditions.",
+    haul_system_ready: "Haul/staging system prepared (conceptually: ability to move materials safely).",
+
+    // Design & procurement
+    shelter_spec_defined: "A minimal shelter spec exists (capacity, duration, thermal/wind assumptions).",
+    anchors_designed: "Anchor/attachment concept designed & reviewed (abstract; no technical specs here).",
+    materials_procured: "Materials procured (shelter kit, fixings, tools, consumables).",
+
+    // Installation / build
+    anchors_installed: "Anchors/attachments installed (abstract milestone).",
+    platform_built: "Support/platform/base established (abstract milestone).",
+    frame_erected: "Primary frame erected (abstract milestone).",
+    weatherproofed: "Envelope is weather-tight enough for intended shelter function.",
+    insulation_installed: "Thermal layer installed (if required by spec).",
+    ventilation_installed: "Ventilation provision installed (condensation/CO risk mitigation).",
+    interior_fitout: "Basic interior fit-out done (sleeping/occupancy surfaces, minimal storage).",
+    fire_safety: "Basic fire/heat safety provisions in place (abstract milestone).",
+
+    // Commissioning / handover
+    inspection_passed: "Safety/quality inspection passed (explicit gate).",
+    signage_installed: "Signage/instructions/limits posted (capacity, use constraints, emergency info).",
+    supplies_stocked: "Emergency supplies stocked (first aid, blankets, comms guidance, etc.).",
+    shelter_operational: "Shelter operational (usable as intended).",
+    safe_for_occupancy: "Declared safe-for-occupancy under the model's criteria.",
+    environment_protected: "Environmental protections implemented and verified."
+  };
+
+  // Helpful grouping for the UI (just for navigation; not used by the planner).
+  const FACT_GROUPS = [
+    { title: "Governance / context", items: ["emergency_context","landowner_contacted","permissions_obtained","risk_assessed","weather_window","environmental_plan"] },
+    { title: "Access & rescue", items: ["access_route_mapped","rescue_plan","team_briefed","haul_system_ready"] },
+    { title: "Design & procurement", items: ["shelter_spec_defined","anchors_designed","materials_procured"] },
+    { title: "Build & commissioning", items: ["anchors_installed","platform_built","frame_erected","weatherproofed","insulation_installed","ventilation_installed","interior_fitout","fire_safety","inspection_passed","signage_installed","supplies_stocked","shelter_operational","safe_for_occupancy","environment_protected"] }
+  ];
+
+  // ---------- Domain: Actions ----------
+  // Each action: name, label, pre (array), add (array), explain (short human description)
+  const ACTIONS = [
+    {
+      name: "define_shelter_spec",
+      label: "Define minimal shelter specification",
+      pre: ["emergency_context"],
+      add: ["shelter_spec_defined"],
+      explain: "Fixes the end-state semantics (capacity/duration assumptions) so downstream work packages are well-typed."
+    },
+    {
+      name: "contact_landowner_or_authority",
+      label: "Contact landowner / authority",
+      pre: [],
+      add: ["landowner_contacted"],
+      explain: "Creates a governance channel; later 'permissions_obtained' depends on it."
+    },
+    {
+      name: "complete_risk_assessment",
+      label: "Complete hazard & risk assessment",
+      pre: ["landowner_contacted"],
+      add: ["risk_assessed"],
+      explain: "Establishes the safety baseline; enables access planning, design review, rescue planning."
+    },
+    {
+      name: "identify_weather_window",
+      label: "Identify a feasible weather window",
+      pre: ["risk_assessed"],
+      add: ["weather_window"],
+      explain: "Locks in timing constraints; cliffside work is weather-sensitive."
+    },
+    {
+      name: "obtain_permission_or_emergency_authorisation",
+      label: "Obtain permission / emergency authorisation (documented)",
+      pre: ["landowner_contacted","risk_assessed"],
+      add: ["permissions_obtained"],
+      explain: "A legal/organisational gate; treat as mandatory even under emergency contexts."
+    },
+    {
+      name: "create_environmental_plan",
+      label: "Create environmental protection plan",
+      pre: ["risk_assessed"],
+      add: ["environmental_plan"],
+      explain: "Prevents collateral damage; becomes an explicit goal in this model."
+    },
+    {
+      name: "plan_access_and_rescue",
+      label: "Plan access/egress + rescue & medevac",
+      pre: ["risk_assessed"],
+      add: ["access_route_mapped","rescue_plan"],
+      explain: "Access is a prerequisite deliverable; rescue readiness is a safety gate for later physical work."
+    },
+    {
+      name: "brief_team_and_roles",
+      label: "Brief team on roles, comms, stop-conditions",
+      pre: ["rescue_plan"],
+      add: ["team_briefed"],
+      explain: "Turns plans into shared commitments; enables safe staging and installation work."
+    },
+    {
+      name: "design_anchor_concept",
+      label: "Design/review anchor & attachment concept (abstract)",
+      pre: ["risk_assessed","shelter_spec_defined"],
+      add: ["anchors_designed"],
+      explain: "Abstracts structural engineering; captures dependency on risk & requirements."
+    },
+    {
+      name: "procure_shelter_materials",
+      label: "Procure materials/tools (kit, fixings, consumables)",
+      pre: ["anchors_designed","permissions_obtained","weather_window"],
+      add: ["materials_procured"],
+      explain: "Locks in logistics; depends on design + authority + weather."
+    },
+    {
+      name: "prepare_staging_and_haul",
+      label: "Prepare staging/haul capability (abstract)",
+      pre: ["access_route_mapped","team_briefed","materials_procured"],
+      add: ["haul_system_ready"],
+      explain: "Represents the capacity to move and manage materials safely at the site."
+    },
+    {
+      name: "install_anchors",
+      label: "Install anchors/attachments (milestone)",
+      pre: ["anchors_designed","haul_system_ready","environmental_plan"],
+      add: ["anchors_installed"],
+      explain: "Physical interface established; requires staging and environmental controls."
+    },
+    {
+      name: "build_platform",
+      label: "Build/establish platform or base (milestone)",
+      pre: ["anchors_installed","materials_procured","environmental_plan"],
+      add: ["platform_built"],
+      explain: "Creates the stable base for the shelter structure."
+    },
+    {
+      name: "erect_frame",
+      label: "Erect primary frame (milestone)",
+      pre: ["platform_built","materials_procured"],
+      add: ["frame_erected"],
+      explain: "Enables envelope installation; main structural assembly milestone."
+    },
+    {
+      name: "install_envelope",
+      label: "Install envelope (weatherproofing layer)",
+      pre: ["frame_erected","weather_window"],
+      add: ["weatherproofed"],
+      explain: "Achieves the core shelter function: a weather-tight envelope."
+    },
+    {
+      name: "install_habitability",
+      label: "Install habitability: insulation + ventilation + basic interior",
+      pre: ["weatherproofed","shelter_spec_defined"],
+      add: ["insulation_installed","ventilation_installed","interior_fitout"],
+      explain: "Targets survivability/habitability; explicitly models ventilation & thermal constraints."
+    },
+    {
+      name: "install_fire_safety",
+      label: "Install basic fire/heat safety provisions",
+      pre: ["interior_fitout","ventilation_installed"],
+      add: ["fire_safety"],
+      explain: "A safety gate; preconditioned on ventilation and interior fit-out."
+    },
+    {
+      name: "perform_inspection",
+      label: "Perform safety/quality inspection (gate)",
+      pre: ["fire_safety","rescue_plan","environmental_plan"],
+      add: ["inspection_passed"],
+      explain: "Explicit verification gate before declaring operational."
+    },
+    {
+      name: "stock_and_sign",
+      label: "Stock emergency supplies and install signage",
+      pre: ["inspection_passed"],
+      add: ["supplies_stocked","signage_installed"],
+      explain: "Makes the shelter usable and self-documenting for future occupants."
+    },
+    {
+      name: "verify_environmental_controls",
+      label: "Verify environmental protections (debris, scarring, leave-no-trace)",
+      pre: ["environmental_plan","platform_built"],
+      add: ["environment_protected"],
+      explain: "A commissioning step: environmental compliance becomes a first-class deliverable."
+    },
+    {
+      name: "declare_operational",
+      label: "Declare shelter operational & safe-for-occupancy",
+      pre: ["supplies_stocked","signage_installed","inspection_passed","environment_protected"],
+      add: ["shelter_operational","safe_for_occupancy"],
+      explain: "Final state transition: from ‘built’ to ‘commissioned’."
+    }
+  ];
+
+  // ---------- WBS deliverable schema ----------
+  // Each deliverable has: id, title, target literals (subgoals), and a short rationale.
+  const DELIVERABLES = [
+    {
+      id: "D1",
+      title: "Governance, requirements & constraints",
+      targets: ["shelter_spec_defined","risk_assessed","permissions_obtained","weather_window","environmental_plan"],
+      rationale: "Defines the end-state semantics and legal/safety/environmental constraints that make the rest of the plan legitimate and coherent."
+    },
+    {
+      id: "D2",
+      title: "Access & rescue readiness",
+      targets: ["access_route_mapped","rescue_plan","team_briefed","haul_system_ready"],
+      rationale: "Creates safe/controllable access to the worksite and establishes response capacity for foreseeable failure modes."
+    },
+    {
+      id: "D3",
+      title: "Structural interface & assembly",
+      targets: ["anchors_installed","platform_built","frame_erected"],
+      rationale: "Establishes the load path and the physical structure on which shelter function depends."
+    },
+    {
+      id: "D4",
+      title: "Envelope & habitability",
+      targets: ["weatherproofed","insulation_installed","ventilation_installed","interior_fitout","fire_safety"],
+      rationale: "Turns a structure into a shelter: weather-tightness, thermal control, ventilation, and heat/fire risk controls."
+    },
+    {
+      id: "D5",
+      title: "Commissioning, environmental verification & handover",
+      targets: ["inspection_passed","environment_protected","supplies_stocked","signage_installed","shelter_operational","safe_for_occupancy"],
+      rationale: "Verification gates + documentation + supplies; ends with an auditable ‘operational’ state and environmental sign-off."
+    }
+  ];
+
+  // ---------- Preset problem: Gimmer Crag ----------
+  const PRESETS = {
+    gimmer: {
+      title: "Emergency shelter at Gimmer Crag",
+      init: new Set([
+        "emergency_context"
+        // Others can be toggled to explore alternative assumptions.
+      ]),
+      goal: new Set([
+        "shelter_operational",
+        "safe_for_occupancy",
+        "environment_protected"
+      ])
+    }
+  };
+
+  // ---------- PDDL exporters (domain and problem) ----------
+  function toPddlDomain(){
+    const predList = Object.keys(FACTS).sort()
+      .map(p => `  (${p})`).join("\n");
+    const actionBlocks = ACTIONS.map(a => {
+      const pre = a.pre.length ? a.pre.map(p=>`(${p})`).join(" ") : "";
+      const add = a.add.length ? a.add.map(p=>`(${p})`).join(" ") : "";
+      return [
+        `  (:action ${a.name}`,
+        `    :precondition ${a.pre.length ? `(and ${pre})` : "()"} `,
+        `    :effect ${a.add.length ? `(and ${add})` : "()"} `,
+        `  )`
+      ].join("\n");
+    }).join("\n\n");
+
+    return [
+      `(define (domain gimmer-shelter)`,
+      `  (:requirements :strips)`,
+      `  (:predicates`,
+      predList,
+      `  )`,
+      ``,
+      actionBlocks,
+      `)`
+    ].join("\n");
+  }
+
+  function toPddlProblem(initSet, goalSet){
+    const init = Array.from(initSet).sort().map(p => `    (${p})`).join("\n");
+    const goal = Array.from(goalSet).sort().map(p => `(${p})`).join(" ");
+    return [
+      `(define (problem gimmer-shelter-problem)`,
+      `  (:domain gimmer-shelter)`,
+      `  (:init`,
+      init || "    ;; (none)",
+      `  )`,
+      `  (:goal (and ${goal || ""}))`,
+      `)`
+    ].join("\n");
+  }
+
+  // ---------- Planner (best-first / A* over propositional states) ----------
+  function heuristic(stateSet, goalSet){
+    // Count missing goal literals.
+    let miss = 0;
+    for (const g of goalSet) if (!stateSet.has(g)) miss++;
+    return miss;
+  }
+
+  function hashState(set){
+    // Stable hash: sorted literals joined.
+    return Array.from(set).sort().join("|");
+  }
+
+  function applicable(action, stateSet){
+    for (const p of action.pre) if (!stateSet.has(p)) return false;
+    return true;
+  }
+
+  function apply(action, stateSet){
+    const ns = new Set(stateSet);
+    for (const eff of action.add) ns.add(eff);
+    return ns;
+  }
+
+  function plan(initSet, goalSet, maxExpansions=30000){
+    // A* over states.
+    const start = new Set(initSet);
+    const startH = heuristic(start, goalSet);
+    const open = [];
+    const push = (node) => {
+      open.push(node);
+      // simple insertion sort by f for small problems
+      open.sort((a,b)=>a.f-b.f);
+    };
+    push({state:start, g:0, h:startH, f:startH, parent:null, action:null});
+
+    const bestG = new Map(); // stateHash -> best g
+    bestG.set(hashState(start), 0);
+
+    let expansions = 0;
+
+    while (open.length){
+      const cur = open.shift();
+      expansions++;
+      if (expansions > maxExpansions){
+        return { ok:false, reason:`Search exceeded ${maxExpansions} expansions; domain/problem may be too open.` };
+      }
+      if (heuristic(cur.state, goalSet) === 0){
+        // Reconstruct plan actions.
+        const actions = [];
+        let n = cur;
+        while (n && n.action){
+          actions.push(n.action);
+          n = n.parent;
+        }
+        actions.reverse();
+        return { ok:true, actions, expansions };
+      }
+
+      for (const a of ACTIONS){
+        if (!applicable(a, cur.state)) continue;
+        const ns = apply(a, cur.state);
+        const g = cur.g + 1;
+        const h = heuristic(ns, goalSet);
+        const f = g + h;
+        const hs = hashState(ns);
+        const prevBest = bestG.get(hs);
+        if (prevBest === undefined || g < prevBest){
+          bestG.set(hs, g);
+          push({state:ns, g, h, f, parent:cur, action:a});
+        }
+      }
+    }
+    return { ok:false, reason:"No plan found: given the current init/goal, the domain cannot reach the end-state." };
+  }
+
+  // ---------- Causal link extraction ----------
+  function buildTrace(initSet, actionSeq){
+    // State progression and achiever map.
+    const trace = [];
+    const achiever = new Map(); // literal -> {type:'init'| 'action', index}
+    for (const p of initSet) achiever.set(p, {type:'init', index:-1});
+
+    let state = new Set(initSet);
+    trace.push({state: new Set(state), action:null, support:{} });
+
+    actionSeq.forEach((a, idx) => {
+      // For each precondition, record who supports it.
+      const support = {};
+      for (const p of a.pre){
+        support[p] = achiever.has(p) ? achiever.get(p) : {type:'unknown', index:null};
+      }
+
+      // Apply add effects; record achiever (last writer wins, but with no deletes that's fine).
+      state = apply(a, state);
+      for (const eff of a.add){
+        achiever.set(eff, {type:'action', index: idx, action: a.name});
+      }
+      trace.push({state: new Set(state), action:a, support});
+    });
+    return trace;
+  }
+
+  // ---------- Explainable WBS compiler ----------
+  function compileWbs(initSet, goalSet, actionSeq){
+    // Determine which deliverables are relevant: those that contain any goal literal
+    // plus their prerequisites implied by the plan.
+    const used = new Set(actionSeq.map(a=>a.name));
+
+    // Map action -> deliverable assignment (first deliverable whose targets intersect action.add)
+    const assign = new Map();
+    for (const a of actionSeq){
+      let chosen = null;
+      for (const d of DELIVERABLES){
+        const hit = a.add.some(eff => d.targets.includes(eff));
+        if (hit){ chosen = d; break; }
+      }
+      assign.set(a.name, chosen ? chosen.id : "D0");
+    }
+
+    // Build causal trace to justify actions.
+    const trace = buildTrace(initSet, actionSeq);
+
+    // Helper to pretty-print literals.
+    const lit = (p)=>`<span class="kbd">${p}</span>`;
+
+    // For each deliverable, collect actions in plan order.
+    const delivNodes = DELIVERABLES.map(d => {
+      const actions = actionSeq.filter(a => assign.get(a.name) === d.id);
+      // Determine which target literals were achieved by those actions (subset).
+      const achieved = new Set();
+      actions.forEach(a => a.add.forEach(e => { if (d.targets.includes(e)) achieved.add(e); }));
+      const achievedArr = Array.from(achieved).sort();
+      const missingTargets = d.targets.filter(t => !achieved.has(t) && goalSet.has(t));
+      return { d, actions, achievedArr, missingTargets };
+    });
+
+    // Root WBS object.
+    const root = {
+      id: "ROOT",
+      title: "Emergency shelter delivered and commissioned",
+      whyHtml: `End-state: ${Array.from(goalSet).sort().map(lit).join(" ")}.`,
+      children: []
+    };
+
+    // Build children: deliverables with any assigned actions or any goal targets.
+    for (const n of delivNodes){
+      const d = n.d;
+      const relevant = (n.actions.length > 0) || d.targets.some(t => goalSet.has(t));
+      if (!relevant) continue;
+
+      const achievedHtml = n.achievedArr.length
+        ? `Achieves: ${n.achievedArr.map(lit).join(" ")}.`
+        : `Achieves: (none directly; may carry prerequisites).`;
+      const missingHtml = n.missingTargets.length
+        ? `<span style="color:var(--warn)">Still missing goal targets:</span> ${n.missingTargets.map(lit).join(" ")}.`
+        : "";
+
+      const delNode = {
+        id: d.id,
+        title: `${d.id} — ${d.title}`,
+        whyHtml: `${d.rationale}<br>${achievedHtml} ${missingHtml}`.trim(),
+        children: []
+      };
+
+      // Add each action as a leaf node with justification from causal trace.
+      n.actions.forEach((a, idxWithinDeliverable) => {
+        const i = actionSeq.findIndex(x=>x.name===a.name); // plan index
+        const step = trace[i+1]; // trace includes initial at 0
+        const supports = Object.entries(step.support || {});
+        const because = supports.length
+          ? supports.map(([p,src]) => {
+              if (src.type === 'init') return `${lit(p)} from <span class="badge ok">init</span>`;
+              if (src.type === 'action') return `${lit(p)} from step ${src.index+1}`;
+              return `${lit(p)} from <span class="badge bad">unknown</span>`;
+            }).join("; ")
+          : "No preconditions.";
+
+        const effectBits = a.add.map(lit).join(" ");
+        const why = [
+          `<span class="badge ok">Pre</span> ${because}`,
+          `<span class="badge ok">Add</span> ${effectBits}`,
+          `<span class="badge warn">Why</span> ${a.explain}`
+        ].join("<br>");
+
+        delNode.children.push({
+          id: `${d.id}.${i+1}`,
+          title: `Step ${i+1}: ${a.label}`,
+          whyHtml: why,
+          children: []
+        });
+      });
+
+      root.children.push(delNode);
+    }
+
+    // Add a thin "Goal validation" node.
+    const finalState = trace[trace.length-1].state;
+    const unmet = Array.from(goalSet).filter(g => !finalState.has(g));
+    root.children.push({
+      id: "VAL",
+      title: "Goal validation",
+      whyHtml: unmet.length
+        ? `<span class="badge bad">Unmet goals</span> ${unmet.map(lit).join(" ")}`
+        : `<span class="badge ok">All goals met</span> The plan reaches the specified end-state.`,
+      children: []
+    });
+
+    return { root, assign, trace };
+  }
+
+  // ---------- UI ----------
+  const els = {
+    scenarioSelect: document.getElementById("scenarioSelect"),
+    resetBtn: document.getElementById("resetBtn"),
+    initFacts: document.getElementById("initFacts"),
+    goalFacts: document.getElementById("goalFacts"),
+    initCount: document.getElementById("initCount"),
+    goalCount: document.getElementById("goalCount"),
+    runBtn: document.getElementById("runBtn"),
+    exportBtn: document.getElementById("exportBtn"),
+    statusPill: document.getElementById("statusPill"),
+    plannerError: document.getElementById("plannerError"),
+    domainPddl: document.getElementById("domainPddl"),
+    problemPddl: document.getElementById("problemPddl"),
+    domainMeta: document.getElementById("domainMeta"),
+    problemMeta: document.getElementById("problemMeta"),
+    wbsTree: document.getElementById("wbsTree"),
+    planSummary: document.getElementById("planSummary"),
+    planBody: document.getElementById("planBody"),
+    causalOut: document.getElementById("causalOut"),
+    tabs: Array.from(document.querySelectorAll(".tab")),
+    tab_wbs: document.getElementById("tab_wbs"),
+    tab_plan: document.getElementById("tab_plan"),
+    tab_why: document.getElementById("tab_why"),
+    explainerBtn: document.getElementById("explainerBtn"),
+    promptBtn: document.getElementById("promptBtn"),
+    aboutOutput: document.getElementById("aboutOutput"),
+    aboutTitle: document.getElementById("aboutTitle")
+  };
+
+  // Local working model (mutable).
+  const model = {
+    scenarioId: "gimmer",
+    init: new Set(PRESETS.gimmer.init),
+    goal: new Set(PRESETS.gimmer.goal),
+    lastWbs: null
+  };
+
+  function setStatus(text, kind="idle"){
+    els.statusPill.innerHTML = `<b>Status</b>: ${text}`;
+    els.statusPill.style.borderColor =
+      kind === "ok" ? "rgba(140,233,154,.35)" :
+      kind === "bad" ? "rgba(255,107,107,.35)" :
+      kind === "warn" ? "rgba(255,204,102,.35)" : "var(--line)";
+  }
+
+  function showError(msg){
+    els.plannerError.style.display = "block";
+    els.plannerError.innerHTML = msg;
+  }
+  function clearError(){
+    els.plannerError.style.display = "none";
+    els.plannerError.innerHTML = "";
+  }
+
+  function setAbout(title, text){
+    els.aboutTitle.textContent = title;
+    els.aboutOutput.innerHTML = "";
+    const titleEl = document.createElement("div");
+    titleEl.className = "mini";
+    titleEl.textContent = title;
+    const body = document.createElement("div");
+    body.textContent = text;
+    body.style.marginTop = "6px";
+    body.style.lineHeight = "1.45";
+    body.style.fontSize = "12px";
+    body.style.color = "var(--muted)";
+    els.aboutOutput.appendChild(titleEl);
+    els.aboutOutput.appendChild(body);
+  }
+
+  function renderFacts(){
+    // Init facts
+    els.initFacts.innerHTML = "";
+    els.goalFacts.innerHTML = "";
+
+    const initWrap = document.createElement("div");
+    const goalWrap = document.createElement("div");
+
+    for (const group of FACT_GROUPS){
+      const g1 = document.createElement("div");
+      g1.className = "group";
+      const title1 = document.createElement("h3");
+      title1.textContent = group.title;
+      title1.appendChild(Object.assign(document.createElement("span"), {textContent: "toggle"}));
+      g1.appendChild(title1);
+
+      const g2 = document.createElement("div");
+      g2.className = "group";
+      const title2 = document.createElement("h3");
+      title2.textContent = group.title;
+      title2.appendChild(Object.assign(document.createElement("span"), {textContent: "toggle"}));
+      g2.appendChild(title2);
+
+      for (const factId of group.items){
+        // Init checkbox
+        const c1 = mkFactCheckbox(factId, model.init.has(factId), (checked)=>{
+          if (checked) model.init.add(factId); else model.init.delete(factId);
+          updateCountsAndProblem();
+        }, "init");
+
+        // Goal checkbox
+        const c2 = mkFactCheckbox(factId, model.goal.has(factId), (checked)=>{
+          if (checked) model.goal.add(factId); else model.goal.delete(factId);
+          updateCountsAndProblem();
+        }, "goal");
+
+        g1.appendChild(c1);
+        g2.appendChild(c2);
+      }
+
+      initWrap.appendChild(g1);
+      goalWrap.appendChild(g2);
+    }
+
+    els.initFacts.appendChild(initWrap);
+    els.goalFacts.appendChild(goalWrap);
+
+    updateCountsAndProblem();
+  }
+
+  function mkFactCheckbox(factId, checked, onChange, kind){
+    const wrap = document.createElement("label");
+    wrap.className = "check";
+    wrap.style.cursor = "pointer";
+
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = checked;
+    cb.addEventListener("change", ()=>onChange(cb.checked));
+
+    const text = document.createElement("div");
+    const name = document.createElement("div");
+    name.className = "name";
+    name.textContent = factId;
+
+    const desc = document.createElement("div");
+    desc.className = "desc";
+    desc.textContent = FACTS[factId] || "(no description)";
+
+    text.appendChild(name);
+    text.appendChild(desc);
+
+    wrap.appendChild(cb);
+    wrap.appendChild(text);
+    return wrap;
+  }
+
+  function updateCountsAndProblem(){
+    els.initCount.textContent = `${model.init.size} facts`;
+    els.goalCount.textContent = `${model.goal.size} literals`;
+    els.problemPddl.textContent = toPddlProblem(model.init, model.goal);
+    els.problemMeta.textContent = `(${model.init.size} init, ${model.goal.size} goal)`;
+  }
+
+  function renderDomain(){
+    const d = toPddlDomain();
+    els.domainPddl.textContent = d;
+    els.domainMeta.textContent = `(${Object.keys(FACTS).length} predicates, ${ACTIONS.length} actions)`;
+  }
+
+  function switchTab(name){
+    for (const t of els.tabs) t.classList.toggle("active", t.dataset.tab === name);
+    els.tab_wbs.style.display = name === "wbs" ? "" : "none";
+    els.tab_plan.style.display = name === "plan" ? "" : "none";
+    els.tab_why.style.display = name === "why" ? "" : "none";
+  }
+
+  function renderPlan(actionSeq, expansions){
+    const goalList = Array.from(model.goal).sort().map(g=>`<span class="kbd">${g}</span>`).join(" ");
+    const initList = Array.from(model.init).sort().map(g=>`<span class="kbd">${g}</span>`).join(" ");
+
+    els.planSummary.innerHTML = `
+      <div class="meta">
+        <span class="pill"><b>Steps</b>: ${actionSeq.length}</span>
+        <span class="pill"><b>Search expansions</b>: ${expansions}</span>
+        <span class="pill"><b>Goal</b>: ${goalList || "(none)"}</span>
+      </div>
+      <div class="hint"><b>Init:</b> ${initList || "(none)"} </div>
+    `;
+
+    els.planBody.innerHTML = "";
+    actionSeq.forEach((a, idx)=>{
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><span class="badge">${idx+1}</span></td>
+        <td><b>${escapeHtml(a.label)}</b><div class="mini">${escapeHtml(a.name)}</div></td>
+        <td class="mono">${a.pre.length ? a.pre.map(p=>`(${p})`).join("\n") : "(none)"}</td>
+        <td class="mono">${a.add.length ? a.add.map(p=>`(${p})`).join("\n") : "(none)"}</td>
+      `;
+      els.planBody.appendChild(tr);
+    });
+  }
+
+  function renderCausal(trace){
+    // Build a readable causal explanation.
+    const lines = [];
+    lines.push("Causal links (support edges)");
+    lines.push("—".repeat(34));
+    for (let i=1; i<trace.length; i++){
+      const step = trace[i];
+      const a = step.action;
+      lines.push(`Step ${i}: ${a.name}`);
+      if (!a.pre.length){
+        lines.push("  pre: (none)");
+      } else {
+        for (const p of a.pre){
+          const src = step.support[p];
+          if (src.type === 'init'){
+            lines.push(`  pre: ${p}  <= init`);
+          } else if (src.type === 'action'){
+            lines.push(`  pre: ${p}  <= step ${src.index+1} (${src.action})`);
+          } else {
+            lines.push(`  pre: ${p}  <= ???`);
+          }
+        }
+      }
+      if (a.add.length){
+        lines.push(`  add: ${a.add.join(", ")}`);
+      }
+      lines.push("");
+    }
+    els.causalOut.textContent = lines.join("\n");
+  }
+
+  function renderWbsTree(root){
+    els.wbsTree.innerHTML = "";
+    const nodeEl = buildTreeNode(root, true);
+    els.wbsTree.appendChild(nodeEl);
+  }
+
+  function buildTreeNode(node, isRoot=false){
+    const wrap = document.createElement("div");
+    wrap.className = "node" + (node.children && node.children.length ? "" : " leaf");
+    const line = document.createElement("div");
+    line.className = "line";
+
+    const toggle = document.createElement("div");
+    toggle.className = "toggle";
+    toggle.textContent = node.children && node.children.length ? "–" : "•";
+
+    const label = document.createElement("div");
+    label.className = "label";
+    const title = document.createElement("div");
+    title.className = "title";
+    title.textContent = node.title;
+
+    const why = document.createElement("div");
+    why.className = "why";
+    why.innerHTML = node.whyHtml || "";
+
+    label.appendChild(title);
+    label.appendChild(why);
+
+    line.appendChild(toggle);
+    line.appendChild(label);
+
+    wrap.appendChild(line);
+
+    const children = document.createElement("div");
+    children.className = "children";
+    if (!isRoot && node.children && node.children.length > 6){
+      // default-collapse large branches
+      children.classList.add("hidden");
+      toggle.textContent = "+";
+    }
+
+    if (node.children && node.children.length){
+      for (const c of node.children){
+        children.appendChild(buildTreeNode(c, false));
+      }
+    }
+
+    wrap.appendChild(children);
+
+    if (node.children && node.children.length){
+      toggle.addEventListener("click", ()=>{
+        const hidden = children.classList.toggle("hidden");
+        toggle.textContent = hidden ? "+" : "–";
+      });
+    }
+    return wrap;
+  }
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, s => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[s]));
+  }
+
+  function run(){
+    clearError();
+    setStatus("planning…", "warn");
+
+    // Basic sanity: if goal is empty, that's "already done"
+    if (model.goal.size === 0){
+      setStatus("goal is empty (trivial plan)", "ok");
+      els.wbsTree.innerHTML = `<div class="hint">No goal literals selected. Toggle some goals to generate a non-trivial WBS.</div>`;
+      els.planBody.innerHTML = "";
+      els.causalOut.textContent = "";
+      return;
+    }
+
+    const result = plan(model.init, model.goal);
+    if (!result.ok){
+      setStatus("no plan", "bad");
+      showError(result.reason);
+      els.planBody.innerHTML = "";
+      els.causalOut.textContent = "";
+      els.wbsTree.innerHTML = `<div class="hint">No WBS because no plan reaches the end-state under current assumptions.</div>`;
+      return;
+    }
+
+    const actionSeq = result.actions;
+    const compiled = compileWbs(model.init, model.goal, actionSeq);
+
+    model.lastWbs = {
+      scenario: model.scenarioId,
+      init: Array.from(model.init).sort(),
+      goal: Array.from(model.goal).sort(),
+      actions: actionSeq.map(a=>a.name),
+      wbs: compiled.root
+    };
+
+    renderPlan(actionSeq, result.expansions);
+    renderCausal(compiled.trace);
+    renderWbsTree(compiled.root);
+
+    setStatus(`ok (${actionSeq.length} steps)`, "ok");
+  }
+
+  function exportWbsJson(){
+    if (!model.lastWbs){
+      alert("Run the planner first to produce a WBS.");
+      return;
+    }
+    const blob = new Blob([JSON.stringify(model.lastWbs, null, 2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "wbs_pddl_export.json";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function reset(){
+    const preset = PRESETS[model.scenarioId];
+    model.init = new Set(preset.init);
+    model.goal = new Set(preset.goal);
+    model.lastWbs = null;
+    renderFacts();
+    setStatus("idle");
+    clearError();
+    els.wbsTree.innerHTML = `<div class="hint">Click <span class="kbd">Generate plan &amp; WBS</span> to see the plan and explainable WBS.</div>`;
+    els.planBody.innerHTML = "";
+    els.causalOut.textContent = "";
+  }
+
+  // ---------- Event wiring ----------
+  els.tabs.forEach(t => t.addEventListener("click", ()=>switchTab(t.dataset.tab)));
+  els.runBtn.addEventListener("click", run);
+  els.exportBtn.addEventListener("click", exportWbsJson);
+  els.resetBtn.addEventListener("click", reset);
+  els.explainerBtn.addEventListener("click", ()=>setAbout("Explainer", EXPLAINER_TEXT));
+  els.promptBtn.addEventListener("click", ()=>setAbout("Prompt used", PROMPT_TEXT));
+  document.addEventListener("keydown", (e)=>{
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter"){
+      run();
+    }
+  });
+
+  // ---------- Boot ----------
+  renderDomain();
+  renderFacts();
+  reset(); // render placeholders
+
+})();
+</script>
+</body>
+</html>
