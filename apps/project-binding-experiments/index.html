@@ -1,0 +1,2052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Binding — 20 Concurrent Experiments for ChatGPT Agent</title>
+  <link rel="stylesheet" href="../../common.css">
+  <style>
+    :root{
+      --bg: #0b0d12;
+      --panel: rgba(255,255,255,0.06);
+      --panel2: rgba(255,255,255,0.09);
+      --text: rgba(255,255,255,0.92);
+      --muted: rgba(255,255,255,0.72);
+      --faint: rgba(255,255,255,0.55);
+      --stroke: rgba(255,255,255,0.12);
+      --stroke2: rgba(255,255,255,0.18);
+      --accent: rgba(137, 220, 255, 0.95);
+      --accent2: rgba(255, 186, 107, 0.95);
+      --good: rgba(140, 255, 173, 0.92);
+      --warn: rgba(255, 214, 130, 0.92);
+      --bad: rgba(255, 130, 161, 0.92);
+      --shadow: 0 0.8rem 2.4rem rgba(0,0,0,0.45);
+      --radius: 1.1rem;
+      --radius2: 0.9rem;
+      --gap: 1rem;
+      --max: 74rem;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+
+    @media (prefers-color-scheme: light){
+      :root{
+        --bg:#f6f7fb;
+        --panel: rgba(0,0,0,0.04);
+        --panel2: rgba(0,0,0,0.06);
+        --text: rgba(0,0,0,0.88);
+        --muted: rgba(0,0,0,0.68);
+        --faint: rgba(0,0,0,0.55);
+        --stroke: rgba(0,0,0,0.10);
+        --stroke2: rgba(0,0,0,0.16);
+        --shadow: 0 0.8rem 2.4rem rgba(0,0,0,0.12);
+      }
+    }
+
+    html, body { height: 100%; }
+    body{
+      margin:0;
+      font-family: var(--sans);
+      background: radial-gradient(1200px 700px at 20% -10%, rgba(137,220,255,0.14), transparent 55%),
+                  radial-gradient(1000px 700px at 95% 0%, rgba(255,186,107,0.10), transparent 50%),
+                  var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+
+    .wrap{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 3.2vh 4vw 6vh;
+    }
+
+    header{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 1.2rem;
+      align-items: stretch;
+      justify-content: space-between;
+      margin-bottom: 1.4rem;
+    }
+
+    .hero{
+      flex: 1 1 26rem;
+      min-width: 18rem;
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.05));
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.2rem 1.2rem 1rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero h1{
+      margin: 0 0 0.4rem 0;
+      font-size: clamp(1.2rem, 2.4vw, 1.85rem);
+      letter-spacing: -0.02em;
+    }
+    .hero p{
+      margin: 0.25rem 0;
+      color: var(--muted);
+      max-width: 64ch;
+      font-size: 0.98rem;
+    }
+
+    .hero .meta{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 0.5rem;
+      margin-top: 0.8rem;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap: 0.45rem;
+      padding: 0.35rem 0.6rem;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.05);
+      color: var(--muted);
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+    .pill strong{ color: var(--text); font-weight: 650; }
+
+    .heroArt{
+      flex: 0 0 18rem;
+      min-width: 16rem;
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 0.9rem;
+      display:flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 0.8rem;
+      overflow:hidden;
+      position: relative;
+    }
+
+    .miniNote{
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin: 0;
+    }
+
+    .miniNote code{
+      font-family: var(--mono);
+      font-size: 0.9em;
+      background: rgba(255,255,255,0.06);
+      padding: 0.08rem 0.35rem;
+      border-radius: 0.35rem;
+      border: 1px solid var(--stroke);
+    }
+
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    @media (min-width: 62rem){
+      .grid2{ grid-template-columns: 1.1fr 0.9fr; }
+    }
+
+    .panel{
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1rem;
+    }
+
+    .panel h2{
+      margin: 0 0 0.7rem 0;
+      font-size: 1.05rem;
+      letter-spacing: -0.01em;
+    }
+    .panel p{
+      margin: 0.35rem 0;
+      color: var(--muted);
+    }
+
+    .min-h-64{ min-height: 16rem; }
+
+    .row{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 0.6rem;
+    }
+
+    .btn{
+      appearance: none;
+      border: 1px solid var(--stroke2);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.85rem;
+      cursor: pointer;
+      font-size: 0.92rem;
+      line-height: 1;
+      display:inline-flex;
+      align-items:center;
+      gap: 0.45rem;
+      user-select: none;
+    }
+    .btn:hover{ background: rgba(255,255,255,0.09); }
+    .btn:active{ transform: translateY(1px); }
+    .btn.secondary{ color: var(--muted); }
+    .btn.primary{
+      border-color: rgba(137,220,255,0.55);
+      background: rgba(137,220,255,0.12);
+    }
+    .btn.danger{
+      border-color: rgba(255,130,161,0.55);
+      background: rgba(255,130,161,0.10);
+    }
+    .btn:focus{
+      outline: 2px solid rgba(137,220,255,0.55);
+      outline-offset: 2px;
+    }
+
+    .kbd{
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      color: var(--muted);
+      border: 1px solid var(--stroke);
+      padding: 0.12rem 0.35rem;
+      border-radius: 0.4rem;
+      background: rgba(255,255,255,0.05);
+    }
+
+    .filters{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 0.9rem;
+      margin-top: 0.6rem;
+    }
+    @media (min-width: 62rem){
+      .filters{ grid-template-columns: 1fr 1fr; }
+    }
+
+    .filterBox{
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius2);
+      background: rgba(255,255,255,0.03);
+      padding: 0.8rem;
+    }
+
+    .filterBox h3{
+      margin: 0 0 0.45rem 0;
+      font-size: 0.95rem;
+      color: var(--text);
+      letter-spacing: -0.01em;
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .filterBox .hint{
+      color: var(--faint);
+      font-size: 0.85rem;
+      margin: 0.2rem 0 0.5rem;
+    }
+
+    .checkGrid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 0.45rem;
+    }
+    @media (min-width: 42rem){
+      .checkGrid{ grid-template-columns: 1fr 1fr; }
+    }
+
+    label.chk{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      border: 1px solid var(--stroke);
+      border-radius: 0.75rem;
+      padding: 0.45rem 0.55rem;
+      background: rgba(255,255,255,0.03);
+      cursor: pointer;
+      user-select: none;
+    }
+    label.chk:hover{ background: rgba(255,255,255,0.06); }
+    label.chk input{ transform: translateY(1px); }
+    .chk .name{
+      display:flex;
+      align-items:center;
+      gap: 0.5rem;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    .chk .count{
+      font-family: var(--mono);
+      color: var(--faint);
+      font-size: 0.82rem;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.03);
+      padding: 0.08rem 0.35rem;
+      border-radius: 0.55rem;
+      min-width: 2.4rem;
+      text-align: right;
+    }
+
+    .searchRow{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      align-items:center;
+      justify-content: space-between;
+      margin-top: 0.8rem;
+    }
+
+    .search{
+      flex: 1 1 18rem;
+      min-width: 14rem;
+      display:flex;
+      gap: 0.5rem;
+      align-items:center;
+      border: 1px solid var(--stroke);
+      border-radius: 0.9rem;
+      padding: 0.5rem 0.65rem;
+      background: rgba(255,255,255,0.03);
+    }
+
+    .search input{
+      width: 100%;
+      background: transparent;
+      border: 0;
+      outline: none;
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+    .search .icon{
+      opacity: 0.75;
+      font-family: var(--mono);
+      font-size: 0.92rem;
+    }
+
+    .viz{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 0.9rem;
+      margin-top: 0.8rem;
+    }
+
+    .vizCard{
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius2);
+      padding: 0.8rem;
+      background: rgba(255,255,255,0.03);
+      overflow: hidden;
+    }
+
+    .vizHeader{
+      display:flex;
+      gap: 0.7rem;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.6rem;
+    }
+    .vizHeader h3{
+      margin:0;
+      font-size: 0.98rem;
+      letter-spacing: -0.01em;
+    }
+    .vizHeader .small{
+      color: var(--faint);
+      font-size: 0.85rem;
+    }
+
+    .bars{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 0.45rem;
+    }
+    .barRow{
+      display:grid;
+      grid-template-columns: 11rem 1fr 3.5rem;
+      gap: 0.6rem;
+      align-items: center;
+    }
+    @media (max-width: 40rem){
+      .barRow{ grid-template-columns: 1fr; }
+    }
+    .barRow .label{
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    .barRow .track{
+      height: 0.75rem;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--stroke);
+      overflow:hidden;
+    }
+    .barRow .fill{
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, rgba(137,220,255,0.70), rgba(255,186,107,0.55));
+    }
+    .barRow .num{
+      font-family: var(--mono);
+      color: var(--faint);
+      font-size: 0.85rem;
+      text-align: right;
+    }
+
+    .scatterWrap{
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      min-height: 14rem;
+      border: 1px solid var(--stroke);
+      border-radius: 0.9rem;
+      background: rgba(255,255,255,0.03);
+      overflow:hidden;
+      position: relative;
+    }
+    .scatterWrap svg{
+      width: 100%;
+      height: 100%;
+      display:block;
+    }
+    .tip{
+      position:absolute;
+      left: 0;
+      top: 0;
+      transform: translate(-50%, -110%);
+      padding: 0.45rem 0.6rem;
+      border-radius: 0.75rem;
+      background: rgba(0,0,0,0.78);
+      color: rgba(255,255,255,0.92);
+      border: 1px solid rgba(255,255,255,0.16);
+      box-shadow: 0 0.6rem 1.6rem rgba(0,0,0,0.45);
+      font-size: 0.86rem;
+      max-width: 34ch;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 140ms ease;
+    }
+    @media (prefers-color-scheme: light){
+      .tip{
+        background: rgba(255,255,255,0.95);
+        color: rgba(0,0,0,0.88);
+        border: 1px solid rgba(0,0,0,0.14);
+      }
+    }
+    .tip.on{ opacity: 1; }
+
+    .expList{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 0.9rem;
+      margin-top: 1rem;
+    }
+
+    .card{
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,0.04);
+      box-shadow: var(--shadow);
+      padding: 0.9rem;
+      position: relative;
+    }
+    .card[data-highlight="true"]{
+      outline: 2px solid rgba(137,220,255,0.55);
+      outline-offset: 2px;
+    }
+
+    .cardHead{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 0.7rem;
+      align-items:flex-start;
+      justify-content: space-between;
+      margin-bottom: 0.55rem;
+    }
+    .titleBlock{
+      display:flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      min-width: 16rem;
+      flex: 1 1 22rem;
+    }
+    .card h4{
+      margin: 0;
+      font-size: 1.02rem;
+      letter-spacing: -0.01em;
+    }
+    .sub{
+      color: var(--faint);
+      font-size: 0.88rem;
+      margin: 0;
+    }
+
+    .chipRow{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      align-items:center;
+      justify-content: flex-start;
+      margin: 0.35rem 0 0.55rem;
+    }
+
+    .chip{
+      display:inline-flex;
+      gap: 0.35rem;
+      align-items:center;
+      padding: 0.22rem 0.5rem;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.03);
+      color: var(--muted);
+      font-size: 0.82rem;
+      white-space: nowrap;
+    }
+    .chip b{
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      color: var(--faint);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .spec{
+      margin: 0.45rem 0 0.65rem;
+      color: var(--text);
+      font-size: 0.98rem;
+      max-width: 92ch;
+    }
+
+    .actions{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      align-items:center;
+      justify-content: flex-start;
+      margin-top: 0.5rem;
+    }
+
+    .details{
+      margin-top: 0.7rem;
+      padding-top: 0.65rem;
+      border-top: 1px dashed var(--stroke);
+      color: var(--muted);
+      display:none;
+    }
+    .details.on{ display:block; }
+    .details ul{
+      margin: 0.4rem 0 0;
+      padding-left: 1.15rem;
+    }
+    .details li{ margin: 0.25rem 0; }
+
+    .smallcaps{
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      color: var(--faint);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .footer{
+      margin-top: 1.4rem;
+      color: var(--faint);
+      font-size: 0.9rem;
+      border-top: 1px solid var(--stroke);
+      padding-top: 1rem;
+    }
+    .footer code{
+      font-family: var(--mono);
+      font-size: 0.9em;
+      padding: 0.08rem 0.35rem;
+      border-radius: 0.4rem;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.05);
+    }
+
+    /* Toast */
+    .toastHost{
+      position: fixed;
+      bottom: 1.1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(46rem, 92vw);
+      display:flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      z-index: 9999;
+      pointer-events:none;
+    }
+    .toast{
+      pointer-events:auto;
+      border-radius: 0.95rem;
+      border: 1px solid var(--stroke2);
+      box-shadow: var(--shadow);
+      background: rgba(0,0,0,0.72);
+      color: rgba(255,255,255,0.92);
+      padding: 0.65rem 0.75rem;
+      display:flex;
+      gap: 0.75rem;
+      align-items:flex-start;
+      justify-content: space-between;
+      animation: pop 180ms ease-out;
+    }
+    @media (prefers-color-scheme: light){
+      .toast{
+        background: rgba(255,255,255,0.96);
+        color: rgba(0,0,0,0.88);
+      }
+    }
+    .toast .msg{
+      margin: 0;
+      color: inherit;
+      font-size: 0.92rem;
+    }
+    .toast .x{
+      background: transparent;
+      border: 1px solid var(--stroke2);
+      color: inherit;
+      border-radius: 0.7rem;
+      padding: 0.25rem 0.55rem;
+      cursor: pointer;
+    }
+    @keyframes pop{
+      from{ transform: translateY(8px); opacity: 0; }
+      to{ transform: translateY(0); opacity: 1; }
+    }
+
+    /* Modal */
+    .modalOverlay{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 3vh 4vw;
+      z-index: 9998;
+    }
+    .modalOverlay.on{ display:flex; }
+    .modal{
+      width: min(56rem, 96vw);
+      max-height: 86vh;
+      overflow:auto;
+      border-radius: var(--radius);
+      border: 1px solid var(--stroke2);
+      background: rgba(20, 22, 30, 0.94);
+      box-shadow: var(--shadow);
+      padding: 1rem;
+    }
+    @media (prefers-color-scheme: light){
+      .modal{
+        background: rgba(255,255,255,0.98);
+      }
+    }
+    .modal h3{ margin: 0 0 0.5rem 0; }
+    .modal p{ margin: 0.35rem 0; color: var(--muted); }
+    .modal .closeRow{
+      display:flex;
+      gap: 0.75rem;
+      justify-content: space-between;
+      align-items:center;
+      margin-bottom: 0.6rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p><a href="../../index.html">Back to app index</a></p>
+  </div>
+  <div class="toastHost" id="toastHost" aria-live="polite" aria-atomic="true"></div>
+
+  <div class="modalOverlay" id="modalOverlay" role="dialog" aria-modal="true" aria-label="Explainer">
+    <div class="modal">
+      <div class="closeRow">
+        <div>
+          <div class="smallcaps" id="modalKicker">Explainer</div>
+          <h3 id="modalTitle">Explainer</h3>
+        </div>
+        <button class="btn" id="modalCloseBtn" type="button">Close</button>
+      </div>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <header>
+      <div class="hero">
+        <h1>Project Binding: 20 Concurrent Experiments for ChatGPT Agent</h1>
+        <p>
+          Below are 20 parallel experiments you can run with <b>ChatGPT agent mode</b> to advance the “binding for project leadership”
+          goal: maintaining a forward-looking generated model, continuously updating it from bottom‑up observations, and pulling a leader’s
+          attention to <b>prediction errors</b> (dissonances) so action happens “a little bit in the future” rather than too late.
+        </p>
+        <p>
+          Each experiment is written as a <b>single paragraph prompt</b> you can copy into agent mode. The scenario is your shared testbed:
+          <b>building a shed halfway up a cliff</b> (high constraints, multi‑lag coordination, safety‑critical context).
+        </p>
+        <div class="meta">
+          <span class="pill"><strong>20</strong> experiments</span>
+          <span class="pill"><strong>2</strong> tag spaces (binding × agent tools)</span>
+          <span class="pill"><strong>Offline</strong> deliverables recommended</span>
+          <span class="pill"><strong>Copy</strong> buttons included</span>
+        </div>
+      </div>
+
+      <div class="heroArt" aria-label="Illustration">
+        <svg viewBox="0 0 320 180" width="100%" height="auto" role="img" aria-label="Cliff and shed sketch">
+          <defs>
+            <linearGradient id="g1" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0" stop-color="rgba(137,220,255,0.40)"/>
+              <stop offset="1" stop-color="rgba(255,186,107,0.20)"/>
+            </linearGradient>
+            <linearGradient id="rock" x1="0" x2="1">
+              <stop offset="0" stop-color="rgba(255,255,255,0.08)"/>
+              <stop offset="1" stop-color="rgba(255,255,255,0.02)"/>
+            </linearGradient>
+          </defs>
+          <rect x="0" y="0" width="320" height="180" fill="url(#g1)"/>
+          <!-- cliff -->
+          <path d="M0,160 C70,120 115,115 150,100 C190,83 230,60 320,42 L320,180 L0,180 Z" fill="url(#rock)" stroke="rgba(255,255,255,0.20)" stroke-width="2"/>
+          <!-- ledge -->
+          <path d="M165,102 L260,75 L272,92 L175,118 Z" fill="rgba(0,0,0,0.12)" stroke="rgba(255,255,255,0.16)"/>
+          <!-- shed -->
+          <rect x="208" y="58" width="46" height="28" rx="3" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.20)"/>
+          <path d="M206,58 L231,42 L257,58 Z" fill="rgba(255,255,255,0.10)" stroke="rgba(255,255,255,0.20)"/>
+          <rect x="226" y="68" width="10" height="18" fill="rgba(0,0,0,0.18)" stroke="rgba(255,255,255,0.16)"/>
+          <!-- rope / path -->
+          <path d="M205,70 C180,85 150,105 122,130" fill="none" stroke="rgba(137,220,255,0.65)" stroke-width="2" stroke-dasharray="5 5"/>
+          <circle cx="122" cy="130" r="4" fill="rgba(137,220,255,0.85)"/>
+          <circle cx="205" cy="70" r="4" fill="rgba(255,186,107,0.85)"/>
+          <!-- axis labels -->
+          <text x="10" y="22" fill="rgba(255,255,255,0.82)" font-size="12" font-family="ui-monospace">generated model</text>
+          <text x="10" y="38" fill="rgba(255,255,255,0.68)" font-size="12" font-family="ui-monospace">↕ prediction errors</text>
+        </svg>
+        <p class="miniNote">
+          Tip: treat the cliff as a “hard constraint” and keep safety details at a governance / compliance level.
+          Use the agent for <code>integration</code>, <code>forecasting</code>, <code>dissonance</code>, and <code>cadence</code>.
+        </p>
+        <div class="row">
+          <button class="btn primary" id="openOverview" type="button">What counts as “binding” here?</button>
+          <button class="btn secondary" id="openAgentSpec" type="button">Agent capabilities cheat‑sheet</button>
+        </div>
+      </div>
+    </header>
+
+    <div id="canvasApp" class="min-h-64" data-timeout="3000">
+      <noscript>
+        Interactive visualisation (filters + charts) requires JavaScript. The experiment prompts are still visible below.
+      </noscript>
+
+      <div class="grid2">
+        <section class="panel" aria-label="How to use">
+          <h2>How to use this page</h2>
+          <p>
+            Use the filters to choose a slice of the method space (binding mechanisms × agent tools). Click a dot in the “constellation map”
+            to jump to an experiment. Each experiment card has a <b>Copy prompt</b> button for pasting into <b>agent mode</b>.
+          </p>
+          <p>
+            The prompts are intentionally phrased to encourage the agent to use its own computer, web navigation, code execution, and
+            deliverable generation (offline HTML / spreadsheets / slides) while keeping you in control.
+          </p>
+          <div class="searchRow">
+            <div class="search" role="search" aria-label="Search experiments">
+              <span class="icon">/</span>
+              <input id="q" type="text" placeholder="Search (e.g., prediction error, cadence, event file, MCP) …" />
+            </div>
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+              <button class="btn" id="expandAll" type="button">Expand all details</button>
+              <button class="btn secondary" id="collapseAll" type="button">Collapse all details</button>
+              <button class="btn" id="downloadPrompts" type="button">Download prompts (.txt)</button>
+            </div>
+          </div>
+
+          <div class="filters" aria-label="Filters">
+            <div class="filterBox" aria-label="Binding filters">
+              <h3>
+                <span>Binding mechanisms</span>
+                <span style="display:flex; gap:0.45rem; flex-wrap:wrap;">
+                  <button class="btn secondary" id="bindingAll" type="button">All</button>
+                  <button class="btn secondary" id="bindingNone" type="button">None</button>
+                </span>
+              </h3>
+              <p class="hint">Filter by neuroscience-inspired “binding” ideas you want to probe (OR logic).</p>
+              <div class="checkGrid" id="bindingChecks"></div>
+            </div>
+
+            <div class="filterBox" aria-label="Agent capability filters">
+              <h3>
+                <span>Agent capabilities</span>
+                <span style="display:flex; gap:0.45rem; flex-wrap:wrap;">
+                  <button class="btn secondary" id="agentAll" type="button">All</button>
+                  <button class="btn secondary" id="agentNone" type="button">None</button>
+                </span>
+              </h3>
+              <p class="hint">Filter by which agent tools are exercised (OR logic).</p>
+              <div class="checkGrid" id="agentChecks"></div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="panel" aria-label="Method-space visualisations">
+          <h2>Method-space coverage</h2>
+          <p>
+            These visuals update with filters. Use them to spot gaps: places where neither the “binding lens” nor the “agent toolbox”
+            has been stretched yet.
+          </p>
+
+          <div class="viz">
+            <div class="vizCard" aria-label="Binding coverage bars">
+              <div class="vizHeader">
+                <h3>Binding coverage</h3>
+                <div class="small" id="bindingSummary">—</div>
+              </div>
+              <div class="bars" id="bindingBars"></div>
+            </div>
+
+            <div class="vizCard" aria-label="Agent capability coverage bars">
+              <div class="vizHeader">
+                <h3>Agent tool coverage</h3>
+                <div class="small" id="agentSummary">—</div>
+              </div>
+              <div class="bars" id="agentBars"></div>
+            </div>
+
+            <div class="vizCard" aria-label="Constellation map">
+              <div class="vizHeader">
+                <h3>Constellation map</h3>
+                <div class="small">x: binding index • y: tool index • tap/click a dot</div>
+              </div>
+              <div class="scatterWrap">
+                <svg id="scatter" viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="Experiment constellation">
+                  <!-- axes and points injected by JS -->
+                </svg>
+                <div class="tip" id="tip"></div>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <section class="panel" aria-label="Experiments">
+        <div class="row" style="margin-top:0;">
+          <h2 style="margin:0;">Experiments</h2>
+          <div class="pill" id="visibleCount">—</div>
+        </div>
+        <p>
+          Each item below is a <b>single-paragraph specification</b> intended to be pasted into ChatGPT’s <b>agent mode</b>.
+          The agent should use its web + code + deliverable tools to produce tangible prototypes and reports, ideally as offline single-file HTML
+          with visuals and button explainers.
+        </p>
+
+        <div class="expList" id="expList">
+          <!-- EXP 01 -->
+          <article class="card" data-exp="01"
+            data-binding="predictive,active,temporal,global-workspace"
+            data-agent="visual,text,terminal,files"
+            data-title="Predictive Digital Twin: Forward Model for the Cliff-Shed Build">
+            <div class="cardHead">
+              <div class="titleBlock">
+                <h4>01 — Predictive Digital Twin: Forward Model for the Cliff‑Shed Build</h4>
+                <p class="sub">Build the “generated model looking just ahead”, with adjustable priors and visible prediction errors.</p>
+              </div>
+              <div style="display:flex; gap:0.55rem; flex-wrap:wrap; justify-content:flex-end;">
+                <button class="btn primary copyBtn" type="button">Copy prompt</button>
+                <button class="btn secondary detailsBtn" type="button">Show details</button>
+              </div>
+            </div>
+            <div class="chipRow" aria-label="Tags">
+              <span class="chip"><b>B</b> Predictive coding</span>
+              <span class="chip"><b>B</b> Active inference</span>
+              <span class="chip"><b>B</b> Temporal windows</span>
+              <span class="chip"><b>A</b> Visual browser</span>
+              <span class="chip"><b>A</b> Text browser</span>
+              <span class="chip"><b>A</b> Terminal/code</span>
+            </div>
+            <p class="spec" data-spec>
+              In agent mode, build a forward-looking “digital twin” for the project of building a small storage shed halfway up a cliff: use the visual browser and text browser to research typical work phases, compliance constraints, and environmental risks (do not give operational rope-access instructions—treat cliff access as a specialist-required constraint), then use the terminal to implement a simple generative model (phases, dependencies, lead times, uncertainty bands) that predicts next‑week states (progress, cost, risk) and can be updated with new observations; deliver a single-file offline HTML dashboard that lets a project lead adjust priors (crew size, access windows, weather assumptions) and see the predicted plan plus a “prediction error” panel that highlights where observed updates diverge from the model; include a clear data schema so real sensor/team updates can be plugged in later, and define success as: a newcomer can explain the current plan and the biggest forecast risks in under 5 minutes using the dashboard.
+            </p>
+            <div class="details" aria-label="Details">
+              <div class="smallcaps">Why it advances Project Binding</div>
+              <ul>
+                <li>Creates the forward-looking internal model + explicit priors.</li>
+                <li>Builds the “attention hook”: visible prediction errors as dissonance.</li>
+                <li>Defines an ingest schema for bottom-up observations (later sensors).</li>
+              </ul>
+            </div>
+          </article>
+
+          <!-- EXP 02 -->
+          <article class="card" data-exp="02"
+            data-binding="predictive,temporal,attention"
+            data-agent="terminal,files,parallel"
+            data-title="Prediction‑Error Radar: Dissonance-First Status Layer">
+            <div class="cardHead">
+              <div class="titleBlock">
+                <h4>02 — Prediction‑Error Radar: Dissonance‑First Status Layer</h4>
+                <p class="sub">Make divergence the primary UI primitive (what changed vs what you expected).</p>
+              </div>
+              <div style="display:flex; gap:0.55rem; flex-wrap:wrap; justify-content:flex-end;">
+                <button class="btn primary copyBtn" type="button">Copy prompt</button>
+                <button class="btn secondary detailsBtn" type="button">Show details</button>
+              </div>
+            </div>
+            <div class="chipRow">
+              <span class="chip"><b>B</b> Prediction errors</span>
+              <span class="chip"><b>B</b> Temporal windows</span>
+              <span class="chip"><b>B</b> Attention spotlight</span>
+              <span class="chip"><b>A</b> Terminal/code</span>
+              <span class="chip"><b>A</b> Parallel multi‑run</span>
+            </div>
+            <p class="spec" data-spec>
+              In agent mode, create a “prediction‑error radar” prototype for the cliff‑shed project: start from a baseline plan (use your own minimal model if needed), generate realistic mock observation streams and human updates (weather shifts, material delays, inspection findings, crew availability), and write code in the terminal to compute deviations (schedule slip, cost variance, safety risk delta) with thresholds that mimic a manager’s limited attention; produce a single-file offline HTML that replays model vs reality over time, with an “attention queue” that always shows the top 5 dissonances and the lag since last reliable observation, and include controls to tune noise vs sensitivity; success = when you inject anomalies into the simulation, the radar escalates the true anomalies while suppressing routine noise in at least 80% of simulated days.
+            </p>
+            <div class="details">
+              <div class="smallcaps">What to measure</div>
+              <ul>
+                <li>True-positive rate for injected anomalies vs false positives.</li>
+                <li>Time-to-notice for high-severity divergence.</li>
+                <li>Stability under noisy updates (avoid “alert fatigue”).</li>
+              </ul>
+            </div>
+          </article>
+
+          <!-- EXP 03 -->
+          <article class="card" data-exp="03"
+            data-binding="temporal,bayesian,attention"
+            data-agent="terminal,sheets,files"
+            data-title="Lag Ledger & Temporal Binding Windows: Orchestrating Delays">
+            <div class="cardHead">
+              <div class="titleBlock">
+                <h4>03 — Lag Ledger & Temporal Binding Windows: Orchestrating Delays</h4>
+                <p class="sub">Make lags first-class and learn when to bind signals vs keep them separate.</p>
+              </div>
+              <div style="display:flex; gap:0.55rem; flex-wrap:wrap; justify-content:flex-end;">
+                <button class="btn primary copyBtn" type="button">Copy prompt</button>
+                <button class="btn secondary detailsBtn" type="button">Show details</button>
+              </div>
+            </div>
+            <div class="chipRow">
+              <span class="chip"><b>B</b> Temporal binding</span>
+              <span class="chip"><b>B</b> Bayesian causal inference</span>
+              <span class="chip"><b>A</b> Spreadsheets</span>
+              <span class="chip"><b>A</b> Terminal/code</span>
+            </div>
+            <p class="spec" data-spec>
+              In agent mode, map the cliff‑shed project’s “lags” (reporting latency, procurement lead times, forecast horizons, approval cycles, handoff delays, sensor sampling rates) and build a Lag Ledger that defines temporal binding windows for when two signals should be treated as the same event versus separate events; use the terminal to simulate how different lag profiles create mis‑bindings (wrong task/status attribution) and then design countermeasures (timestamp normalization, confidence decay, co‑observation requirements within a window, escalation when windows are exceeded); deliver an offline HTML interactive where a user tweaks lag distributions and sees predicted mis‑binding rates plus recommended cadence changes, and include an exportable spreadsheet of the lag register; success = the tool identifies at least three high-impact lags and proposes one concrete operational change per lag that reduces simulated mis‑bindings.
+            </p>
+            <div class="details">
+              <div class="smallcaps">Output artifacts</div>
+              <ul>
+                <li>Lag register (spreadsheet) + binding window policies.</li>
+                <li>Simulator (offline HTML) showing error vs cadence.</li>
+                <li>“When to pause and verify” triggers (window exceeded).</li>
+              </ul>
+            </div>
+          </article>
+
+          <!-- EXP 04 -->
+          <article class="card" data-exp="04"
+            data-binding="global-workspace,attention,predictive"
+            data-agent="visual,text,files,apps,control"
+            data-title="Global Workspace Control Room: Minimal Shared State">
+            <div class="cardHead">
+              <div class="titleBlock">
+                <h4>04 — Global Workspace Control Room: Minimal Shared State</h4>
+                <p class="sub">Prototype the “shared blackboard” where only the most coordinating info is broadcast.</p>
+              </div>
+              <div style="display:flex; gap:0.55rem; flex-wrap:wrap; justify-content:flex-end;">
+                <button class="btn primary copyBtn" type="button">Copy prompt</button>
+                <button class="btn secondary detailsBtn" type="button">Show details</button>
+              </div>
+            </div>
+            <div class="chipRow">
+              <span class="chip"><b>B</b> Global workspace</span>
+              <span class="chip"><b>B</b> Attention gatekeeping</span>
+              <span class="chip"><b>A</b> Apps/connectors</span>
+              <span class="chip"><b>A</b> User confirmations</span>
+              <span class="chip"><b>A</b> Visual browser</span>
+            </div>
+            <p class="spec" data-spec>
+              In agent mode, prototype a “Global Workspace” control room for the cliff‑shed build: collect (or mock) inputs from engineering, logistics, safety, budget, and stakeholder comms, then design an offline HTML dashboard that broadcasts the minimum shared state needed for coordination (milestones, constraints, current risks, next actions) while keeping detail in drill‑down panes; implement a simple “workspace gatekeeper” that decides what enters the shared view based on novelty (prediction error), relevance to goals, and urgency, and include an explicit user override (takeover/confirmation) to mirror executive attention; if connectors are available, demonstrate pulling one real input stream (e.g., calendar or a repo) safely; success = in a scripted walkthrough, the workspace prevents at least two simulated silo conflicts by surfacing the right shared state at the right time.
+            </p>
+            <div class="details">
+              <div class="smallcaps">Design checks</div>
+              <ul>
+                <li>What is always visible vs always hidden?</li>
+                <li>What threshold moves info into the shared workspace?</li>
+                <li>How does the user override the gatekeeper?</li>
+              </ul>
+            </div>
+          </article>
+
+          <!-- EXP 05 -->
+          <article class="card" data-exp="05"
+            data-binding="attention,temporal"
+            data-agent="terminal,files"
+            data-title="Attention Spotlight UI: Prevent Feature-Binding Errors Under Pressure">
+            <div class="cardHead">
+              <div class="titleBlock">
+                <h4>05 — Attention Spotlight UI: Prevent Feature‑Binding Errors Under Pressure</h4>
+                <p class="sub">Reduce “illusory conjunctions” (wrong task/location/crew attribute binding) in fast updates.</p>
+              </div>
+              <div style="display:flex; gap:0.55rem; flex-wrap:wrap; justify-content:flex-end;">
+                <button class="btn primary copyBtn" type="button">Copy prompt</button>
+                <button class="btn secondary detailsBtn" type="button">Show details</button>
+              </div>
+            </div>
+            <div class="chipRow">
+              <span class="chip"><b>B</b> Attention (FIT)</span>
+              <span class="chip"><b>B</b> Temporal windows</span>
+              <span class="chip"><b>A</b> Terminal/code</span>
+            </div>
+            <p class="spec" data-spec>
+              In agent mode, design and test an “Attention Spotlight” interface that reduces feature‑binding errors in the cliff‑shed project: create a set of intentionally confusable status objects (similar task names, adjacent cliff zones, overlapping crews, similar dates) and simulate how a manager might mis‑assign updates; then build an offline HTML UI that uses spatial grouping, consistent multi‑cue encoding (icon + label + zone), and forced disambiguation prompts so attributes stay bound to the correct task/location/crew; include an in‑page “misbinding game” where a user matches updates to tasks under time pressure and compare baseline vs assisted UI; success = the assisted UI reduces misbindings by at least 30% while keeping interaction steps minimal.
+            </p>
+            <div class="details">
+              <div class="smallcaps">Why this matters</div>
+              <ul>
+                <li>Misbinding is a core failure mode when attention is overloaded.</li>
+                <li>The UI becomes an “external binding aid” for the leader.</li>
+              </ul>
+            </div>
+          </article>
+
+          <!-- EXP 06 -->
+          <article class="card" data-exp="06"
+            data-binding="event-files,working-memory,predictive"
+            data-agent="apps,text,files,terminal"
+            data-title="Event-File Memory Library: Context → Action → Outcome Retrieval">
+            <div class="cardHead">
+              <div class="titleBlock">
+                <h4>06 — Event‑File Memory Library: Context → Action → Outcome Retrieval</h4>
+                <p class="sub">Create organizational “event files” so past episodes bind into future decisions.</p>
+              </div>
+              <div style="display:flex; gap:0.55rem; flex-wrap:wrap; justify-content:flex-end;">
+                <button class="btn primary copyBtn" type="button">Copy prompt</button>
+                <button class="btn secondary detailsBtn" type="button">Show details</button>
+              </div>
+            </div>
+            <div class="chipRow">
+              <span class="chip"><b>B</b> Event files (TEC)</span>
+              <span class="chip"><b>B</b> Working memory</span>
+              <span class="chip"><b>A</b> Apps/connectors</span>
+              <span class="chip"><b>A</b> Text browser</span>
+            </div>
+            <p class="spec" data-spec>
+              In agent mode, create an “Event File” memory system for the cliff‑shed build: define a lightweight schema that captures context → decision/action → outcome (including the prediction that motivated the action) and supports later retrieval by partial cues (e.g., “wind delay + delivery + access window”); if apps/connectors are available, pull a small real set of project messages/docs into a safe local summary, otherwise mock a realistic corpus; build an offline HTML event library with timeline, tags, and a “what’s similar to this?” function that surfaces prior episodes and their lessons; success = given five new scenarios, the system retrieves a relevant past event file for at least four and surfaces the key lesson in under 60 seconds.
+            </p>
+            <div class="details">
+              <div class="smallcaps">Stretch goal</div>
+              <ul>
+                <li>Auto-generate a short “binding story” for each event: what was believed, what happened, what changed.</li>
+              </ul>
+            </div>
+          </article>
+
+          <!-- EXP 07 -->
+          <article class="card" data-exp="07"
+            data-binding="working-memory,attention,predictive"
+            data-agent="apps,text,recurring,files"
+            data-title="Episodic Buffer Briefings: Bounded Daily Working Set">
+            <div class="cardHead">
+              <div class="titleBlock">
+                <h4>07 — Episodic Buffer Briefings: Bounded Daily Working Set</h4>
+                <p class="sub">One-screen briefs that bind only what must be held “online” for decisions.</p>
+              </div>
+              <div style="display:flex; gap:0.55rem; flex-wrap:wrap; justify-content:flex-end;">
+                <button class="btn primary copyBtn" type="button">Copy prompt</button>
+                <button class="btn secondary detailsBtn" type="button">Show details</button>
+              </div>
+            </div>
+            <div class="chipRow">
+              <span class="chip"><b>B</b> Episodic buffer</span>
+              <span class="chip"><b>B</b> Attention</span>
+              <span class="chip"><b>A</b> Recurring tasks</span>
+              <span class="chip"><b>A</b> Apps/connectors</span>
+            </div>
+            <p class="spec" data-spec>
+              In agent mode, build a daily “Episodic Buffer” briefing for the cliff‑shed project that binds only the most decision‑relevant features into a small working set: use connected apps (calendar/inbox/files) if available or mock inputs, and produce an offline HTML brief containing (1) a 90‑second summary, (2) a 7‑item bounded checklist, (3) the top three prediction errors since last brief, and (4) “what changed the model?” explainers; then configure (or explicitly specify) a recurring run so the agent regenerates the brief on a fixed cadence (e.g., 07:30 daily) and stores versions for drift analysis; success = the brief stays under one screen and still enables correct answers to a 10‑question status quiz with at least 80% accuracy.
+            </p>
+            <div class="details">
+              <div class="smallcaps">Important constraint</div>
+              <ul>
+                <li>Force brevity: if it doesn’t fit, it must link out to a drill-down.</li>
+              </ul>
+            </div>
+          </article>
+
+          <!-- EXP 08 -->
+          <article class="card" data-exp="08"
+            data-binding="synchrony,temporal,attention"
+            data-agent="terminal,apps,files"
+            data-title="Synchrony vs Asynchrony: Meeting Pulses That Prevent Drift">
+            <div class="cardHead">
+              <div class="titleBlock">
+                <h4>08 — Synchrony vs Asynchrony: Meeting Pulses That Prevent Drift</h4>
+                <p class="sub">Test how cadence shapes coherence (shared understanding) under lags.</p>
+              </div>
+              <div style="display:flex; gap:0.55rem; flex-wrap:wrap; justify-content:flex-end;">
+                <button class="btn primary copyBtn" type="button">Copy prompt</button>
+                <button class="btn secondary detailsBtn" type="button">Show details</button>
+              </div>
+            </div>
+            <div class="chipRow">
+              <span class="chip"><b>B</b> Neural synchrony</span>
+              <span class="chip"><b>B</b> Temporal windows</span>
+              <span class="chip"><b>A</b> Terminal/code</span>
+              <span class="chip"><b>A</b> Apps/connectors</span>
+            </div>
+            <p class="spec" data-spec>
+              In agent mode, run a “synchrony vs asynchrony” coordination experiment for the cliff‑shed team: propose two protocols—(A) tight synchronous pulses (short standups + rapid shared updates) and (B) mostly async updates with periodic integration—and use the terminal to simulate message timings, attention limits, and error propagation; then build an offline HTML simulator where users adjust team size, lag distributions, and update frequency to observe emergent coherence (shared understanding) vs drift (silo divergence); the agent should output a recommended cadence and “synchrony triggers” (events that require immediate shared alignment); success = the simulator demonstrates a clear regime where synchrony reduces drift without overwhelming attention.
+            </p>
+            <div class="details">
+              <div class="smallcaps">Practical output</div>
+              <ul>
+                <li>Suggested standup length + frequency.</li>
+                <li>Trigger list for “stop and synchronize now”.</li>
+              </ul>
+            </div>
+          </article>
+
+          <!-- EXP 09 -->
+          <article class="card" data-exp="09"
+            data-binding="oscillatory,temporal,synchrony,global-workspace"
+            data-agent="terminal,apps,recurring,files"
+            data-title="Oscillatory Hierarchies: Multi-Timescale Operating Rhythm">
+            <div class="cardHead">
+              <div class="titleBlock">
+                <h4>09 — Oscillatory Hierarchies: Multi‑Timescale Operating Rhythm</h4>
+                <p class="sub">Nested loops (fast safety, medium coordination, slow strategy) with promotion rules.</p>
+              </div>
+              <div style="display:flex; gap:0.55rem; flex-wrap:wrap; justify-content:flex-end;">
+                <button class="btn primary copyBtn" type="button">Copy prompt</button>
+                <button class="btn secondary detailsBtn" type="button">Show details</button>
+              </div>
+            </div>
+            <div class="chipRow">
+              <span class="chip"><b>B</b> Oscillatory hierarchies</span>
+              <span class="chip"><b>B</b> Synchrony</span>
+              <span class="chip"><b>B</b> Global workspace</span>
+              <span class="chip"><b>A</b> Recurring tasks</span>
+            </div>
+            <p class="spec" data-spec>
+              In agent mode, design a multi‑timescale operating rhythm for the cliff‑shed project inspired by nested oscillations (fast “gamma” safety loop, medium “theta” coordination loop, slow “delta” strategy/budget loop): define what data enters each loop, what decisions are allowed at each timescale, and how information is promoted/demoted between loops when prediction error thresholds are breached; implement an offline HTML “cadence map” that visualizes the loops on a calendar and lets the user drag events between loops while the system predicts coherence impact (missed risks, churn, overload); include a recommended weekly schedule and recurrence plan; success = the cadence map produces one concrete schedule plus a rule that prevents slow decisions from being forced through the fast loop unless dissonance is high.
+            </p>
+            <div class="details">
+              <div class="smallcaps">Key concept</div>
+              <ul>
+                <li>Different lags require different “integration cycles” to stay coherent.</li>
+              </ul>
+            </div>
+          </article>
+
+          <!-- EXP 10 -->
+          <article class="card" data-exp="10"
+            data-binding="neural-reuse,attention"
+            data-agent="sheets,terminal,files"
+            data-title="Neural Reuse Planner: Redeploy Capabilities Without Breaking Safety">
+            <div class="cardHead">
+              <div class="titleBlock">
+                <h4>10 — Neural Reuse Planner: Redeploy Capabilities Without Breaking Safety</h4>
+                <p class="sub">Repurpose skills like brain circuits: flexible reuse with constraints.</p>
+              </div>
+              <div style="display:flex; gap:0.55rem; flex-wrap:wrap; justify-content:flex-end;">
+                <button class="btn primary copyBtn" type="button">Copy prompt</button>
+                <button class="btn secondary detailsBtn" type="button">Show details</button>
+              </div>
+            </div>
+            <div class="chipRow">
+              <span class="chip"><b>B</b> Neural reuse</span>
+              <span class="chip"><b>B</b> Attention limits</span>
+              <span class="chip"><b>A</b> Spreadsheets</span>
+              <span class="chip"><b>A</b> Terminal/code</span>
+            </div>
+            <p class="spec" data-spec>
+              In agent mode, build a “neural reuse” inspired resource planner for the cliff‑shed build: inventory roles (safety, logistics, carpentry, comms), sub‑skills, certifications/constraints, and toolsets, and identify where a capability can be redeployed across tasks without violating safety or overload; use spreadsheets + terminal code to create a skill adjacency matrix and a redeployment recommender that proposes safe “reuse bundles” (e.g., one inspection routine reused as a checklist template across crews), and stress‑test scenarios (absence, surge work, delay cascades); deliver an offline HTML planner that shows recommended redeployments and explicitly flags tempting but unsafe overload patterns; success = it finds at least five realistic redeployments and flags at least two high‑risk redeployments a naive planner would miss.
+            </p>
+            <div class="details">
+              <div class="smallcaps">What to watch</div>
+              <ul>
+                <li>Reuse can improve coherence—but can also create brittle single points of failure.</li>
+              </ul>
+            </div>
+          </article>
+
+          <!-- EXP 11 -->
+          <article class="card" data-exp="11"
+            data-binding="embodied,active,predictive"
+            data-agent="terminal,files,visual"
+            data-title="Embodied Sensorimotor Loop: Action → Expected Perception → Update">
+            <div class="cardHead">
+              <div class="titleBlock">
+                <h4>11 — Embodied Sensorimotor Loop: Action → Expected Perception → Update</h4>
+                <p class="sub">Make the plan feel like a closed loop, not a document: actions change future observations.</p>
+              </div>
+              <div style="display:flex; gap:0.55rem; flex-wrap:wrap; justify-content:flex-end;">
+                <button class="btn primary copyBtn" type="button">Copy prompt</button>
+                <button class="btn secondary detailsBtn" type="button">Show details</button>
+              </div>
+            </div>
+            <div class="chipRow">
+              <span class="chip"><b>B</b> Embodied loops</span>
+              <span class="chip"><b>B</b> Active inference</span>
+              <span class="chip"><b>A</b> Terminal/code</span>
+              <span class="chip"><b>A</b> Visual browser</span>
+            </div>
+            <p class="spec" data-spec>
+              In agent mode, prototype an embodied “sensorimotor loop” view of the cliff‑shed project where actions and perceptions stay tightly coupled: define a small set of controllable actions (schedule an inspection, reorder materials, change access windows, request a specialist sign‑off) and a set of observable signals (photos, weather, progress checks, incident reports), then use the terminal to simulate how each action changes expected future observations (with uncertainty); build an offline HTML control panel where the user selects an action and immediately sees predicted sensory consequences plus what new data would confirm/disconfirm it, including an explicit “don’t know yet” state that tracks uncertainty; success = in at least three test scenarios, the panel drives an uncertainty‑reducing action instead of premature commitment.
+            </p>
+            <div class="details">
+              <div class="smallcaps">Safety note</div>
+              <ul>
+                <li>Keep “actions” at a project-governance level; defer physical cliff work details to qualified professionals.</li>
+              </ul>
+            </div>
+          </article>
+
+          <!-- EXP 12 -->
+          <article class="card" data-exp="12"
+            data-binding="bayesian,temporal,predictive"
+            data-agent="terminal,files"
+            data-title="Bayesian Causal Inference: Bind Conflicting Signals or Split Them">
+            <div class="cardHead">
+              <div class="titleBlock">
+                <h4>12 — Bayesian Causal Inference: Bind Conflicting Signals or Split Them</h4>
+                <p class="sub">Decide whether two updates share a common cause, and what evidence resolves ambiguity.</p>
+              </div>
+              <div style="display:flex; gap:0.55rem; flex-wrap:wrap; justify-content:flex-end;">
+                <button class="btn primary copyBtn" type="button">Copy prompt</button>
+                <button class="btn secondary detailsBtn" type="button">Show details</button>
+              </div>
+            </div>
+            <div class="chipRow">
+              <span class="chip"><b>B</b> Bayesian causal inference</span>
+              <span class="chip"><b>B</b> Temporal windows</span>
+              <span class="chip"><b>A</b> Terminal/code</span>
+            </div>
+            <p class="spec" data-spec>
+              In agent mode, implement a Bayesian “common cause vs separate cause” triage for the cliff‑shed project’s mixed signals (e.g., a progress photo suggests completion but a checklist says incomplete, or two teams report different statuses): use the terminal to build a simple causal inference model that weights timing, source reliability, and contextual priors to decide whether to bind signals into one event or split them, and output a confidence score plus the minimal extra observation needed to resolve ambiguity; deliver an offline HTML that replays a week of conflicting updates, shows the model’s decisions, and explicitly highlights cases where it refuses to bind; success = compared to a naive “latest update wins” rule, the causal model reduces wrong decisions in simulation by at least 25%.
+            </p>
+            <div class="details">
+              <div class="smallcaps">Stretch</div>
+              <ul>
+                <li>Add a “cost of being wrong” slider so the model becomes more conservative for safety-critical decisions.</li>
+              </ul>
+            </div>
+          </article>
+
+          <!-- EXP 13 -->
+          <article class="card" data-exp="13"
+            data-binding="active,predictive,attention"
+            data-agent="terminal,files"
+            data-title="Active Inference Portfolio: Micro-Experiments That Reduce Uncertainty Fast">
+            <div class="cardHead">
+              <div class="titleBlock">
+                <h4>13 — Active Inference Portfolio: Micro‑Experiments That Reduce Uncertainty Fast</h4>
+                <p class="sub">Turn uncertain assumptions into a ranked plan of cheap “tests” that shrink prediction error.</p>
+              </div>
+              <div style="display:flex; gap:0.55rem; flex-wrap:wrap; justify-content:flex-end;">
+                <button class="btn primary copyBtn" type="button">Copy prompt</button>
+                <button class="btn secondary detailsBtn" type="button">Show details</button>
+              </div>
+            </div>
+            <div class="chipRow">
+              <span class="chip"><b>B</b> Active inference</span>
+              <span class="chip"><b>B</b> Predictive coding</span>
+              <span class="chip"><b>A</b> Terminal/code</span>
+            </div>
+            <p class="spec" data-spec>
+              In agent mode, create an “active inference” planner that treats the cliff‑shed plan as predictions to be made true: identify the highest‑uncertainty assumptions (access constraints, inspection outcomes, material lead times, weather reliability, stakeholder approvals), then generate a portfolio of small micro‑experiments (measurements, checks, pre‑approvals, mock installs) that reduce uncertainty fastest per unit effort; use the terminal to rank micro‑experiments by expected reduction in prediction error and schedule them into the near-term plan; deliver an offline HTML where the user toggles assumptions and instantly sees which micro‑experiments become critical, with each item explicitly linking assumption → measurement → decision impact; success = the output produces a top‑10 list where every item has a clear “why it matters” chain and a forecasted reduction in uncertainty.
+            </p>
+            <div class="details">
+              <div class="smallcaps">Key principle</div>
+              <ul>
+                <li>Act to reduce uncertainty, not just to advance tasks—so later actions aren’t “late”.</li>
+              </ul>
+            </div>
+          </article>
+
+          <!-- EXP 14 -->
+          <article class="card" data-exp="14"
+            data-binding="predictive,temporal,global-workspace"
+            data-agent="visual,text,files"
+            data-title="External Reality Binding Pack: Regulations, Weather, Access Governance">
+            <div class="cardHead">
+              <div class="titleBlock">
+                <h4>14 — External Reality Binding Pack: Regulations, Weather, Access Governance</h4>
+                <p class="sub">Bind outside-world constraints into the model as traceable rules.</p>
+              </div>
+              <div style="display:flex; gap:0.55rem; flex-wrap:wrap; justify-content:flex-end;">
+                <button class="btn primary copyBtn" type="button">Copy prompt</button>
+                <button class="btn secondary detailsBtn" type="button">Show details</button>
+              </div>
+            </div>
+            <div class="chipRow">
+              <span class="chip"><b>B</b> Predictive priors</span>
+              <span class="chip"><b>B</b> Temporal windows</span>
+              <span class="chip"><b>A</b> Visual browser</span>
+              <span class="chip"><b>A</b> Text browser</span>
+            </div>
+            <p class="spec" data-spec>
+              In agent mode, build a cliff‑shed “research pack” that binds external reality into the project model: use the visual browser and text browser to collect authoritative sources for (a) local planning/building considerations, (b) weather patterns and forecast reliability, and (c) working‑at‑height governance at a high level (no operational climbing/rigging instructions—focus on compliance obligations and when specialists are required); extract key constraints as machine‑readable rules and keep traceability to sources; deliver an offline HTML “constraint explorer” where each rule is linked to its source snippet and shows how it changes schedule/risk in the model; success = a reviewer can trace each constraint to its source in two clicks and explain its schedule impact without reading full documents.
+            </p>
+            <div class="details">
+              <div class="smallcaps">Output style</div>
+              <ul>
+                <li>Rules must be precise (IF/THEN) so they can drive a model, not just prose.</li>
+              </ul>
+            </div>
+          </article>
+
+          <!-- EXP 15 -->
+          <article class="card" data-exp="15"
+            data-binding="temporal,predictive,attention"
+            data-agent="visual,sheets,terminal,control,files"
+            data-title="Procurement & Lead-Time Simulation: Critical Path by Supply Risk">
+            <div class="cardHead">
+              <div class="titleBlock">
+                <h4>15 — Procurement & Lead‑Time Simulation: Critical Path by Supply Risk</h4>
+                <p class="sub">Use the agent’s browsing + spreadsheet strengths to bind logistics into the forecast.</p>
+              </div>
+              <div style="display:flex; gap:0.55rem; flex-wrap:wrap; justify-content:flex-end;">
+                <button class="btn primary copyBtn" type="button">Copy prompt</button>
+                <button class="btn secondary detailsBtn" type="button">Show details</button>
+              </div>
+            </div>
+            <div class="chipRow">
+              <span class="chip"><b>B</b> Temporal lags</span>
+              <span class="chip"><b>B</b> Predictive coding</span>
+              <span class="chip"><b>A</b> Spreadsheets</span>
+              <span class="chip"><b>A</b> User confirmations</span>
+              <span class="chip"><b>A</b> Visual browser</span>
+            </div>
+            <p class="spec" data-spec>
+              In agent mode, run a procurement/lead‑time experiment for the cliff‑shed build: use the visual browser to gather candidate suppliers for major materials and services (timber, fixings, weatherproofing, transport/haul, inspections), record price/lead‑time/availability, and build a spreadsheet model with formulas that propagate lead times into schedule risk and prediction‑error sensitivity; then generate an offline HTML “procurement cockpit” that visualizes critical‑path items, substitution options, and what‑if scenarios (supplier fails, delivery slips, access window changes); do not place orders—stop at a recommended purchase plan and a list of decision checkpoints requiring explicit user confirmation; success = the model identifies the top three lead‑time risks and offers at least one viable mitigation per risk with quantified schedule impact.
+            </p>
+            <div class="details">
+              <div class="smallcaps">Deliverables</div>
+              <ul>
+                <li>Supplier shortlist + lead-time sheet + what-if model.</li>
+                <li>Decision checkpoints (where the user must approve action).</li>
+              </ul>
+            </div>
+          </article>
+
+          <!-- EXP 16 -->
+          <article class="card" data-exp="16"
+            data-binding="global-workspace,predictive,event-files"
+            data-agent="slides,files,text"
+            data-title="Stakeholder Narrative Deck: Bind Past–Present–Future in One Story">
+            <div class="cardHead">
+              <div class="titleBlock">
+                <h4>16 — Stakeholder Narrative Deck: Bind Past–Present–Future in One Story</h4>
+                <p class="sub">Turn the model + errors into an explainable narrative that travels across the org.</p>
+              </div>
+              <div style="display:flex; gap:0.55rem; flex-wrap:wrap; justify-content:flex-end;">
+                <button class="btn primary copyBtn" type="button">Copy prompt</button>
+                <button class="btn secondary detailsBtn" type="button">Show details</button>
+              </div>
+            </div>
+            <div class="chipRow">
+              <span class="chip"><b>B</b> Global workspace</span>
+              <span class="chip"><b>B</b> Event files</span>
+              <span class="chip"><b>A</b> Slides</span>
+              <span class="chip"><b>A</b> Text browser</span>
+            </div>
+            <p class="spec" data-spec>
+              In agent mode, create a stakeholder-ready narrative that binds past decisions, current state, and near‑future predictions for the cliff‑shed project: draft a concise story arc (why the shed, why the cliff, what “good” looks like), then generate an editable slide deck that includes (1) the generative model’s forecast, (2) current prediction‑error hotspots, (3) the multi‑timescale cadence, and (4) the next three decisive actions with rationale; also output an offline HTML companion with interactive “why” buttons that reveal the bound context behind each slide (what assumption, what evidence, what change); success = a stakeholder can ask “why are we doing this next?” and the deck answers with linked evidence and model logic in under two minutes.
+            </p>
+            <div class="details">
+              <div class="smallcaps">Design constraint</div>
+              <ul>
+                <li>Keep slides executive; push detail into click-to-expand “why”.</li>
+              </ul>
+            </div>
+          </article>
+
+          <!-- EXP 17 -->
+          <article class="card" data-exp="17"
+            data-binding="attention,global-workspace,temporal"
+            data-agent="visual,text,control,files"
+            data-title="Agentic Safety Drill: Prompt Injection & Data Hygiene Playbook">
+            <div class="cardHead">
+              <div class="titleBlock">
+                <h4>17 — Agentic Safety Drill: Prompt Injection & Data Hygiene Playbook</h4>
+                <p class="sub">Stress-test the agent’s web actions and connector use against manipulation.</p>
+              </div>
+              <div style="display:flex; gap:0.55rem; flex-wrap:wrap; justify-content:flex-end;">
+                <button class="btn primary copyBtn" type="button">Copy prompt</button>
+                <button class="btn secondary detailsBtn" type="button">Show details</button>
+              </div>
+            </div>
+            <div class="chipRow">
+              <span class="chip"><b>B</b> Attention gatekeeping</span>
+              <span class="chip"><b>B</b> Global workspace</span>
+              <span class="chip"><b>A</b> User confirmations</span>
+              <span class="chip"><b>A</b> Visual browser</span>
+              <span class="chip"><b>A</b> Text browser</span>
+            </div>
+            <p class="spec" data-spec>
+              In agent mode, run a safety-and-security drill tailored to agentic project management: create or curate a set of realistic “malicious” or misleading web pages/docs (prompt‑injection style instructions, fake supplier pages, spoofed emails) and test how the agent resists them while researching the cliff‑shed project; define a mandatory sanitization step (source validation, least‑privilege use of apps/connectors, explicit confirmation gates for external actions, and refusal to copy sensitive data into untrusted contexts) and implement it as a reusable operator checklist + prompt template; deliver an offline HTML playbook that demonstrates the attacks, mitigations, and “watch points” during agent runs; success = in the simulated drill, the agent refuses or flags at least 90% of injected instructions and never exfiltrates sensitive content across trust boundaries.
+            </p>
+            <div class="details">
+              <div class="smallcaps">Bonus</div>
+              <ul>
+                <li>Create a pre-flight prompt the user pastes before any agent browsing session.</li>
+              </ul>
+            </div>
+          </article>
+
+          <!-- EXP 18 -->
+          <article class="card" data-exp="18"
+            data-binding="predictive,global-workspace,attention"
+            data-agent="parallel,terminal,files"
+            data-title="Parallel Attempts Ensemble: Eight Plans, One Consensus + Disagreement Map">
+            <div class="cardHead">
+              <div class="titleBlock">
+                <h4>18 — Parallel Attempts Ensemble: Eight Plans, One Consensus + Disagreement Map</h4>
+                <p class="sub">Use multiple independent runs to expose brittle assumptions and stabilize the baseline.</p>
+              </div>
+              <div style="display:flex; gap:0.55rem; flex-wrap:wrap; justify-content:flex-end;">
+                <button class="btn primary copyBtn" type="button">Copy prompt</button>
+                <button class="btn secondary detailsBtn" type="button">Show details</button>
+              </div>
+            </div>
+            <div class="chipRow">
+              <span class="chip"><b>B</b> Predictive coding</span>
+              <span class="chip"><b>B</b> Global workspace</span>
+              <span class="chip"><b>A</b> Parallel multi‑run</span>
+              <span class="chip"><b>A</b> Terminal/code</span>
+            </div>
+            <p class="spec" data-spec>
+              In agent mode, run a controlled “parallel planning ensemble” for the cliff‑shed project: generate eight independent full plans/digital‑twins (vary assumptions and tool paths—more web research vs more simulation), capture each plan’s self‑rated confidence and key forecasts, then synthesize a “consensus + disagreement” report that highlights which elements are robust vs brittle (e.g., which risks appear in all eight, which depend on one shaky assumption); deliver an offline HTML comparison board with side‑by‑side diffs, a “choose my baseline” selector, and a merged plan that integrates the strongest pieces; success = the ensemble surfaces at least five materially different assumptions and produces a merged risk register that strictly dominates any single run (more risks caught, clearer mitigations, fewer contradictions).
+            </p>
+            <div class="details">
+              <div class="smallcaps">Why it matters</div>
+              <ul>
+                <li>“Many attempts” turns uncertainty into an explicit disagreement map, not hidden variance.</li>
+              </ul>
+            </div>
+          </article>
+
+          <!-- EXP 19 -->
+          <article class="card" data-exp="19"
+            data-binding="global-workspace,attention"
+            data-agent="visual,text,files"
+            data-title="Competitive Landscape: Project Tools Through the Binding Lens">
+            <div class="cardHead">
+              <div class="titleBlock">
+                <h4>19 — Competitive Landscape: Project Tools Through the Binding Lens</h4>
+                <p class="sub">Survey where today’s tools succeed/fail at binding and propose differentiated bets.</p>
+              </div>
+              <div style="display:flex; gap:0.55rem; flex-wrap:wrap; justify-content:flex-end;">
+                <button class="btn primary copyBtn" type="button">Copy prompt</button>
+                <button class="btn secondary detailsBtn" type="button">Show details</button>
+              </div>
+            </div>
+            <div class="chipRow">
+              <span class="chip"><b>B</b> Global workspace</span>
+              <span class="chip"><b>B</b> Attention management</span>
+              <span class="chip"><b>A</b> Web research</span>
+              <span class="chip"><b>A</b> Text browser</span>
+            </div>
+            <p class="spec" data-spec>
+              In agent mode, conduct a competitive scan of existing project-management approaches and tools through the lens of binding: use deep web research to analyze how leading tools handle (a) multi-source integration, (b) forecasting/priors, (c) anomaly/prediction-error surfacing, (d) memory/postmortems and retrieval, and (e) cadence/attention management; summarize gaps as concrete “binding failures” (misbinding, drift, hidden lags, untraceable decisions) and propose feature concepts for a “Project Binding” layer, illustrated via the cliff‑shed scenario; deliver an offline HTML landscape map with a feature matrix (keywords only) and clickable mini‑briefs per tool; success = the output yields a prioritized shortlist of three differentiated product bets with clear user stories and measurable advantages.
+            </p>
+            <div class="details">
+              <div class="smallcaps">Output format</div>
+              <ul>
+                <li>Keep comparison tables keyword-only; put prose in expandable briefs.</li>
+              </ul>
+            </div>
+          </article>
+
+          <!-- EXP 20 -->
+          <article class="card" data-exp="20"
+            data-binding="global-workspace,predictive,event-files,temporal"
+            data-agent="apps,terminal,files,control"
+            data-title="Custom App via MCP: Bind Sensors, Docs, and Plans into One Loop">
+            <div class="cardHead">
+              <div class="titleBlock">
+                <h4>20 — Custom App via MCP: Bind Sensors, Docs, and Plans into One Loop</h4>
+                <p class="sub">Design an integration interface so the agent can “sense” and update the model reliably.</p>
+              </div>
+              <div style="display:flex; gap:0.55rem; flex-wrap:wrap; justify-content:flex-end;">
+                <button class="btn primary copyBtn" type="button">Copy prompt</button>
+                <button class="btn secondary detailsBtn" type="button">Show details</button>
+              </div>
+            </div>
+            <div class="chipRow">
+              <span class="chip"><b>B</b> Global workspace</span>
+              <span class="chip"><b>B</b> Predictive coding</span>
+              <span class="chip"><b>B</b> Event files</span>
+              <span class="chip"><b>A</b> Apps/MCP</span>
+              <span class="chip"><b>A</b> User confirmations</span>
+              <span class="chip"><b>A</b> Terminal/code</span>
+            </div>
+            <p class="spec" data-spec>
+              In agent mode, design (and if possible prototype in code) a custom ChatGPT app using MCP that connects a project’s sensor streams, docs, and task system into a unified “binding workspace” for the cliff‑shed build: define the tool interface (start read‑only), data schemas for observations and predictions, access controls and audit logs, and explicit confirmation gates for any write actions; implement a minimal local mock server and a demonstration conversation showing the agent calling the tool to ingest an observation, update the generative model, and surface a prediction error in the leader’s attention queue; deliver an offline HTML technical spec with diagrams plus the runnable code skeleton and a security section covering prompt-injection resistance and least‑privilege; success = another engineer can run the mock integration and observe the full loop from observation → model update → highlighted dissonance.
+            </p>
+            <div class="details">
+              <div class="smallcaps">Engineering notes</div>
+              <ul>
+                <li>Prefer append-only logs for observations and decisions (traceability).</li>
+                <li>Keep write actions constrained and always confirmed by the user.</li>
+              </ul>
+            </div>
+          </article>
+        </div>
+
+        <div class="footer">
+          <p>
+            Operator tip: treat these as <b>parallel probes</b>. Don’t try to perfectly sequence them. The point is to explore the method space,
+            then bind the best results back into a single integrated prototype.
+          </p>
+          <p>
+            If you want, I can also generate a <code>one-click prompt pack</code> (JSON + copy-ready agent prompts) or a
+            <code>prioritized run order</code> based on your constraints (time, team size, data availability).
+          </p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const APP = document.getElementById('canvasApp');
+      const TIMEOUT = Math.max(500, Math.min(15000, Number(APP?.getAttribute('data-timeout') || 3000)));
+
+      function toast(msg, kind){
+        try{
+          const host = document.getElementById('toastHost');
+          if(!host) return;
+          const t = document.createElement('div');
+          t.className = 'toast';
+          const p = document.createElement('p');
+          p.className = 'msg';
+          p.textContent = msg;
+          const x = document.createElement('button');
+          x.className = 'x';
+          x.type = 'button';
+          x.textContent = '×';
+          x.addEventListener('click', ()=> t.remove());
+          t.appendChild(p);
+          t.appendChild(x);
+          host.appendChild(t);
+          const ttl = kind === 'persist' ? 12000 : 5200;
+          if(kind !== 'persist'){
+            setTimeout(()=>{ try{ t.remove(); }catch(e){} }, ttl);
+          }
+        }catch(e){}
+      }
+
+      function fallback(reason){
+        console.error('Canvas fallback:', reason);
+        window.__canvasStatus = 'fallback';
+        toast('Interactivity fell back to static view (' + String(reason) + '). The prompts are still available below.', 'persist');
+        // Keep static content; nothing else to do.
+      }
+
+      // Visibility watchdog: ensure something marks smoke OK.
+      (function watchdog(){
+        let elapsed = 0;
+        const step = 500;
+        const timer = setInterval(()=>{
+          elapsed += step;
+          const ok = APP && (APP.matches('[data-smoke="ok"]') || APP.querySelector('[data-smoke="ok"]'));
+          if(ok){
+            clearInterval(timer);
+            return;
+          }
+          if(elapsed >= TIMEOUT){
+            clearInterval(timer);
+            fallback('timeout');
+          }
+        }, step);
+      })();
+
+      try{
+        const bindingDefs = [
+          {slug:'attention', label:'Attention (FIT)'},
+          {slug:'synchrony', label:'Neural synchrony'},
+          {slug:'temporal', label:'Temporal binding windows'},
+          {slug:'predictive', label:'Predictive coding'},
+          {slug:'active', label:'Active inference'},
+          {slug:'working-memory', label:'Working memory (episodic buffer)'},
+          {slug:'event-files', label:'Event files (TEC)'},
+          {slug:'global-workspace', label:'Global workspace'},
+          {slug:'neural-reuse', label:'Neural reuse'},
+          {slug:'oscillatory', label:'Oscillatory hierarchies'},
+          {slug:'embodied', label:'Embodied sensorimotor'},
+          {slug:'bayesian', label:'Bayesian causal inference'}
+        ];
+
+        const agentDefs = [
+          {slug:'visual', label:'Visual browser'},
+          {slug:'text', label:'Text browser'},
+          {slug:'terminal', label:'Terminal/code'},
+          {slug:'files', label:'File download & manipulation'},
+          {slug:'apps', label:'Apps/connectors'},
+          {slug:'sheets', label:'Spreadsheets'},
+          {slug:'slides', label:'Slides'},
+          {slug:'recurring', label:'Recurring tasks'},
+          {slug:'control', label:'User confirmations'},
+          {slug:'parallel', label:'Parallel multi-run'}
+        ];
+
+        const expCards = Array.from(document.querySelectorAll('.card[data-exp]'));
+
+        // Build checks
+        const bindingChecks = document.getElementById('bindingChecks');
+        const agentChecks = document.getElementById('agentChecks');
+
+        function mkCheck(def, group){
+          const id = group + '-' + def.slug;
+          const label = document.createElement('label');
+          label.className = 'chk';
+          label.setAttribute('for', id);
+
+          const left = document.createElement('div');
+          left.className = 'name';
+
+          const input = document.createElement('input');
+          input.type = 'checkbox';
+          input.id = id;
+          input.checked = true;
+          input.dataset.group = group;
+          input.dataset.slug = def.slug;
+
+          const name = document.createElement('span');
+          name.textContent = def.label;
+
+          left.appendChild(input);
+          left.appendChild(name);
+
+          const count = document.createElement('span');
+          count.className = 'count';
+          count.textContent = '—';
+          count.dataset.countFor = group + ':' + def.slug;
+
+          label.appendChild(left);
+          label.appendChild(count);
+
+          // Clicking label toggles checkbox naturally
+          input.addEventListener('change', applyFilters);
+
+          return label;
+        }
+
+        bindingDefs.forEach(d => bindingChecks.appendChild(mkCheck(d, 'binding')));
+        agentDefs.forEach(d => agentChecks.appendChild(mkCheck(d, 'agent')));
+
+        const q = document.getElementById('q');
+
+        q.addEventListener('input', applyFilters);
+
+        // Select all/none helpers
+        function setGroup(group, value){
+          const inputs = document.querySelectorAll('input[type="checkbox"][data-group="'+group+'"]');
+          inputs.forEach(i => { i.checked = value; });
+          applyFilters();
+        }
+        document.getElementById('bindingAll').addEventListener('click', ()=> setGroup('binding', true));
+        document.getElementById('bindingNone').addEventListener('click', ()=> setGroup('binding', false));
+        document.getElementById('agentAll').addEventListener('click', ()=> setGroup('agent', true));
+        document.getElementById('agentNone').addEventListener('click', ()=> setGroup('agent', false));
+
+        // Expand/collapse
+        document.getElementById('expandAll').addEventListener('click', ()=>{
+          expCards.forEach(c => c.querySelector('.details')?.classList.add('on'));
+        });
+        document.getElementById('collapseAll').addEventListener('click', ()=>{
+          expCards.forEach(c => c.querySelector('.details')?.classList.remove('on'));
+        });
+
+        // Explainers
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalKicker = document.getElementById('modalKicker');
+        const modalBody = document.getElementById('modalBody');
+        const modalCloseBtn = document.getElementById('modalCloseBtn');
+
+        function openModal(kicker, title, html){
+          modalKicker.textContent = kicker || 'Explainer';
+          modalTitle.textContent = title || 'Explainer';
+          modalBody.innerHTML = html || '';
+          modalOverlay.classList.add('on');
+        }
+        function closeModal(){
+          modalOverlay.classList.remove('on');
+        }
+        modalCloseBtn.addEventListener('click', closeModal);
+        modalOverlay.addEventListener('click', (e)=>{ if(e.target === modalOverlay) closeModal(); });
+        document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeModal(); });
+
+        document.getElementById('openOverview').addEventListener('click', ()=>{
+          openModal(
+            'Project Binding',
+            'What counts as “binding” in this project?',
+            [
+              '<p><b>Binding</b> is the coordination trick: diverse signals (tasks, risks, constraints, messages, memories) become one coherent project “scene” so a leader can act ahead of time.</p>',
+              '<p>This page uses multiple neuroscience metaphors: <b>attention</b> (what enters awareness), <b>temporal binding windows</b> (when two updates belong together), <b>predictive coding</b> (a generative model + prediction errors), <b>global workspace</b> (a shared blackboard for coordination), and <b>event files</b> (episodes that bind context-action-outcome).</p>',
+              '<p>The cliff-shed scenario is a stress test: high risk, many lags, and a need for tight traceability. The goal is not construction advice; it’s a decision frame that keeps the team coherent.</p>'
+            ].join('')
+          );
+        });
+
+        document.getElementById('openAgentSpec').addEventListener('click', ()=>{
+          openModal(
+            'ChatGPT Agent',
+            'Agent capabilities cheat‑sheet (what these prompts try to exploit)',
+            [
+              '<p>These prompts assume agent mode can: browse the web via a <b>visual browser</b> (GUI) and <b>text browser</b>, run code in a <b>terminal</b>, download/manipulate files, generate <b>editable spreadsheets</b> and <b>slides</b>, and (if enabled) use <b>apps/connectors</b> to access your data.</p>',
+              '<p>They also assume strong safety posture: explicit user confirmation for consequential actions, and caution against prompt injection. The “safety drill” experiment is there to operationalize that.</p>'
+            ].join('')
+          );
+        });
+
+        // Copy + details toggles
+        function copyText(text){
+          const s = String(text || '').trim();
+          if(!s) return false;
+
+          if(navigator.clipboard && navigator.clipboard.writeText){
+            return navigator.clipboard.writeText(s).then(()=>true).catch(()=>false);
+          }
+
+          // Fallback
+          try{
+            const ta = document.createElement('textarea');
+            ta.value = s;
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            ta.style.top = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            const ok = document.execCommand('copy');
+            ta.remove();
+            return Promise.resolve(ok);
+          }catch(e){
+            return Promise.resolve(false);
+          }
+        }
+
+        expCards.forEach(card=>{
+          const copyBtn = card.querySelector('.copyBtn');
+          const detailsBtn = card.querySelector('.detailsBtn');
+          const spec = card.querySelector('[data-spec]')?.textContent || '';
+          const details = card.querySelector('.details');
+
+          copyBtn?.addEventListener('click', async ()=>{
+            const ok = await copyText(spec);
+            toast(ok ? 'Copied experiment ' + card.dataset.exp + ' prompt.' : 'Copy failed. Select the text manually.', ok ? undefined : 'persist');
+          });
+
+          detailsBtn?.addEventListener('click', ()=>{
+            const on = details?.classList.toggle('on');
+            detailsBtn.textContent = on ? 'Hide details' : 'Show details';
+          });
+        });
+
+        // Download prompts
+        document.getElementById('downloadPrompts').addEventListener('click', ()=>{
+          const visible = getVisibleExperiments();
+          const lines = visible.map(c=>{
+            const n = c.dataset.exp;
+            const title = c.dataset.title || ('Experiment ' + n);
+            const prompt = (c.querySelector('[data-spec]')?.textContent || '').trim().replace(/\s+/g,' ');
+            return `EXPERIMENT ${n} — ${title}\n${prompt}\n`;
+          }).join('\n');
+          const blob = new Blob([lines], {type: 'text/plain;charset=utf-8'});
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'project-binding-agent-experiments.txt';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(()=> URL.revokeObjectURL(url), 2000);
+          toast('Downloaded prompts for currently visible experiments.');
+        });
+
+        // Bars + scatter
+        const bindingBars = document.getElementById('bindingBars');
+        const agentBars = document.getElementById('agentBars');
+        const bindingSummary = document.getElementById('bindingSummary');
+        const agentSummary = document.getElementById('agentSummary');
+        const visibleCount = document.getElementById('visibleCount');
+
+        function barRow(label){
+          const row = document.createElement('div');
+          row.className = 'barRow';
+          const lab = document.createElement('div');
+          lab.className = 'label';
+          lab.textContent = label;
+          const track = document.createElement('div');
+          track.className = 'track';
+          const fill = document.createElement('div');
+          fill.className = 'fill';
+          track.appendChild(fill);
+          const num = document.createElement('div');
+          num.className = 'num';
+          num.textContent = '0';
+          row.appendChild(lab);
+          row.appendChild(track);
+          row.appendChild(num);
+          return {row, fill, num};
+        }
+
+        const bindingBarEls = {};
+        const agentBarEls = {};
+
+        bindingDefs.forEach(d=>{
+          const el = barRow(d.label);
+          bindingBars.appendChild(el.row);
+          bindingBarEls[d.slug] = el;
+        });
+        agentDefs.forEach(d=>{
+          const el = barRow(d.label);
+          agentBars.appendChild(el.row);
+          agentBarEls[d.slug] = el;
+        });
+
+        // Scatter plot
+        const scatter = document.getElementById('scatter');
+        const tip = document.getElementById('tip');
+        let selectedExp = null;
+
+        function indexOf(defs, slug){
+          const i = defs.findIndex(d => d.slug === slug);
+          return i < 0 ? null : i;
+        }
+
+        function coordFor(card){
+          const bs = (card.dataset.binding || '').split(',').map(s=>s.trim()).filter(Boolean);
+          const as = (card.dataset.agent || '').split(',').map(s=>s.trim()).filter(Boolean);
+
+          const bIdxs = bs.map(s=>indexOf(bindingDefs, s)).filter(v=>v!==null);
+          const aIdxs = as.map(s=>indexOf(agentDefs, s)).filter(v=>v!==null);
+
+          const bx = bIdxs.length ? (bIdxs.reduce((a,b)=>a+b,0)/bIdxs.length) : 0;
+          const ay = aIdxs.length ? (aIdxs.reduce((a,b)=>a+b,0)/aIdxs.length) : 0;
+
+          const x = bindingDefs.length > 1 ? (bx/(bindingDefs.length-1))*100 : 0;
+          const y = agentDefs.length > 1 ? (ay/(agentDefs.length-1))*100 : 0;
+
+          // pad from edges
+          const px = 7, py = 10;
+          return {
+            x: px + (x*(100-2*px)/100),
+            y: (100-py) - (y*(100-2*py)/100)
+          };
+        }
+
+        function clearScatter(){
+          while(scatter.firstChild) scatter.removeChild(scatter.firstChild);
+        }
+
+        function drawScatter(cards){
+          clearScatter();
+
+          // axes
+          const ax = document.createElementNS('http://www.w3.org/2000/svg','line');
+          ax.setAttribute('x1','7'); ax.setAttribute('y1','90');
+          ax.setAttribute('x2','93'); ax.setAttribute('y2','90');
+          ax.setAttribute('stroke','rgba(255,255,255,0.25)');
+          ax.setAttribute('stroke-width','0.6');
+          scatter.appendChild(ax);
+
+          const ay = document.createElementNS('http://www.w3.org/2000/svg','line');
+          ay.setAttribute('x1','7'); ay.setAttribute('y1','90');
+          ay.setAttribute('x2','7'); ay.setAttribute('y2','10');
+          ay.setAttribute('stroke','rgba(255,255,255,0.25)');
+          ay.setAttribute('stroke-width','0.6');
+          scatter.appendChild(ay);
+
+          const xlab = document.createElementNS('http://www.w3.org/2000/svg','text');
+          xlab.setAttribute('x','7'); xlab.setAttribute('y','98');
+          xlab.setAttribute('fill','rgba(255,255,255,0.55)');
+          xlab.setAttribute('font-size','4');
+          xlab.textContent = 'binding index →';
+          scatter.appendChild(xlab);
+
+          const ylab = document.createElementNS('http://www.w3.org/2000/svg','text');
+          ylab.setAttribute('x','2'); ylab.setAttribute('y','12');
+          ylab.setAttribute('fill','rgba(255,255,255,0.55)');
+          ylab.setAttribute('font-size','4');
+          ylab.textContent = '↑ tool index';
+          scatter.appendChild(ylab);
+
+          // points
+          cards.forEach(card=>{
+            const c = coordFor(card);
+            const exp = card.dataset.exp;
+
+            const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+            g.setAttribute('data-exp', exp);
+            g.style.cursor = 'pointer';
+
+            const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
+            dot.setAttribute('cx', String(c.x));
+            dot.setAttribute('cy', String(c.y));
+            dot.setAttribute('r', exp === selectedExp ? '2.8' : '2.3');
+            dot.setAttribute('fill', exp === selectedExp ? 'rgba(137,220,255,0.95)' : 'rgba(255,186,107,0.78)');
+            dot.setAttribute('stroke', 'rgba(255,255,255,0.18)');
+            dot.setAttribute('stroke-width','0.5');
+
+            const label = document.createElementNS('http://www.w3.org/2000/svg','text');
+            label.setAttribute('x', String(c.x + 3));
+            label.setAttribute('y', String(c.y + 1.2));
+            label.setAttribute('font-size','3.7');
+            label.setAttribute('fill','rgba(255,255,255,0.55)');
+            label.textContent = exp;
+
+            g.appendChild(dot);
+            g.appendChild(label);
+            scatter.appendChild(g);
+
+            function showTip(evt){
+              const rect = scatter.getBoundingClientRect();
+              const px = ((c.x/100) * rect.width);
+              const py = ((c.y/100) * rect.height);
+              tip.style.left = (px + 12) + 'px';
+              tip.style.top = (py) + 'px';
+              tip.textContent = exp + ' — ' + (card.dataset.title || '');
+              tip.classList.add('on');
+            }
+            function hideTip(){
+              tip.classList.remove('on');
+            }
+
+            // Hover + click/tap equivalents
+            g.addEventListener('mouseenter', showTip);
+            g.addEventListener('mouseleave', hideTip);
+            g.addEventListener('focus', showTip);
+            g.addEventListener('blur', hideTip);
+
+            g.addEventListener('click', ()=>{
+              selectedExp = exp;
+              highlightAndScroll(exp);
+              applyFilters(false); // redraw scatter with selection
+              // For touch, toggle tooltip
+              showTip();
+              setTimeout(hideTip, 1800);
+            });
+          });
+        }
+
+        function highlightAndScroll(exp){
+          expCards.forEach(c => c.dataset.highlight = (c.dataset.exp === exp) ? 'true' : 'false');
+          const card = expCards.find(c => c.dataset.exp === exp);
+          if(card){
+            card.scrollIntoView({behavior:'smooth', block:'start'});
+          }
+        }
+
+        function selectedSlugs(group){
+          return Array.from(document.querySelectorAll('input[type="checkbox"][data-group="'+group+'"]'))
+            .filter(i => i.checked)
+            .map(i => i.dataset.slug);
+        }
+
+        function getVisibleExperiments(){
+          return expCards.filter(c => !c.hidden);
+        }
+
+        function updateCounts(){
+          const visible = getVisibleExperiments();
+          const total = visible.length;
+          visibleCount.textContent = total + ' visible';
+
+          // Per-tag counts among visible
+          const bCount = Object.fromEntries(bindingDefs.map(d => [d.slug, 0]));
+          const aCount = Object.fromEntries(agentDefs.map(d => [d.slug, 0]));
+
+          visible.forEach(c=>{
+            (c.dataset.binding||'').split(',').map(s=>s.trim()).filter(Boolean).forEach(s=>{ if(bCount[s] !== undefined) bCount[s]++; });
+            (c.dataset.agent||'').split(',').map(s=>s.trim()).filter(Boolean).forEach(s=>{ if(aCount[s] !== undefined) aCount[s]++; });
+          });
+
+          // Update checkbox badges
+          Object.entries(bCount).forEach(([slug, n])=>{
+            const el = document.querySelector('[data-count-for="binding:'+slug+'"]');
+            if(el) el.textContent = String(n).padStart(2,'0');
+          });
+          Object.entries(aCount).forEach(([slug, n])=>{
+            const el = document.querySelector('[data-count-for="agent:'+slug+'"]');
+            if(el) el.textContent = String(n).padStart(2,'0');
+          });
+
+          // Update bar charts
+          bindingDefs.forEach(d=>{
+            const el = bindingBarEls[d.slug];
+            const n = bCount[d.slug] || 0;
+            const pct = total ? (n/total)*100 : 0;
+            el.fill.style.width = pct.toFixed(1) + '%';
+            el.num.textContent = (String(n).padStart(2,'0')) + ' / ' + String(total).padStart(2,'0');
+          });
+
+          agentDefs.forEach(d=>{
+            const el = agentBarEls[d.slug];
+            const n = aCount[d.slug] || 0;
+            const pct = total ? (n/total)*100 : 0;
+            el.fill.style.width = pct.toFixed(1) + '%';
+            el.num.textContent = (String(n).padStart(2,'0')) + ' / ' + String(total).padStart(2,'0');
+          });
+
+          bindingSummary.textContent = total ? (total + ' experiments') : 'none';
+          agentSummary.textContent = total ? (total + ' experiments') : 'none';
+
+          // Scatter
+          drawScatter(visible);
+        }
+
+        function applyFilters(showToast){
+          const b = selectedSlugs('binding');
+          const a = selectedSlugs('agent');
+          const term = (q.value || '').trim().toLowerCase();
+
+          expCards.forEach(card=>{
+            const bs = (card.dataset.binding||'').split(',').map(s=>s.trim()).filter(Boolean);
+            const as = (card.dataset.agent||'').split(',').map(s=>s.trim()).filter(Boolean);
+
+            const matchB = b.length === 0 ? true : b.some(x => bs.includes(x));
+            const matchA = a.length === 0 ? true : a.some(x => as.includes(x));
+            const matchQ = term ? (card.textContent || '').toLowerCase().includes(term) : true;
+
+            card.hidden = !(matchB && matchA && matchQ);
+          });
+
+          updateCounts();
+          if(showToast === true){
+            toast('Filters applied.');
+          }
+        }
+
+        // Initial render
+        applyFilters(false);
+
+        // Mark ready for watchdog
+        APP.setAttribute('data-smoke', 'ok');
+        window.__canvasStatus = 'ready';
+
+      }catch(e){
+        fallback(e && e.message ? e.message : e);
+      }
+    })();
+  </script>
+</body>
+</html>
