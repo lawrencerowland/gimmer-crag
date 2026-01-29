@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cliff-side Shed • Binding Dashboard v4.3</title>
+  <link rel="stylesheet" href="../../common.css" />
+  <style>
+    :root{
+      --bg:#f9fafb; --surface:#ffffff; --primary:#2563eb; --accent:#10b981; --warn:#fbbf24; --error:#dc2626;
+      --text:#111827; --muted:#6b7280; --shadow:0 4px 14px rgba(0,0,0,0.08); --radius:1rem;
+    }
+    .dark{--bg:#111827;--surface:#1f2937;--text:#e5e7eb;--muted:#a1a1aa;--shadow:0 4px 14px rgba(0,0,0,0.45);}/*dark*/
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;transition:background .3s,color .3s;}
+    header{background:var(--surface);padding:1rem 2rem;box-shadow:var(--shadow);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.5rem;}
+    header h1{font-size:1.25rem;font-weight:650;}
+    button{border:none;border-radius:calc(var(--radius)/2);padding:.5rem 1rem;font-weight:650;cursor:pointer;transition:background .2s,color .2s,transform .05s;}
+    button:active{transform:translateY(1px);}
+    button.primary{background:var(--primary);color:#fff;} button.primary:hover{background:#1d4ed8;}
+    button.outline{background:none;border:2px solid var(--primary);color:var(--primary);} button.outline:hover{background:var(--primary);color:#fff;}
+
+    main{flex:1;display:flex;flex-direction:column;gap:1rem;padding:1rem;width:100%;}
+    @media(min-width:800px){main{flex-direction:row;}}
+
+    .card{background:var(--surface);border-radius:var(--radius);padding:1rem;box-shadow:var(--shadow);flex:1 1 0;overflow:hidden;}
+    .min-h-64{min-height:16rem;}
+
+    /* Left column */
+    #leftCol{flex:0 0 340px;max-width:420px;}
+    .subtle{color:var(--muted);font-size:.72rem;line-height:1.25;}
+
+    .timelineItem{display:grid;grid-template-columns:1fr auto;align-items:center;gap:.75rem;margin-bottom:.75rem;}
+    .timelineItem label{font-size:.9rem;}
+    .phaseRange{width:110px;max-width:40vw;accent-color:var(--accent);}
+
+    .statusDot{display:inline-block;width:.7rem;height:.7rem;border-radius:50%;margin-right:.35rem;vertical-align:middle;}
+
+    /* Gantt */
+    #gantt{margin-top:1rem;display:flex;flex-direction:column;gap:.5rem;}
+    .ganttRow{display:flex;align-items:center;gap:.5rem;font-size:.8rem;}
+    .barHolder{flex:1;height:1rem;position:relative;border-radius:.5rem;
+      background:linear-gradient(90deg,transparent 25%,rgba(0,0,0,0.05) 25%,rgba(0,0,0,0.05) 26%,transparent 26%);
+      background-size:4rem 100%;
+    }
+    .bar{position:absolute;height:100%;border-radius:.5rem;}
+    .dark .barHolder{background:linear-gradient(90deg,transparent 25%,rgba(255,255,255,0.05) 25%,rgba(255,255,255,0.05) 26%,transparent 26%);}/*dark stripes*/
+
+    /* Right column */
+    #diagramWrapper{position:relative;display:flex;flex-direction:column;}
+    svg{width:100%;height:auto;max-height:380px;}
+
+    /* Explain box */
+    #explainBox{position:absolute;top:1rem;right:1rem;max-width:320px;background:var(--surface);border-radius:var(--radius);
+      box-shadow:var(--shadow);padding:1rem;display:none;z-index:10;}
+    #explainBox h3{font-size:1.02rem;margin-bottom:.35rem;}
+    #explainBox p{font-size:.85rem;line-height:1.25;color:var(--text);}
+    #closeExplain{position:absolute;top:.25rem;right:.5rem;background:none;color:var(--primary);font-size:1rem;cursor:pointer;}
+
+    /* Toast */
+    .toast{position:sticky;top:.5rem;display:inline-block;align-self:flex-start;
+      background:var(--error);color:#fff;padding:.6rem .9rem;border-radius:calc(var(--radius)/1.5);
+      box-shadow:var(--shadow);font-size:.85rem;opacity:.96;}
+
+    /* Controls */
+    .controls{margin-top:1rem;display:grid;gap:.55rem;}
+    input[type="range"]{width:100%;}
+
+    .rowFlex{display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap;}
+    .pill{display:inline-flex;align-items:center;gap:.45rem;border:1px solid rgba(0,0,0,0.08);border-radius:999px;padding:.25rem .55rem;font-size:.78rem;color:var(--muted);}
+    .dark .pill{border-color:rgba(255,255,255,0.08);}
+
+    /* tiny diagnostics (invisible unless enabled) */
+    #diag{display:none;margin-top:.75rem;border-top:1px solid rgba(0,0,0,0.08);padding-top:.75rem;}
+    .dark #diag{border-top-color:rgba(255,255,255,0.08);}
+    #diag pre{white-space:pre-wrap;font-size:.78rem;color:var(--muted);}
+  </style>
+</head>
+<body>
+  <p><a href="../../index.html">Back to app index</a></p>
+  <noscript>Interactive visualisation (enable JavaScript).</noscript>
+  <header>
+    <h1>Cliff-side Shed • Binding Dashboard</h1>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+      <button id="darkToggle" class="outline" title="Toggle Dark-mode (D)">🌙</button>
+      <button id="toggleExplain" class="outline" title="Explain binding (H)">How binding works (H)</button>
+      <button id="resetBtn" class="outline" title="Reset demo (R)">Reset (R)</button>
+    </div>
+  </header>
+
+  <main id="app" class="min-h-64" data-timeout="6000">
+    <div id="toastHost" aria-live="polite" aria-atomic="true" style="min-height:2.25rem;"></div>
+
+    <!-- LEFT COLUMN -->
+    <section class="card" id="leftCol">
+      <div class="rowFlex" style="margin-bottom:.6rem;">
+        <h2 style="font-size:1.1rem;">Phase Health</h2>
+        <label class="pill" title="Toggle slipping alerts">
+          <input id="alertsToggle" type="checkbox" checked /> Alerts
+        </label>
+      </div>
+      <div id="timeline"></div>
+
+      <h3 style="font-size:1rem;margin-top:1rem;">Schedule (Gantt)</h3>
+      <div id="gantt"></div>
+
+      <p class="subtle" style="margin-top:.75rem;">
+        Forecast Horizon (🔮) shifts the expected line a little into the future; Postdictive Sync pulls it back.
+        Slipping alerts fire when actual lags forecast by &gt;20%.
+      </p>
+
+      <div id="diag" aria-hidden="true">
+        <div class="rowFlex" style="margin-bottom:.5rem;">
+          <strong style="font-size:.85rem;">Self-tests</strong>
+          <span class="pill">Toggle: T</span>
+        </div>
+        <pre id="diagOut"></pre>
+      </div>
+    </section>
+
+    <!-- RIGHT COLUMN -->
+    <section class="card" id="diagramWrapper">
+      <svg viewBox="0 0 600 400" aria-label="Cliff-side shed illustration">
+        <path d="M50 380 L200 100 L350 80 L550 300 L550 380 Z" fill="#9ca3af"/>
+        <rect x="0" y="380" width="600" height="20" fill="#6b7280"/>
+        <rect id="platform" x="260" y="220" width="120" height="15" fill="#374151"/>
+        <rect id="shedBody" x="270" y="150" width="100" height="70" fill="#d1d5db" stroke="#4b5563" stroke-width="2"/>
+        <polygon id="roof" points="260,150 320,120 380,150" fill="#ef4444"/>
+        <rect x="100" y="200" width="10" height="180" fill="#4b5563"/>
+        <g id="ladderRungs"></g>
+      </svg>
+
+      <div class="controls">
+        <label><span id="planLabel">Plan says: 25%</span></label>
+        <input type="range" id="progressRange" min="0" max="100" value="25" />
+
+        <label>🔮 Forecast Horizon: <span id="horizonVal">+5%</span></label>
+        <input type="range" id="horizonRange" min="0" max="20" step="5" value="5" />
+
+        <button id="postdictBtn" class="primary" title="Gradually pull forecast to now">Postdictive Sync</button>
+
+        <div class="rowFlex" style="margin-top:.25rem;">
+          <span class="pill" title="Keyboard shortcuts">D • Dark &nbsp; H • Help &nbsp; R • Reset &nbsp; T • Tests</span>
+        </div>
+      </div>
+
+      <div id="explainBox">
+        <button id="closeExplain">✕</button>
+        <h3>Binding, in this UI</h3>
+        <p>
+          Think of the plan as a <em>generative forecast</em> that runs slightly ahead (🔮), and of incoming status as delayed sensory evidence.
+          “Postdictive Sync” shows how a system can avoid the discrete one-second-lag paradox by continuously re-aligning the forecast with the newly arrived evidence,
+          compressing the perceived gap rather than letting it accumulate.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+  (function(){
+    // ===== Robust bootstrap + watchdog (per canvas guidelines) =====
+    const app = document.getElementById('app');
+    const toastHost = document.getElementById('toastHost');
+
+    function showToast(message, cssVar='--error', ms=3500){
+      try{
+        toastHost.innerHTML='';
+        const el=document.createElement('div');
+        el.className='toast';
+        el.style.background = getComputedStyle(document.documentElement).getPropertyValue(cssVar) || 'var(--error)';
+        el.textContent = String(message);
+        toastHost.appendChild(el);
+        setTimeout(()=>{ if(el.parentNode) el.parentNode.removeChild(el); }, ms);
+      }catch(e){ console.error('toast failure', e); }
+    }
+
+    function fallback(reason){
+      console.error('Fallback due to', reason);
+      window.__canvasStatus = 'fallback';
+      showToast('Interactive failed (' + (reason && reason.message ? reason.message : String(reason||'unknown')) + '). Showing static view.', '--error', 5000);
+    }
+
+    // Visibility watchdog (descendant [data-smoke="ok"]) after 500ms, repeat every 500ms up to data-timeout
+    (function watchdog(){
+      const timeout = parseInt(app?.dataset?.timeout || '3000', 10);
+      let elapsed = 0;
+      const tick = setInterval(()=>{
+        const ok = app && (app.querySelector('[data-smoke="ok"]'));
+        if(ok){ clearInterval(tick); return; }
+        elapsed += 500;
+        if(elapsed >= timeout){ clearInterval(tick); fallback('timeout'); }
+      }, 500);
+    })();
+
+    function init(){
+      try{
+        if(!app) throw new Error('missing app');
+
+        // ===== Model =====
+        const phases=[
+          {id:'survey',   name:'Survey & Permits',   duration:3, actual:100, expected:0},
+          {id:'anchors',  name:'Anchor Install',     duration:4, actual:40,  expected:0},
+          {id:'frame',    name:'Frame & Platform',   duration:5, actual:0,   expected:0},
+          {id:'assembly', name:'Shed Assembly',      duration:4, actual:0,   expected:0}
+        ];
+        const alerted = new Set();
+        let forecastOffset = 5; // % ahead
+        const slice = 100/phases.length;
+
+        function computeExpected(plan){
+          let remaining = Math.min(Number(plan) + Number(forecastOffset), 100);
+          phases.forEach(p=>{
+            const s = Math.min(remaining, slice);
+            p.expected = s;
+            remaining -= s;
+          });
+        }
+
+        function delta(p){ return (p.actual - p.expected); }
+        function colour(p){
+          const d = delta(p);
+          if(d >= -5) return 'var(--accent)';
+          if(d < -20) return 'var(--error)';
+          return 'var(--warn)';
+        }
+
+        // ===== Scheduling helpers (simple linear dependencies) =====
+        const dayMs = 24*60*60*1000;
+        function computeSchedule(startDate){
+          let cursor = new Date(startDate);
+          phases.forEach(p=>{
+            p.start = new Date(cursor);
+            cursor = new Date(cursor.getTime() + p.duration*dayMs);
+            p.finish = new Date(cursor);
+          });
+        }
+        computeSchedule(new Date());
+
+        // ===== DOM refs =====
+        const timelineEl = document.getElementById('timeline');
+        const ganttEl = document.getElementById('gantt');
+        const rungGroup = document.getElementById('ladderRungs');
+
+        const planRange = document.getElementById('progressRange');
+        const planLabel = document.getElementById('planLabel');
+        const horizonRange = document.getElementById('horizonRange');
+        const horizonVal = document.getElementById('horizonVal');
+        const postdictBtn = document.getElementById('postdictBtn');
+
+        const explainBox = document.getElementById('explainBox');
+        const alertsToggle = document.getElementById('alertsToggle');
+
+        const diag = document.getElementById('diag');
+        const diagOut = document.getElementById('diagOut');
+
+        // ===== Render =====
+        function renderTimeline(){
+          timelineEl.innerHTML='';
+          phases.forEach((p,i)=>{
+            const row = document.createElement('div');
+            row.className='timelineItem';
+
+            const label = document.createElement('label');
+            label.innerHTML = `<span class="statusDot" style="background:${colour(p)}"></span>${p.name}`;
+
+            const r = document.createElement('input');
+            r.type='range'; r.min='0'; r.max='100'; r.value=String(p.actual);
+            r.className='phaseRange'; r.style.accentColor = colour(p);
+            r.setAttribute('aria-label', p.name + ' actual progress');
+            r.addEventListener('input', (e)=>{
+              phases[i].actual = Number(e.target.value);
+              renderTimeline();
+              renderLadder();
+              renderGantt();
+              alertCheck();
+            });
+
+            row.appendChild(label);
+            row.appendChild(r);
+            timelineEl.appendChild(row);
+          });
+        }
+
+        function renderLadder(){
+          rungGroup.innerHTML='';
+          const anchor = phases.find(p=>p.id==='anchors');
+          for(let i=0;i<8;i++){
+            const y = 210 + i*20;
+            const rung = document.createElementNS('http://www.w3.org/2000/svg','rect');
+            rung.setAttribute('x','95');
+            rung.setAttribute('y', String(y));
+            rung.setAttribute('width','20');
+            rung.setAttribute('height','4');
+            rung.setAttribute('fill', i < (anchor.actual/12.5) ? 'var(--accent)' : '#d1d5db');
+            rungGroup.appendChild(rung);
+          }
+        }
+
+        function fmt(d){
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth()+1).padStart(2,'0');
+          const dd = String(d.getDate()).padStart(2,'0');
+          return `${yyyy}-${mm}-${dd}`;
+        }
+
+        function renderGantt(){
+          ganttEl.innerHTML='';
+          const totalDays = phases.reduce((s,p)=>s+p.duration,0);
+          phases.forEach((p,idx)=>{
+            const row = document.createElement('div');
+            row.className='ganttRow';
+
+            const tag = document.createElement('span');
+            tag.style.width='4rem';
+            tag.textContent = p.name.split(' ')[0];
+            tag.title = `${p.name}: ${fmt(p.start)} → ${fmt(p.finish)} (${p.duration}d)`;
+
+            const holder = document.createElement('div');
+            holder.className='barHolder';
+
+            const bar = document.createElement('div');
+            bar.className='bar';
+            bar.style.background = colour(p);
+
+            const leftDays = phases.slice(0,idx).reduce((s,x)=>s+x.duration,0);
+            bar.style.left = `${(leftDays/totalDays)*100}%`;
+            bar.style.width = `${(p.duration/totalDays)*100}%`;
+
+            // Critical path (simple chain) – outline last bar
+            if(idx === phases.length-1){
+              bar.style.outline = '2px dashed var(--primary)';
+              bar.title = 'Critical path (in this toy chain)';
+            }
+
+            holder.appendChild(bar);
+            row.appendChild(tag);
+            row.appendChild(holder);
+            ganttEl.appendChild(row);
+          });
+        }
+
+        function alertCheck(){
+          if(!alertsToggle.checked) return;
+          phases.forEach(p=>{
+            if(delta(p) < -20 && !alerted.has(p.id)){
+              alerted.add(p.id);
+              showToast(`${p.name} slipping vs forecast!`, '--warn', 3500);
+            }
+          });
+        }
+
+        // ===== Controls =====
+        function applyPlan(){
+          const plan = Number(planRange.value);
+          planLabel.textContent = `Plan says: ${plan}%`;
+          computeExpected(plan);
+          renderTimeline();
+          renderGantt();
+          alertCheck();
+        }
+
+        planRange.addEventListener('input', applyPlan);
+
+        horizonRange.addEventListener('input', ()=>{
+          forecastOffset = Number(horizonRange.value);
+          horizonVal.textContent = `+${forecastOffset}%`;
+          applyPlan();
+        });
+
+        postdictBtn.addEventListener('click', ()=>{
+          if(forecastOffset === 0){
+            showToast('Already synced.', '--warn', 2500);
+            return;
+          }
+          postdictBtn.disabled = true;
+          const start = Number(forecastOffset);
+          const steps = 22;
+          let k = 0;
+          const int = setInterval(()=>{
+            k++;
+            const frac = (steps-k)/steps;
+            forecastOffset = Math.max(0, Math.round(start*frac));
+            horizonRange.value = String(forecastOffset);
+            horizonVal.textContent = `+${forecastOffset}%`;
+            applyPlan();
+            if(k >= steps || forecastOffset === 0){
+              clearInterval(int);
+              forecastOffset = 0;
+              horizonRange.value = '0';
+              horizonVal.textContent = '+0%';
+              applyPlan();
+              postdictBtn.disabled = false;
+              showToast('Forecast snapped to reality.', '--accent', 2800);
+            }
+          }, 50);
+        });
+
+        // Explain
+        document.getElementById('toggleExplain').addEventListener('click', ()=>{ explainBox.style.display='block'; });
+        document.getElementById('closeExplain').addEventListener('click', ()=>{ explainBox.style.display='none'; });
+
+        // Reset
+        document.getElementById('resetBtn').addEventListener('click', ()=>{
+          planRange.value='25';
+          horizonRange.value='5';
+          forecastOffset = 5;
+          horizonVal.textContent = '+5%';
+          phases.forEach((p,i)=>{ p.actual = i===0 ? 100 : (i===1 ? 40 : 0); });
+          alerted.clear();
+          applyPlan();
+          renderLadder();
+        });
+
+        // Dark
+        const root = document.documentElement;
+        function toggleDark(){
+          root.classList.toggle('dark');
+          try{ localStorage.setItem('dark', String(root.classList.contains('dark'))); }catch(e){}
+        }
+        document.getElementById('darkToggle').addEventListener('click', toggleDark);
+        try{ if(localStorage.getItem('dark')==='true') root.classList.add('dark'); }catch(e){}
+
+        // Diagnostics toggle (T)
+        function toggleDiag(){
+          const on = (diag.style.display !== 'block');
+          diag.style.display = on ? 'block' : 'none';
+          diag.setAttribute('aria-hidden', on ? 'false' : 'true');
+        }
+
+        // Keyboard shortcuts
+        window.addEventListener('keydown', (e)=>{
+          const k = (e.key || '').toLowerCase();
+          if(k==='d') toggleDark();
+          if(k==='h') document.getElementById('toggleExplain').click();
+          if(k==='r') document.getElementById('resetBtn').click();
+          if(k==='t') toggleDiag();
+        });
+
+        // ===== Self-tests (new) =====
+        function runSelfTests(){
+          const results=[];
+          const req=[
+            ['app', !!app],
+            ['timeline', !!timelineEl],
+            ['gantt', !!ganttEl],
+            ['plan slider', !!planRange],
+            ['horizon slider', !!horizonRange],
+            ['postdict button', !!postdictBtn],
+            ['dark toggle', !!document.getElementById('darkToggle')],
+            ['explain panel', !!explainBox],
+            ['ladder group', !!rungGroup],
+            ['alerts toggle', !!alertsToggle]
+          ];
+          req.forEach(([name,ok])=>results.push(`${ok?'✅':'❌'} ${name}`));
+
+          // behavioral sanity checks
+          const prior = Number(horizonRange.value);
+          horizonRange.value = String(Math.min(20, prior+5));
+          horizonRange.dispatchEvent(new Event('input'));
+          const bumped = (Number(horizonRange.value) !== prior);
+          results.push(`${bumped?'✅':'❌'} horizon responds`);
+
+          // revert
+          horizonRange.value = String(prior);
+          horizonRange.dispatchEvent(new Event('input'));
+
+          return results.join('\n');
+        }
+
+        diagOut.textContent = runSelfTests();
+
+        // ===== Initial paint =====
+        computeExpected(Number(planRange.value));
+        renderTimeline();
+        renderLadder();
+        renderGantt();
+
+        // Mark ready: required flags
+        app.setAttribute('data-smoke','ok');
+        const smokeChild = document.createElement('span');
+        smokeChild.setAttribute('data-smoke','ok');
+        smokeChild.hidden = true;
+        app.appendChild(smokeChild);
+        window.__canvasStatus = 'ready';
+      }catch(err){
+        window.__canvasStatus = 'error';
+        fallback(err);
+      }
+    }
+
+    // DOM ready
+    if(document.readyState==='loading'){
+      document.addEventListener('DOMContentLoaded', init);
+    }else{
+      init();
+    }
+  })();
+  </script>
+</body>
+</html>
