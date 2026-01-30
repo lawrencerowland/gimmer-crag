@@ -1,0 +1,1453 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Project Binding Prototype — Cliff Shed</title>
+  <link rel="stylesheet" href="../../common.css" />
+  <style>
+    :root{
+      --bg:#0b0e14;
+      --panel:#101726;
+      --panel2:#0f1422;
+      --text:#e7eefc;
+      --muted:#a9b8d6;
+      --accent:#7aa2ff;
+      --good:#79f2c0;
+      --warn:#ffd27a;
+      --bad:#ff7a9a;
+      --grid:rgba(255,255,255,0.07);
+      --shadow: 0 10px 35px rgba(0,0,0,0.35);
+      --radius: 16px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{box-sizing:border-box;}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      color:var(--text);
+      background:
+        radial-gradient(900px 500px at 15% 10%, rgba(122,162,255,0.18), transparent 70%),
+        radial-gradient(700px 450px at 75% 20%, rgba(255,122,154,0.12), transparent 70%),
+        radial-gradient(900px 700px at 60% 85%, rgba(121,242,192,0.10), transparent 70%),
+        var(--bg);
+      min-height:100vh;
+    }
+    a{color:var(--accent);}
+
+    .back-link{
+      margin: 16px auto 0;
+      max-width: 1250px;
+      padding: 0 16px;
+      font-size: 13px;
+    }
+
+    header{
+      position:sticky;
+      top:0;
+      z-index:50;
+      backdrop-filter: blur(8px);
+      background: linear-gradient(to bottom, rgba(11,14,20,0.92), rgba(11,14,20,0.55));
+      border-bottom:1px solid var(--grid);
+    }
+
+    .wrap{
+      max-width: 1250px;
+      margin: 0 auto;
+      padding: 16px 16px 24px;
+    }
+
+    .titleRow{
+      display:flex;
+      gap:14px;
+      flex-wrap:wrap;
+      align-items:flex-end;
+      justify-content:space-between;
+    }
+
+    h1{
+      font-size: 18px;
+      margin: 0;
+      letter-spacing: 0.2px;
+    }
+
+    .subtitle{
+      color:var(--muted);
+      font-size: 13px;
+      margin-top: 6px;
+      line-height: 1.35;
+      max-width: 900px;
+    }
+
+    .pillRow{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:flex-end; }
+
+    .pill{
+      border:1px solid var(--grid);
+      background:rgba(16,23,38,0.6);
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size:12px;
+      color: var(--muted);
+      box-shadow: var(--shadow);
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    @media (max-width: 1050px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+
+    .card{
+      border:1px solid var(--grid);
+      background: linear-gradient(180deg, rgba(16,23,38,0.85), rgba(15,20,34,0.75));
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    .cardHeader{
+      padding: 14px 14px 10px;
+      border-bottom:1px solid var(--grid);
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+
+    .cardHeader h2{
+      margin:0;
+      font-size: 14px;
+      letter-spacing: 0.2px;
+    }
+
+    .cardHeader .small{
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    .cardBody{ padding: 14px; }
+
+    .row{ display:flex; gap:12px; flex-wrap:wrap; }
+
+    .btn{
+      border:1px solid var(--grid);
+      background: rgba(10,14,24,0.5);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 9px 12px;
+      font-size: 12px;
+      cursor:pointer;
+      transition: transform 0.06s ease, background 0.15s ease, border-color 0.15s ease;
+      user-select:none;
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+    }
+    .btn:hover{ background: rgba(122,162,255,0.10); border-color: rgba(122,162,255,0.35); }
+    .btn:active{ transform: translateY(1px); }
+
+    .btn.primary{ background: rgba(122,162,255,0.14); border-color: rgba(122,162,255,0.45); }
+    .btn.primary:hover{ background: rgba(122,162,255,0.22); }
+
+    .btn.danger{ background: rgba(255,122,154,0.12); border-color: rgba(255,122,154,0.35); }
+    .btn.danger:hover{ background: rgba(255,122,154,0.18); }
+
+    .btn.good{ background: rgba(121,242,192,0.10); border-color: rgba(121,242,192,0.35); }
+    .btn.good:hover{ background: rgba(121,242,192,0.16); }
+
+    .btn.tiny{ padding: 6px 9px; border-radius: 10px; }
+
+    .kbd{
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      border:1px solid var(--grid);
+      background: rgba(0,0,0,0.25);
+      border-radius: 8px;
+      padding: 2px 6px;
+    }
+
+    .twoCol{
+      display:grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 14px;
+    }
+    @media (max-width: 1050px){
+      .twoCol{ grid-template-columns: 1fr; }
+    }
+
+    .mini{
+      border:1px solid var(--grid);
+      background: rgba(10,14,24,0.35);
+      border-radius: 14px;
+      padding: 12px;
+    }
+
+    .mini h3{ margin:0 0 8px; font-size: 12px; color: var(--text); }
+    .mini p{ margin:0; color: var(--muted); font-size: 12px; line-height: 1.4; }
+
+    .meter{
+      width: 100%;
+      height: 12px;
+      border-radius: 999px;
+      border:1px solid var(--grid);
+      background: rgba(0,0,0,0.25);
+      overflow:hidden;
+    }
+    .meter > div{
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--good), var(--warn), var(--bad));
+      transition: width 0.25s ease;
+    }
+
+    .mono{ font-family: var(--mono); }
+
+    .table{
+      width:100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      overflow:hidden;
+    }
+    .table th, .table td{
+      padding: 8px 8px;
+      border-bottom:1px solid var(--grid);
+      text-align:left;
+      vertical-align: top;
+    }
+    .table th{ color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing:0.08em; }
+
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border:1px solid var(--grid);
+      font-size: 11px;
+      color: var(--muted);
+      background: rgba(0,0,0,0.25);
+      white-space:nowrap;
+    }
+    .dot{ width:8px; height:8px; border-radius: 999px; display:inline-block; }
+
+    .dot.good{ background: var(--good); }
+    .dot.warn{ background: var(--warn); }
+    .dot.bad{ background: var(--bad); }
+
+    .log{
+      height: 200px;
+      overflow:auto;
+      padding: 10px;
+      border-radius: 14px;
+      border:1px solid var(--grid);
+      background: rgba(0,0,0,0.22);
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.35;
+      color: #d5e3ff;
+    }
+
+    .log .t{ color: #9bb4ff; }
+    .log .k{ color: #a9b8d6; }
+    .log .ok{ color: var(--good); }
+    .log .w{ color: var(--warn); }
+    .log .x{ color: var(--bad); }
+
+    .svgBox{
+      border-radius: 14px;
+      border:1px solid var(--grid);
+      background: rgba(0,0,0,0.20);
+      overflow:hidden;
+    }
+
+    .footer{
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 10px;
+      line-height: 1.4;
+    }
+
+    details{
+      border:1px solid var(--grid);
+      background: rgba(0,0,0,0.22);
+      border-radius: 14px;
+      padding: 10px 12px;
+    }
+    summary{ cursor:pointer; font-size:12px; color: var(--text); }
+    details p{ margin: 10px 0 0; color: var(--muted); font-size:12px; line-height: 1.45; }
+
+    .split{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 1050px){
+      .split{ grid-template-columns: 1fr; }
+    }
+
+    .hint{ color: var(--muted); font-size: 12px; }
+
+    .sliderRow{
+      display:grid;
+      grid-template-columns: 170px 1fr 80px;
+      gap: 10px;
+      align-items:center;
+      margin: 8px 0;
+    }
+    @media (max-width: 550px){
+      .sliderRow{ grid-template-columns: 1fr; }
+    }
+    input[type="range"]{ width:100%; }
+
+    .alertBox{
+      border:1px solid var(--grid);
+      border-radius: 14px;
+      background: rgba(0,0,0,0.22);
+      padding: 10px;
+      min-height: 140px;
+    }
+
+    .alertItem{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      padding: 8px 8px;
+      border-bottom:1px dashed rgba(255,255,255,0.10);
+    }
+    .alertItem:last-child{ border-bottom:none; }
+    .alertItem .title{ font-size:12px; margin:0; }
+    .alertItem .desc{ margin:4px 0 0; font-size:11px; color: var(--muted); line-height: 1.35; }
+
+    .score{
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 3px 6px;
+      border-radius: 10px;
+      border:1px solid var(--grid);
+      background: rgba(0,0,0,0.25);
+      color: var(--muted);
+      white-space:nowrap;
+    }
+
+    .ghost{
+      opacity: 0.65;
+    }
+  </style>
+</head>
+<body>
+  <p class="back-link"><a href="../../index.html">Back to app index</a></p>
+  <header>
+    <div class="wrap">
+      <div class="titleRow">
+        <div>
+          <h1>Project Binding Prototype — Shed Halfway Up a Cliff</h1>
+          <div class="subtitle">
+            A deliberately “neuro-inspired” control room: a <span class="mono">generative model</span> runs a little ahead (plan-as-prediction); live <span class="mono">sensors</span> report reality; attention is pulled toward <span class="mono">prediction error</span>; and the team’s shared “binding” is engineered with explicit <span class="mono">workspaces, windows, and event-files</span>.
+          </div>
+        </div>
+        <div class="pillRow">
+          <div class="pill">Offline / single-file</div>
+          <div class="pill">No external libraries</div>
+          <div class="pill">Press <span class="kbd">Space</span> to step</div>
+          <div class="pill">Press <span class="kbd">S</span> to inject surprise</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="grid">
+
+      <!-- LEFT: MODEL + VISUALS -->
+      <section class="card" aria-label="Generative model">
+        <div class="cardHeader">
+          <div>
+            <h2>1) Generated Model (Ahead-of-Time Bind)</h2>
+            <div class="small">Your “project perception” as a model: tasks × lags × risks × resources × cliff constraints.</div>
+          </div>
+          <div class="row">
+            <button class="btn primary" id="btnRun">▶ Run</button>
+            <button class="btn" id="btnStep">⏭ Step</button>
+            <button class="btn danger" id="btnSurprise">⚡ Inject surprise</button>
+            <button class="btn" id="btnReset">↺ Reset</button>
+          </div>
+        </div>
+        <div class="cardBody">
+
+          <div class="twoCol">
+            <div class="mini">
+              <h3>Plan-as-Prediction (Binding across time)</h3>
+              <p>
+                The model forecasts what should be true at each tick: completion, fatigue, anchor integrity, weather exposure, supply lead times.
+                When sensors disagree, we treat that as <span class="mono">prediction error</span> and shift attention.
+              </p>
+            </div>
+            <div class="mini">
+              <h3>Attention Spotlight (Binding across features)</h3>
+              <p>
+                Only a few things can be bound “together” in the team’s shared workspace. The spotlight is steered by error magnitude and risk coupling.
+              </p>
+            </div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="split">
+            <div>
+              <div class="hint">Dissonance: <span class="mono">||model − sensors||</span> (scaled)</div>
+              <div class="meter" aria-label="Dissonance meter"><div id="dissonanceBar"></div></div>
+              <div class="footer" id="dissonanceText">—</div>
+            </div>
+            <div>
+              <div class="hint">Current “binding window” (how long you tolerate lag before re-binding)</div>
+              <div class="meter" aria-label="Binding window meter"><div id="windowBar"></div></div>
+              <div class="footer" id="windowText">—</div>
+            </div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="svgBox" aria-label="Cliff shed visual">
+            <svg id="scene" viewBox="0 0 900 320" width="100%" height="280" role="img" aria-label="Cliff, shed, crew, anchors">
+              <!-- Background grid -->
+              <defs>
+                <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
+                  <path d="M 30 0 L 0 0 0 30" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="1" />
+                </pattern>
+                <linearGradient id="cliff" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0" stop-color="rgba(255,255,255,0.10)"/>
+                  <stop offset="1" stop-color="rgba(255,255,255,0.02)"/>
+                </linearGradient>
+                <linearGradient id="sky" x1="0" x2="1" y1="0" y2="1">
+                  <stop offset="0" stop-color="rgba(122,162,255,0.18)"/>
+                  <stop offset="1" stop-color="rgba(255,122,154,0.10)"/>
+                </linearGradient>
+              </defs>
+
+              <rect x="0" y="0" width="900" height="320" fill="url(#sky)" />
+              <rect x="0" y="0" width="900" height="320" fill="url(#grid)" opacity="0.55" />
+
+              <!-- Cliff face -->
+              <path d="M60,35 C85,70 90,140 120,185 C155,240 160,300 210,320 L0,320 L0,0 L55,0" fill="url(#cliff)" stroke="rgba(255,255,255,0.14)" />
+
+              <!-- Ledge -->
+              <path d="M190,185 C260,170 305,170 375,185 C430,198 520,198 600,185 L600,205 C510,218 430,218 375,206 C310,193 260,193 190,208 Z" fill="rgba(0,0,0,0.25)" stroke="rgba(255,255,255,0.14)" />
+
+              <!-- Shed frame -->
+              <g id="shed">
+                <rect x="395" y="105" width="210" height="120" rx="10" fill="rgba(16,23,38,0.75)" stroke="rgba(255,255,255,0.18)" />
+                <path d="M390,112 L500,50 L615,112" fill="rgba(0,0,0,0.10)" stroke="rgba(255,255,255,0.20)" stroke-width="2" />
+                <line x1="395" y1="155" x2="605" y2="155" stroke="rgba(255,255,255,0.10)" />
+                <rect x="470" y="155" width="60" height="70" rx="8" fill="rgba(0,0,0,0.20)" stroke="rgba(255,255,255,0.14)" />
+                <text x="405" y="140" fill="rgba(233,243,255,0.85)" font-size="12" font-family="var(--mono)">Shed</text>
+              </g>
+
+              <!-- Anchor points -->
+              <g id="anchors">
+                <circle cx="260" cy="135" r="9" fill="rgba(121,242,192,0.18)" stroke="rgba(121,242,192,0.55)" />
+                <circle cx="300" cy="95" r="9" fill="rgba(121,242,192,0.18)" stroke="rgba(121,242,192,0.55)" />
+                <circle cx="330" cy="150" r="9" fill="rgba(121,242,192,0.18)" stroke="rgba(121,242,192,0.55)" />
+                <path d="M260,135 L395,150" stroke="rgba(121,242,192,0.35)" stroke-width="2" />
+                <path d="M300,95 L435,120" stroke="rgba(121,242,192,0.35)" stroke-width="2" />
+                <path d="M330,150 L420,200" stroke="rgba(121,242,192,0.35)" stroke-width="2" />
+                <text x="235" y="78" fill="rgba(233,243,255,0.70)" font-size="11" font-family="var(--mono)">Anchors</text>
+              </g>
+
+              <!-- Crew -->
+              <g id="crew">
+                <circle cx="360" cy="220" r="10" fill="rgba(255,210,122,0.18)" stroke="rgba(255,210,122,0.55)" />
+                <circle cx="335" cy="235" r="10" fill="rgba(255,210,122,0.18)" stroke="rgba(255,210,122,0.55)" />
+                <circle cx="385" cy="235" r="10" fill="rgba(255,210,122,0.18)" stroke="rgba(255,210,122,0.55)" />
+                <text x="315" y="270" fill="rgba(233,243,255,0.70)" font-size="11" font-family="var(--mono)">Crew</text>
+              </g>
+
+              <!-- Weather glyph -->
+              <g id="weatherGlyph" opacity="0.9">
+                <circle cx="780" cy="70" r="22" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.14)" />
+                <path id="wind" d="M768,68 C775,61 785,61 792,68 C797,74 791,80 782,78" fill="none" stroke="rgba(233,243,255,0.70)" stroke-width="2" stroke-linecap="round" />
+                <path d="M765,82 C775,76 785,76 795,82" fill="none" stroke="rgba(233,243,255,0.55)" stroke-width="2" stroke-linecap="round" />
+                <text x="748" y="112" fill="rgba(233,243,255,0.65)" font-size="10" font-family="var(--mono)">Weather</text>
+              </g>
+
+              <!-- Attention spotlight ring (moves) -->
+              <g id="spotlight" opacity="0.95">
+                <circle id="spot" cx="500" cy="140" r="60" fill="none" stroke="rgba(122,162,255,0.55)" stroke-width="2" />
+                <circle id="spot2" cx="500" cy="140" r="42" fill="none" stroke="rgba(122,162,255,0.22)" stroke-width="2" />
+              </g>
+
+              <!-- Danger pulse overlay -->
+              <g id="dangerOverlay" opacity="0">
+                <rect x="0" y="0" width="900" height="320" fill="rgba(255,122,154,0.06)" />
+              </g>
+            </svg>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="split">
+            <div class="mini">
+              <h3>“Feature-binding” analogue: Work-package object files</h3>
+              <p>
+                Each work package is treated like an <span class="mono">object file</span>: it binds “what” (task), “where” (cliff/ledge), “who” (crew), “how” (method), and “constraints” (anchors, weather) so the team doesn’t suffer illusory conjunctions.
+              </p>
+            </div>
+            <div class="mini">
+              <h3>“Temporal-binding” analogue: windows + lags</h3>
+              <p>
+                Status updates, procurement lead-times, and hazard dynamics each have different <span class="mono">integration windows</span>. Managing the project becomes managing the relative timing of those windows.
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- RIGHT: SENSORS + WORKSPACE + EXPLAINERS -->
+      <section class="card" aria-label="Sensors and workspace">
+        <div class="cardHeader">
+          <div>
+            <h2>2) Sensors + Workspace (Bottom-Up Correction)</h2>
+            <div class="small">A structured “global workspace” for a team: you bind, broadcast, then record event-files.</div>
+          </div>
+          <div class="row">
+            <button class="btn" id="btnCapture">📌 Capture event-file</button>
+            <button class="btn good" id="btnTriage">🧭 Triage (bind attention)</button>
+          </div>
+        </div>
+
+        <div class="cardBody">
+
+          <div class="mini">
+            <h3>Lag Controls (Orchestrating timing)</h3>
+            <p>
+              Adjust lags to see how “late action” arises: if the model runs too slowly, you act late; if sensors are too delayed, you hallucinate stability.
+            </p>
+            <div style="height:10px"></div>
+
+            <div class="sliderRow">
+              <div class="hint">Sensor delay (ticks)</div>
+              <input id="lagSensor" type="range" min="0" max="6" step="1" value="2" />
+              <div class="score" id="lagSensorVal">2</div>
+            </div>
+            <div class="sliderRow">
+              <div class="hint">Decision latency (ticks)</div>
+              <input id="lagDecision" type="range" min="0" max="6" step="1" value="2" />
+              <div class="score" id="lagDecisionVal">2</div>
+            </div>
+            <div class="sliderRow">
+              <div class="hint">Procurement lead-time (ticks)</div>
+              <input id="lagSupply" type="range" min="0" max="10" step="1" value="5" />
+              <div class="score" id="lagSupplyVal">5</div>
+            </div>
+            <div class="sliderRow">
+              <div class="hint">Hazard dynamics (ticks)</div>
+              <input id="lagHazard" type="range" min="0" max="10" step="1" value="4" />
+              <div class="score" id="lagHazardVal">4</div>
+            </div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="split">
+            <div>
+              <div class="mini">
+                <h3>Live Sensors (delayed, noisy)</h3>
+                <table class="table" aria-label="Sensor readings table">
+                  <thead>
+                    <tr>
+                      <th>Signal</th>
+                      <th>Now</th>
+                      <th>Model</th>
+                      <th>Error</th>
+                    </tr>
+                  </thead>
+                  <tbody id="sensorRows"></tbody>
+                </table>
+                <div class="footer" id="tickText">Tick —</div>
+              </div>
+
+              <div style="height:12px"></div>
+
+              <div class="mini">
+                <h3>Attention Queue (what the team should look at)</h3>
+                <div class="alertBox" id="alertBox" aria-label="Attention queue"></div>
+                <div class="footer">The queue is the organizational analogue of attention-driven binding: it prevents “illusory conjunctions” across tasks.</div>
+              </div>
+            </div>
+
+            <div>
+              <div class="mini">
+                <h3>Event-File Log (episodic buffer → org memory)</h3>
+                <p>
+                  Each capture binds <span class="mono">context</span> + <span class="mono">decision</span> + <span class="mono">outcome</span> into a re-usable episode.
+                </p>
+                <div style="height:10px"></div>
+                <div class="log" id="log" aria-label="Event log"></div>
+                <div class="footer">Hint: capture after a surprise and after you triage; notice how the “same” event feels different under different lags.</div>
+              </div>
+
+              <div style="height:12px"></div>
+
+              <details>
+                <summary>Explainers (button-sized theories → project analogues)</summary>
+                <p>
+                  <b>Feature Integration (Treisman)</b>: binding needs a controlled spotlight; in projects this is an explicit agenda + shared object files per work package.<br/>
+                  <b>Temporal Binding Window</b>: signals bind if they land close enough; in projects: timeboxed standups, alert batching, and “don’t mix” unrelated cues.<br/>
+                  <b>Predictive Coding</b>: top-down plan predicts; bottom-up exceptions update; in projects: forecasts + dashboards + exception-driven governance.<br/>
+                  <b>Global Workspace</b>: a shared broadcast bus; in projects: a single source of truth + ritualized decision forums.<br/>
+                  <b>Event Files (TEC)</b>: stimulus-action-outcome bundles; in projects: post-mortems and decision records that are retrievable by cue.
+                </p>
+              </details>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+
+    <div class="card" style="margin-top:14px" aria-label="How to use">
+      <div class="cardHeader">
+        <div>
+          <h2>3) How to read the prototype (and how it answers your motivation)</h2>
+          <div class="small">A minimal “decision frame” for leaders: a model ahead + sensors behind + attention pulled to dissonance + lags managed.</div>
+        </div>
+        <div class="row">
+          <button class="btn tiny" id="btnExplainWhat">❓ What is this?</button>
+          <button class="btn tiny" id="btnExplainBinding">🧩 What “binding” means here</button>
+          <button class="btn tiny" id="btnExplainLags">⏱ Why lags dominate</button>
+          <button class="btn tiny" id="btnExplainTeam">🧑‍🤝‍🧑 Team mechanics</button>
+        </div>
+      </div>
+      <div class="cardBody">
+        <div class="split">
+          <div class="mini" id="explainBox">
+            <h3>Reading lens</h3>
+            <p>
+              Start by running a few ticks. Then inject a surprise. Watch which signals light up, how the spotlight moves, and how the queue changes.
+              Now adjust lags: you’re tuning the team’s “binding apparatus” (what binds, when it binds, and what gets broadcast).
+            </p>
+          </div>
+          <div class="mini">
+            <h3>Scenario anchors</h3>
+            <p>
+              The cliff forces hard coupling: logistics are brittle, weather matters, and safety constraints propagate. That makes <span class="mono">prediction error</span> more informative than raw status.
+              Think of each tick as a day on the ledge: a small world, but with real lags.
+            </p>
+          </div>
+        </div>
+        <div style="height:12px"></div>
+        <div class="mini">
+          <h3>Mini experiment</h3>
+          <p>
+            Set sensor delay high (5–6) and decision latency high (5–6), then inject a surprise: you will feel the project “hallucinate” stability and then panic too late.
+            Now reduce decision latency while keeping sensor delay: you become “fast but blind” — the queue will oscillate. The sweet spot is context-dependent.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer" style="margin-top:12px">
+      Tip: save this file as <span class="mono">cliff_shed_binding.html</span> and open locally; it should run in a sandboxed/offline context.
+    </div>
+  </main>
+
+  <script>
+    /*********************
+     * Project Binding Toy World
+     * - A tiny generative model (forecast)
+     * - A delayed/noisy sensor stream
+     * - Attention allocation toward prediction error
+     * - A global-workspace-like queue + event-file capture
+     *********************/
+
+    // --- Utilities
+    const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+    const lerp  = (a, b, t) => a + (b - a) * t;
+    const rndn  = (mu=0, sd=1) => {
+      // Box-Muller
+      let u=0, v=0;
+      while(u===0) u=Math.random();
+      while(v===0) v=Math.random();
+      const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0*Math.PI*v);
+      return mu + sd*z;
+    };
+    const fmt = (x, d=2) => (Math.round(x*Math.pow(10,d))/Math.pow(10,d)).toFixed(d);
+
+    // --- DOM
+    const el = (id) => document.getElementById(id);
+    const logEl = el('log');
+    const sensorRowsEl = el('sensorRows');
+    const alertBoxEl = el('alertBox');
+    const dissonanceBar = el('dissonanceBar');
+    const dissonanceText = el('dissonanceText');
+    const windowBar = el('windowBar');
+    const windowText = el('windowText');
+    const tickText = el('tickText');
+    const spot = el('spot');
+    const spot2 = el('spot2');
+    const dangerOverlay = el('dangerOverlay');
+    const windPath = el('wind');
+
+    // Lag sliders
+    const lagSensor = el('lagSensor');
+    const lagDecision = el('lagDecision');
+    const lagSupply = el('lagSupply');
+    const lagHazard = el('lagHazard');
+
+    const lagSensorVal = el('lagSensorVal');
+    const lagDecisionVal = el('lagDecisionVal');
+    const lagSupplyVal = el('lagSupplyVal');
+    const lagHazardVal = el('lagHazardVal');
+
+    // Buttons
+    const btnRun = el('btnRun');
+    const btnStep = el('btnStep');
+    const btnSurprise = el('btnSurprise');
+    const btnReset = el('btnReset');
+    const btnCapture = el('btnCapture');
+    const btnTriage = el('btnTriage');
+
+    const btnExplainWhat = el('btnExplainWhat');
+    const btnExplainBinding = el('btnExplainBinding');
+    const btnExplainLags = el('btnExplainLags');
+    const btnExplainTeam = el('btnExplainTeam');
+    const explainBox = el('explainBox');
+
+    // --- Scenario state
+    const tasks = [
+      { id:'T1', name:'Rig anchors & safety lines', baseDur:2, depends:[] },
+      { id:'T2', name:'Cut/haul timber to ledge', baseDur:3, depends:['T1'] },
+      { id:'T3', name:'Frame walls on ledge', baseDur:3, depends:['T2'] },
+      { id:'T4', name:'Roof trusses & sheathing', baseDur:2, depends:['T3'] },
+      { id:'T5', name:'Cladding + door fit', baseDur:2, depends:['T4'] },
+      { id:'T6', name:'Seal + final inspection', baseDur:1, depends:['T5'] }
+    ];
+
+    // Hidden "true" world
+    const world = {
+      tick: 0,
+      weather: 0.35,          // 0..1 (wind + rain exposure)
+      anchorIntegrity: 0.92,  // 0..1
+      fatigue: 0.15,          // 0..1
+      timberStock: 1.0,       // 0..1 fraction of needed timber on ledge
+      progress: { T1:0, T2:0, T3:0, T4:0, T5:0, T6:0 },
+      hazards: {
+        rockfallRisk: 0.22,
+        fallRisk: 0.18,
+      },
+      surprises: []
+    };
+
+    // Model (what the leader/team believes)
+    const model = {
+      tick: 0,
+      weather: 0.35,
+      anchorIntegrity: 0.92,
+      fatigue: 0.15,
+      timberStock: 1.0,
+      progress: { T1:0, T2:0, T3:0, T4:0, T5:0, T6:0 },
+      // model priors / parameters
+      riskAversion: 0.65,
+      learningRate: 0.25,
+      // action queue (decision latency)
+      pendingActions: []
+    };
+
+    // Sensor buffer (to simulate delay)
+    const sensorBuffer = [];
+
+    // Log buffer
+    const log = [];
+
+    // Run loop
+    let isRunning = false;
+    let timer = null;
+
+    // --- Model primitives: work packages as "object files"
+    // In this toy: we compute a model 'expected' state evolution each tick.
+    // Then we pull sensors, compute prediction error, allocate attention.
+
+    function taskReady(t){
+      return t.depends.every(d => (world.progress[d] >= 1.0));
+    }
+
+    function modelTaskReady(t){
+      return t.depends.every(d => (model.progress[d] >= 1.0));
+    }
+
+    // Convert lags to an effective "binding window" for how long we tolerate mismatch before re-binding.
+    function bindingWindowTicks(){
+      // Larger hazard dynamics => you must integrate faster (window smaller).
+      // Larger sensor delay => you must tolerate more uncertainty (window larger), but it also makes you late.
+      const s = Number(lagSensor.value);
+      const h = Number(lagHazard.value);
+      const d = Number(lagDecision.value);
+      // A simple heuristic: base window 4 ticks, widened by sensor delay, narrowed by hazard speed and decision latency.
+      const w = clamp(4 + 0.8*s - 0.6*h - 0.4*d, 1, 8);
+      return w;
+    }
+
+    function pushLog(line){
+      log.push(line);
+      while(log.length > 220) log.shift();
+      logEl.innerHTML = log.map(l => `<div>${l}</div>`).join('');
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function nowTag(){
+      const t = world.tick;
+      return `<span class="t">t=${String(t).padStart(2,'0')}</span>`;
+    }
+
+    function severityTag(sev){
+      const s = clamp(sev,0,1);
+      if(s < 0.33) return `<span class="tag"><span class="dot good"></span>low</span>`;
+      if(s < 0.66) return `<span class="tag"><span class="dot warn"></span>med</span>`;
+      return `<span class="tag"><span class="dot bad"></span>high</span>`;
+    }
+
+    // --- Surprises
+    const surpriseDeck = [
+      {
+        id:'wind_gust',
+        name:'Wind gust + rain front',
+        apply(){
+          world.weather = clamp(world.weather + 0.28, 0, 1);
+          world.hazards.fallRisk = clamp(world.hazards.fallRisk + 0.12, 0, 1);
+        },
+        msg:'A wind gust arrives early; exposure rises; work slows; fall risk jumps.'
+      },
+      {
+        id:'rockfall',
+        name:'Minor rockfall near anchors',
+        apply(){
+          world.anchorIntegrity = clamp(world.anchorIntegrity - 0.18, 0, 1);
+          world.hazards.rockfallRisk = clamp(world.hazards.rockfallRisk + 0.20, 0, 1);
+        },
+        msg:'A rockfall nicks an anchor line; integrity drops; rockfall risk increases.'
+      },
+      {
+        id:'supplier_delay',
+        name:'Timber delivery delayed',
+        apply(){
+          world.timberStock = clamp(world.timberStock - 0.35, 0, 1);
+        },
+        msg:'The timber haul is delayed; stock on ledge drops below plan.'
+      },
+      {
+        id:'crew_fatigue',
+        name:'Crew fatigue spike',
+        apply(){
+          world.fatigue = clamp(world.fatigue + 0.22, 0, 1);
+        },
+        msg:'A fatigue spike reduces effective pace and increases errors.'
+      }
+    ];
+
+    function injectSurprise(){
+      const pick = surpriseDeck[Math.floor(Math.random()*surpriseDeck.length)];
+      world.surprises.push({ tick: world.tick, id: pick.id, name: pick.name });
+      pick.apply();
+      pushLog(`${nowTag()} <span class="x">SURPRISE</span> <span class="k">${pick.name}</span> — ${pick.msg}`);
+      // Visual pulse
+      dangerOverlay.setAttribute('opacity','1');
+      setTimeout(()=>dangerOverlay.setAttribute('opacity','0'), 180);
+    }
+
+    // --- World dynamics
+    function truePaceFactor(){
+      // Pace gets worse with weather, fatigue, low anchors (safety slows), and missing timber.
+      const w = world.weather;
+      const f = world.fatigue;
+      const a = 1 - world.anchorIntegrity;
+      const s = 1 - world.timberStock;
+      const penalty = 0.45*w + 0.35*f + 0.30*a + 0.35*s;
+      return clamp(1 - penalty, 0.25, 1.05);
+    }
+
+    function hazardDrift(){
+      // Hazards evolve faster if hazard dynamics lag is low (i.e. hazards are quick).
+      const H = Number(lagHazard.value);
+      const speed = clamp(1.2 - (H/10), 0.35, 1.2);
+      // Increase risks with weather + fatigue; decrease a little with good anchors.
+      const incFall = speed*(0.08*world.weather + 0.06*world.fatigue - 0.04*(world.anchorIntegrity-0.8));
+      const incRock = speed*(0.06*world.weather + 0.03*world.fatigue - 0.03*(world.anchorIntegrity-0.8));
+      world.hazards.fallRisk = clamp(world.hazards.fallRisk + incFall + rndn(0,0.01), 0, 1);
+      world.hazards.rockfallRisk = clamp(world.hazards.rockfallRisk + incRock + rndn(0,0.01), 0, 1);
+    }
+
+    function worldStep(){
+      world.tick += 1;
+
+      // Weather random walk + mild mean reversion
+      world.weather = clamp(world.weather + rndn(0,0.05) - 0.03*(world.weather-0.35), 0, 1);
+
+      // Fatigue accumulates with work, relieved slightly if pace is low.
+      const pace = truePaceFactor();
+      world.fatigue = clamp(world.fatigue + 0.05*pace - 0.03*(1-pace) + rndn(0,0.01), 0, 1);
+
+      // Anchor integrity slowly degrades under weather and rockfall risk.
+      world.anchorIntegrity = clamp(world.anchorIntegrity - 0.02*world.weather - 0.015*world.hazards.rockfallRisk + rndn(0,0.005), 0, 1);
+
+      // Timber stock changes: deliveries depend on procurement lead time; model it as slow replenishment with noise.
+      const supplyLag = Number(lagSupply.value);
+      const restockRate = clamp(0.09 - 0.006*supplyLag, 0.01, 0.10);
+      world.timberStock = clamp(world.timberStock + restockRate - 0.03*pace + rndn(0,0.02), 0, 1);
+
+      // Hazards drift
+      hazardDrift();
+
+      // Progress tasks
+      const paceFactor = truePaceFactor();
+      for(const t of tasks){
+        if(world.progress[t.id] >= 1) continue;
+        if(!taskReady(t)) continue;
+
+        // Base rate scaled by pace and task-specific sensitivity
+        const sensitivity = (t.id==='T1') ? 0.80 : (t.id==='T2') ? 0.95 : (t.id==='T4') ? 0.90 : 1.0;
+        const hazardPenalty = 0.20*world.hazards.fallRisk + 0.10*world.hazards.rockfallRisk;
+        const rate = clamp((1/t.baseDur) * paceFactor * sensitivity * (1 - hazardPenalty), 0.02, 0.55);
+        world.progress[t.id] = clamp(world.progress[t.id] + rate, 0, 1);
+
+        // Mild chance of rework under high fatigue
+        if(Math.random() < 0.04*world.fatigue){
+          world.progress[t.id] = clamp(world.progress[t.id] - 0.06*world.fatigue, 0, 1);
+        }
+
+        // Do one task at a time for simplicity (serial work)
+        break;
+      }
+
+      // Write sensor sample into buffer
+      sensorBuffer.push(sensorSample());
+      while(sensorBuffer.length > 50) sensorBuffer.shift();
+    }
+
+    // --- Sensors
+    function sensorSample(){
+      // Noisy version of the world
+      const noise = (sd) => rndn(0, sd);
+      return {
+        tick: world.tick,
+        weather: clamp(world.weather + noise(0.05), 0, 1),
+        anchorIntegrity: clamp(world.anchorIntegrity + noise(0.03), 0, 1),
+        fatigue: clamp(world.fatigue + noise(0.04), 0, 1),
+        timberStock: clamp(world.timberStock + noise(0.06), 0, 1),
+        fallRisk: clamp(world.hazards.fallRisk + noise(0.04), 0, 1),
+        rockfallRisk: clamp(world.hazards.rockfallRisk + noise(0.04), 0, 1),
+        progress: { ...world.progress }
+      };
+    }
+
+    function readSensorsDelayed(){
+      const delay = Number(lagSensor.value);
+      // Find sample with tick = world.tick - delay
+      const targetTick = world.tick - delay;
+      const sample = [...sensorBuffer].reverse().find(s => s.tick === targetTick);
+      // If no sample, return best effort
+      return sample || sensorBuffer[0] || sensorSample();
+    }
+
+    // --- Model update (predictive coding style)
+    function modelPredict(){
+      model.tick = world.tick; // model is running in step with time, but its state might diverge.
+
+      // Predict weather: mean reversion, underestimates extremes slightly.
+      model.weather = clamp(model.weather + rndn(0,0.03) - 0.02*(model.weather-0.35), 0, 1);
+
+      // Predict fatigue from assumed pace, but tends to smooth.
+      const assumedPace = clamp(1 - (0.35*model.weather + 0.28*model.fatigue + 0.22*(1-model.anchorIntegrity) + 0.20*(1-model.timberStock)), 0.30, 1.05);
+      model.fatigue = clamp(model.fatigue + 0.04*assumedPace - 0.02*(1-assumedPace), 0, 1);
+
+      // Predict anchors degrade gently
+      model.anchorIntegrity = clamp(model.anchorIntegrity - 0.015*model.weather + rndn(0,0.003), 0, 1);
+
+      // Predict timber stock (the model believes supply is stable unless lags are high)
+      const supplyLag = Number(lagSupply.value);
+      const restockRate = clamp(0.10 - 0.005*supplyLag, 0.01, 0.10);
+      model.timberStock = clamp(model.timberStock + restockRate - 0.02*assumedPace, 0, 1);
+
+      // Predict progress
+      for(const t of tasks){
+        if(model.progress[t.id] >= 1) continue;
+        if(!modelTaskReady(t)) continue;
+        const sensitivity = (t.id==='T1') ? 0.85 : (t.id==='T2') ? 1.0 : (t.id==='T4') ? 0.95 : 1.0;
+        const hazardProxy = 0.10*model.weather + 0.07*model.fatigue + 0.06*(1-model.anchorIntegrity);
+        const rate = clamp((1/t.baseDur) * assumedPace * sensitivity * (1 - hazardProxy), 0.03, 0.60);
+        model.progress[t.id] = clamp(model.progress[t.id] + rate, 0, 1);
+        break;
+      }
+
+      // Apply pending actions when their countdown reaches zero
+      for(const a of model.pendingActions){ a.remaining -= 1; }
+      const due = model.pendingActions.filter(a => a.remaining <= 0);
+      model.pendingActions = model.pendingActions.filter(a => a.remaining > 0);
+      for(const a of due){ a.apply(); }
+    }
+
+    function modelCorrectFromSensors(s){
+      // Bottom-up correction: blend sensors into model state
+      const lr = model.learningRate;
+      // We treat hazard-related signals as higher weight when risk aversion is high.
+      const r = model.riskAversion;
+
+      const wWeather = 0.45;
+      const wCore = 0.35;
+      const wRisk = 0.55 * r;
+
+      model.weather = clamp(lerp(model.weather, s.weather, lr*wWeather), 0, 1);
+      model.anchorIntegrity = clamp(lerp(model.anchorIntegrity, s.anchorIntegrity, lr*wCore), 0, 1);
+      model.fatigue = clamp(lerp(model.fatigue, s.fatigue, lr*wCore), 0, 1);
+      model.timberStock = clamp(lerp(model.timberStock, s.timberStock, lr*wCore), 0, 1);
+
+      // For progress, correction is weaker (teams often over-trust narrative), except when delays are huge.
+      const progLR = clamp(0.12 + 0.04*Number(lagSensor.value), 0.12, 0.35);
+      for(const t of tasks){
+        model.progress[t.id] = clamp(lerp(model.progress[t.id], s.progress[t.id], progLR), 0, 1);
+      }
+
+      // Note: we *do not* store s.fallRisk/s.rockfallRisk as explicit model variables; instead we infer them.
+      // That forces attention to surface risk through prediction errors in safety-related signals.
+    }
+
+    function inferModelRisks(){
+      // Proxy risks from model state.
+      const fallRisk = clamp(0.12 + 0.35*model.weather + 0.25*model.fatigue + 0.30*(1-model.anchorIntegrity), 0, 1);
+      const rockRisk = clamp(0.10 + 0.30*model.weather + 0.12*model.fatigue + 0.38*(1-model.anchorIntegrity), 0, 1);
+      return { fallRisk, rockfallRisk: rockRisk };
+    }
+
+    // --- Prediction error + attention
+    function computeErrors(s){
+      const mr = inferModelRisks();
+      const errors = [
+        { key:'weather', label:'Weather exposure', now:s.weather, mod:model.weather, weight: 0.9 },
+        { key:'anchorIntegrity', label:'Anchor integrity', now:s.anchorIntegrity, mod:model.anchorIntegrity, weight: 1.3 },
+        { key:'timberStock', label:'Timber stock', now:s.timberStock, mod:model.timberStock, weight: 1.0 },
+        { key:'fatigue', label:'Crew fatigue', now:s.fatigue, mod:model.fatigue, weight: 0.9 },
+        { key:'fallRisk', label:'Fall risk (sensor)', now:s.fallRisk, mod:mr.fallRisk, weight: 1.35 },
+        { key:'rockfallRisk', label:'Rockfall risk (sensor)', now:s.rockfallRisk, mod:mr.rockfallRisk, weight: 1.2 },
+      ];
+
+      // Add a task-progress error for the most active task
+      const active = tasks.find(t => (s.progress[t.id] < 1 && taskReady(t))) || tasks[tasks.length-1];
+      if(active){
+        errors.push({
+          key:'progress',
+          label:`Progress: ${active.name}`,
+          now:s.progress[active.id],
+          mod:model.progress[active.id],
+          weight: 1.1
+        });
+      }
+
+      // Compute absolute errors
+      for(const e of errors){
+        e.err = Math.abs(e.now - e.mod);
+        // Scale by task coupling: anchor & fall risk matter more near roof work, etc.
+        const coupling = couplingFactor(active?.id || 'T1', e.key);
+        e.score = e.err * e.weight * coupling;
+      }
+      return { errors, activeTask: active?.id || 'T1' };
+    }
+
+    function couplingFactor(taskId, signalKey){
+      // Heuristic: as the build rises, safety risks couple more strongly.
+      const stage = ['T1','T2','T3','T4','T5','T6'].indexOf(taskId);
+      const heightCoupling = clamp(0.9 + 0.12*stage, 0.9, 1.5);
+      if(signalKey==='anchorIntegrity' || signalKey==='fallRisk') return heightCoupling;
+      if(signalKey==='rockfallRisk') return clamp(0.95 + 0.08*stage, 0.95, 1.35);
+      if(signalKey==='weather') return clamp(0.95 + 0.10*stage, 0.95, 1.40);
+      if(signalKey==='timberStock') return (taskId==='T2'||taskId==='T3') ? 1.25 : 0.95;
+      if(signalKey==='progress') return 1.0;
+      return 1.0;
+    }
+
+    function attentionQueue(errors){
+      const sorted = [...errors].sort((a,b)=>b.score-a.score);
+      const top = sorted.slice(0,4);
+      return { top, sorted };
+    }
+
+    function overallDissonance(sorted){
+      const total = sorted.reduce((acc,e)=>acc + e.score, 0);
+      return clamp(total*1.55, 0, 1); // scale into 0..1
+    }
+
+    function spotlightTarget(key){
+      // Map keys to scene locations
+      const map = {
+        weather: { x: 780, y: 70 },
+        anchorIntegrity: { x: 290, y: 120 },
+        fallRisk: { x: 360, y: 230 },
+        rockfallRisk: { x: 260, y: 150 },
+        timberStock: { x: 325, y: 235 },
+        fatigue: { x: 385, y: 235 },
+        progress: { x: 500, y: 145 }
+      };
+      return map[key] || { x: 500, y: 145 };
+    }
+
+    // --- Action selection (active inference-ish)
+    function proposeActions(queue){
+      // When errors are high, propose actions. Decision latency delays execution.
+      const dLag = Number(lagDecision.value);
+      const actions = [];
+
+      for(const e of queue.top){
+        if(e.key==='anchorIntegrity' && e.err > 0.10){
+          actions.push({
+            name:'Pause + re-rig anchors',
+            reason:'Anchor integrity disagreement: bind safety facts before proceeding.',
+            apply(){
+              // Improve world anchors, but cost time by slightly reducing progress pace next tick.
+              world.anchorIntegrity = clamp(world.anchorIntegrity + 0.10, 0, 1);
+              world.fatigue = clamp(world.fatigue + 0.05, 0, 1);
+              pushLog(`${nowTag()} <span class="ok">ACTION</span> Re-rig anchors executed (delayed by decision latency).`);
+            }
+          });
+        }
+        if(e.key==='timberStock' && e.err > 0.12){
+          actions.push({
+            name:'Re-plan haul (split loads)',
+            reason:'Supply mismatch: rebind work packages around material reality.',
+            apply(){
+              world.timberStock = clamp(world.timberStock + 0.12, 0, 1);
+              world.fatigue = clamp(world.fatigue + 0.03, 0, 1);
+              pushLog(`${nowTag()} <span class="ok">ACTION</span> Haul replanned; timber stock partially recovered.`);
+            }
+          });
+        }
+        if((e.key==='weather' || e.key==='fallRisk') && e.score > 0.16){
+          actions.push({
+            name:'Switch to sheltered tasks',
+            reason:'Weather/risk mismatch: move work within temporal binding window of safety signals.',
+            apply(){
+              // Reduce fatigue and fall risk by slowing; costs progress.
+              world.fatigue = clamp(world.fatigue - 0.07, 0, 1);
+              world.hazards.fallRisk = clamp(world.hazards.fallRisk - 0.05, 0, 1);
+              pushLog(`${nowTag()} <span class="ok">ACTION</span> Task switched; risk moderated.`);
+            }
+          });
+        }
+      }
+
+      // Enqueue only 1-2 actions per tick
+      const chosen = actions.slice(0,2);
+      for(const a of chosen){
+        model.pendingActions.push({
+          remaining: dLag,
+          apply: a.apply,
+          name: a.name,
+          reason: a.reason
+        });
+      }
+
+      if(chosen.length){
+        pushLog(`${nowTag()} <span class="k">Decision frame</span>: queued ${chosen.length} action(s) (latency=${dLag}).`);
+      }
+    }
+
+    // --- Rendering
+    function renderSensorsAndModel(errors){
+      const rows = errors.map(e => {
+        const sev = clamp(e.score*3.2, 0, 1);
+        const badge = severityTag(sev);
+        const errTxt = fmt(e.err, 2);
+        const nowTxt = fmt(e.now, 2);
+        const modTxt = fmt(e.mod, 2);
+        return `
+          <tr>
+            <td>${e.label}<div style="margin-top:6px">${badge}</div></td>
+            <td class="mono">${nowTxt}</td>
+            <td class="mono">${modTxt}</td>
+            <td class="mono">${errTxt}</td>
+          </tr>
+        `;
+      }).join('');
+      sensorRowsEl.innerHTML = rows;
+
+      tickText.textContent = `Tick ${world.tick} (sensors delayed by ${Number(lagSensor.value)} tick(s))`;
+    }
+
+    function renderQueue(queue){
+      if(queue.top.length === 0){
+        alertBoxEl.innerHTML = `<div class="ghost hint">No salient prediction errors yet.</div>`;
+        return;
+      }
+
+      alertBoxEl.innerHTML = queue.top.map((e,i)=>{
+        const sev = clamp(e.score*3.2, 0, 1);
+        const s = (sev < 0.33) ? 'good' : (sev < 0.66) ? 'warn' : 'bad';
+        const score = fmt(e.score, 3);
+        const headline = (e.key==='progress') ? 'Schedule coherence' : (e.key.includes('Risk')||e.key.includes('anchor')) ? 'Safety coherence' : 'Resource coherence';
+        const desc = `Model says ${fmt(e.mod,2)} vs sensors ${fmt(e.now,2)} → err ${fmt(e.err,2)} (score ${score}).`;
+        return `
+          <div class="alertItem">
+            <span class="dot ${s}"></span>
+            <div style="flex:1">
+              <p class="title"><b>${headline}:</b> ${e.label}</p>
+              <p class="desc">${desc}</p>
+            </div>
+            <span class="score">${score}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderDissonance(d){
+      dissonanceBar.style.width = `${Math.round(d*100)}%`;
+      const verdict = (d < 0.28) ? 'Model and sensors are mostly coherent.' : (d < 0.55) ? 'Growing mismatch: attention should narrow.' : 'High mismatch: treat the model as suspect; re-bind fast.';
+      dissonanceText.innerHTML = `<b>Dissonance</b> = ${fmt(d,2)} — ${verdict}`;
+
+      // Visual pulse for high dissonance
+      const opacity = clamp((d-0.55)*1.8, 0, 0.6);
+      dangerOverlay.setAttribute('opacity', String(opacity));
+    }
+
+    function renderWindow(){
+      const w = bindingWindowTicks();
+      // Map 1..8 -> 12..100%
+      const pct = clamp((w-1)/(8-1), 0, 1);
+      windowBar.style.width = `${Math.round(12 + pct*88)}%`;
+      const txt = (w <= 2) ? 'Narrow window: hazards are quick; you must re-bind constantly.'
+        : (w <= 5) ? 'Moderate window: balance stability vs responsiveness.'
+        : 'Wide window: you tolerate lag, but risk acting late if the world is volatile.';
+      windowText.innerHTML = `<b>Window</b> ≈ ${fmt(w,1)} ticks — ${txt}`;
+    }
+
+    function renderSpotlight(focusKey){
+      const p = spotlightTarget(focusKey);
+      spot.setAttribute('cx', String(p.x));
+      spot.setAttribute('cy', String(p.y));
+      spot2.setAttribute('cx', String(p.x));
+      spot2.setAttribute('cy', String(p.y));
+
+      // Weather glyph wiggle with weather
+      const w = model.weather;
+      const wig = 6*w;
+      windPath.setAttribute('d', `M768,68 C${775+wig},${61-wig} ${785+wig},${61+wig} 792,68 C${797-wig},74 ${791-wig},80 782,78`);
+    }
+
+    function updateSliderReadouts(){
+      lagSensorVal.textContent = lagSensor.value;
+      lagDecisionVal.textContent = lagDecision.value;
+      lagSupplyVal.textContent = lagSupply.value;
+      lagHazardVal.textContent = lagHazard.value;
+    }
+
+    // --- Event file capture
+    function captureEventFile(extraNote=''){
+      const s = readSensorsDelayed();
+      const mr = inferModelRisks();
+      const active = tasks.find(t => model.progress[t.id] < 1 && modelTaskReady(t)) || tasks[tasks.length-1];
+      const pending = model.pendingActions.map(a => a.name);
+      const line = `${nowTag()} <span class="k">EVENT-FILE</span> ctx={weather:${fmt(s.weather,2)}, anchors:${fmt(s.anchorIntegrity,2)}, timber:${fmt(s.timberStock,2)}} `
+        + `act={${pending.length?pending.join(' | '):'none'}} `
+        + `out={prog:${fmt(s.progress[active.id],2)}, fallRisk:${fmt(s.fallRisk,2)} vs model:${fmt(mr.fallRisk,2)}}`
+        + (extraNote?` <span class="w">note</span>=${extraNote}`:'');
+      pushLog(line);
+    }
+
+    // --- Triage
+    function triage(queue){
+      if(queue.top.length===0){
+        pushLog(`${nowTag()} <span class="k">Triage</span>: nothing salient.`);
+        return;
+      }
+      const focus = queue.top[0];
+      const note = `focus=${focus.key}`;
+      pushLog(`${nowTag()} <span class="k">Triage</span>: spotlight → <span class="w">${focus.label}</span> (score ${fmt(focus.score,3)}).`);
+      renderSpotlight(focus.key);
+      captureEventFile(note);
+
+      // Propose actions given triage
+      proposeActions(queue);
+    }
+
+    // --- Main step
+    function step(){
+      // World evolves
+      worldStep();
+
+      // Model predicts
+      modelPredict();
+
+      // Sensors come in (delayed)
+      const s = readSensorsDelayed();
+
+      // Compute errors
+      const { errors, activeTask } = computeErrors(s);
+      const { top, sorted } = attentionQueue(errors);
+
+      // Correct the model (bottom-up)
+      modelCorrectFromSensors(s);
+
+      // Compute dissonance and render
+      const d = overallDissonance(sorted);
+      renderSensorsAndModel(sorted);
+      renderQueue({ top, sorted });
+      renderDissonance(d);
+      renderWindow();
+
+      // Spotlight auto-follow: focus on most salient
+      if(top.length){
+        renderSpotlight(top[0].key);
+      }
+
+      // Occasionally auto-triage under high dissonance (simulating compelled attention)
+      if(d > 0.62 && Math.random() < 0.65){
+        triage({ top, sorted });
+      }
+
+      // Update footer state
+      const completed = tasks.filter(t => world.progress[t.id] >= 1).length;
+      const activeName = tasks.find(t => t.id===activeTask)?.name || '—';
+      const pendingCount = model.pendingActions.length;
+      const lagInfo = `lags{sensor:${lagSensor.value}, decision:${lagDecision.value}, supply:${lagSupply.value}, hazard:${lagHazard.value}}`;
+      dissonanceText.innerHTML += `<br/><span class="mono">progress</span>: ${completed}/${tasks.length} done · active: ${activeName} · pendingActions: ${pendingCount} · ${lagInfo}`;
+    }
+
+    // --- Run/Stop
+    function toggleRun(){
+      if(isRunning){
+        isRunning = false;
+        btnRun.textContent = '▶ Run';
+        if(timer) clearInterval(timer);
+        timer = null;
+      } else {
+        isRunning = true;
+        btnRun.textContent = '⏸ Pause';
+        timer = setInterval(()=>step(), 700);
+      }
+    }
+
+    function resetAll(){
+      isRunning = false;
+      if(timer) clearInterval(timer);
+      timer = null;
+      btnRun.textContent = '▶ Run';
+
+      // Reset world
+      world.tick = 0;
+      world.weather = 0.35;
+      world.anchorIntegrity = 0.92;
+      world.fatigue = 0.15;
+      world.timberStock = 1.0;
+      world.progress = { T1:0, T2:0, T3:0, T4:0, T5:0, T6:0 };
+      world.hazards = { rockfallRisk: 0.22, fallRisk: 0.18 };
+      world.surprises = [];
+
+      // Reset model
+      model.tick = 0;
+      model.weather = 0.35;
+      model.anchorIntegrity = 0.92;
+      model.fatigue = 0.15;
+      model.timberStock = 1.0;
+      model.progress = { T1:0, T2:0, T3:0, T4:0, T5:0, T6:0 };
+      model.pendingActions = [];
+
+      // Reset buffers
+      sensorBuffer.length = 0;
+      log.length = 0;
+      logEl.innerHTML = '';
+      alertBoxEl.innerHTML = `<div class="ghost hint">Run the model to populate sensors and queue.</div>`;
+      sensorRowsEl.innerHTML = '';
+      dissonanceBar.style.width = '0%';
+      windowBar.style.width = '0%';
+      tickText.textContent = 'Tick —';
+      dissonanceText.textContent = '—';
+      windowText.textContent = '—';
+
+      // Prime buffer with initial samples
+      for(let i=0;i<6;i++){
+        sensorBuffer.push(sensorSample());
+      }
+
+      // Spotlight default
+      renderSpotlight('progress');
+      updateSliderReadouts();
+
+      pushLog(`${nowTag()} <span class="k">Reset</span> — Ready.`);
+    }
+
+    // --- Explainer panel actions
+    function setExplain(html){
+      explainBox.innerHTML = `<h3>Reading lens</h3><p>${html}</p>`;
+    }
+
+    btnExplainBinding.addEventListener('click', ()=>{
+      setExplain(
+        `Here “binding” is engineered: (i) <b>object files</b> = work packages that keep features co-referential (task↔crew↔place↔constraint); ` +
+        `(ii) a <b>global workspace</b> = the attention queue + dashboard where cross-domain signals cohabit; ` +
+        `(iii) <b>event-files</b> = small episodic records that let later cues retrieve the whole context/decision/outcome bundle. ` +
+        `The win is not “more information” but <b>fewer illusory conjunctions</b> under pressure.`
+      );
+    });
+
+    btnExplainWhat.addEventListener('click', ()=>{
+      setExplain(
+        `This operationalises an “act slightly in the future” frame as predictive coding for teams: a generated model runs ahead, delayed/noisy sensors correct bottom-up, ` +
+        `attention is algorithmically pulled to prediction-error, and “project binding” is externalised via a global-workspace queue plus event-file capture ` +
+        `(with explicit lag sliders to make timing pathologies felt). It leans on a version of a neuroscience binding repertoire—feature-integration/attention spotlight, ` +
+        `temporal binding windows, predictive coding, global workspace, event files—recast as concrete project mechanics in the cliff-shed scenario.`
+      );
+    });
+
+    btnExplainLags.addEventListener('click', ()=>{
+      setExplain(
+        `Your motivation is lag-logic: acting “in the future” means your <b>model</b> must run slightly ahead of the world, while <b>sensors</b> arrive behind it. ` +
+        `If the hazard process is fast, your <b>binding window</b> must be narrow; if decision latency is high, you need earlier commitments (procurement, safety). ` +
+        `Most governance failures are just <b>mis-timed integration windows</b>.`
+      );
+    });
+
+    btnExplainTeam.addEventListener('click', ()=>{
+      setExplain(
+        `A team does not share a cortex: you must externalize binding. ` +
+        `The queue is a <b>ritualized attention spotlight</b>; the sliders represent institutional lags; the event-file log is a crude <b>episodic buffer</b> that stabilizes learning. ` +
+        `On a cliff, coupling is tight: safety and logistics bind everything, so <b>prediction error</b> is a more truthful control signal than status green-amber-red.`
+      );
+    });
+
+    // --- Controls
+    btnRun.addEventListener('click', toggleRun);
+    btnStep.addEventListener('click', ()=>step());
+    btnSurprise.addEventListener('click', ()=>injectSurprise());
+    btnReset.addEventListener('click', resetAll);
+
+    btnCapture.addEventListener('click', ()=>captureEventFile('manual_capture'));
+    btnTriage.addEventListener('click', ()=>{
+      const s = readSensorsDelayed();
+      const { errors } = computeErrors(s);
+      const q = attentionQueue(errors);
+      triage({ top: q.top, sorted: q.sorted });
+    });
+
+    // Sliders
+    for(const [slider, out] of [[lagSensor,lagSensorVal],[lagDecision,lagDecisionVal],[lagSupply,lagSupplyVal],[lagHazard,lagHazardVal]]){
+      slider.addEventListener('input', ()=>{ out.textContent = slider.value; renderWindow(); });
+    }
+
+    // Keyboard shortcuts
+    window.addEventListener('keydown', (e)=>{
+      if(e.code==='Space'){ e.preventDefault(); step(); }
+      if(e.key==='s' || e.key==='S'){ injectSurprise(); }
+      if(e.key==='r' || e.key==='R'){ resetAll(); }
+      if(e.key==='p' || e.key==='P'){ toggleRun(); }
+    });
+
+    // Init
+    resetAll();
+  </script>
+</body>
+</html>
