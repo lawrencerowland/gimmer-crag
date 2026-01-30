@@ -1,0 +1,1306 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Active Inference Procurement — Cliff Shed</title>
+  <link rel="stylesheet" href="../../common.css" />
+  <style>
+    :root{
+      --bg:#0b0e14;
+      --panel:#101726;
+      --panel2:#0f1422;
+      --text:#e7eefc;
+      --muted:#a9b8d6;
+      --accent:#7aa2ff;
+      --good:#79f2c0;
+      --warn:#ffd27a;
+      --bad:#ff7a9a;
+      --grid:rgba(255,255,255,0.07);
+      --shadow: 0 10px 35px rgba(0,0,0,0.35);
+      --radius: 16px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family:var(--sans);
+      color:var(--text);
+      background:
+        radial-gradient(900px 500px at 15% 10%, rgba(122,162,255,0.18), transparent 70%),
+        radial-gradient(700px 450px at 75% 20%, rgba(255,122,154,0.12), transparent 70%),
+        radial-gradient(900px 700px at 60% 85%, rgba(121,242,192,0.10), transparent 70%),
+        var(--bg);
+      min-height:100vh;
+    }
+    header{
+      position:sticky;
+      top:0;
+      z-index:50;
+      backdrop-filter: blur(8px);
+      background: linear-gradient(to bottom, rgba(11,14,20,0.92), rgba(11,14,20,0.55));
+      border-bottom:1px solid var(--grid);
+    }
+    .wrap{
+      max-width: 1250px;
+      margin: 0 auto;
+      padding: 16px 16px 24px;
+    }
+    .back-link{
+      display:inline-flex;
+      font-size: 12px;
+      color: var(--muted);
+      text-decoration: none;
+      margin-bottom: 10px;
+    }
+    .back-link:hover{ color: var(--text); }
+    .titleRow{ display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; }
+    h1{ font-size: 18px; margin:0; letter-spacing: 0.2px; }
+    .subtitle{ color:var(--muted); font-size: 13px; margin-top: 6px; line-height: 1.35; max-width: 980px; }
+    .pillRow{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:flex-end; }
+    .pill{
+      border:1px solid var(--grid);
+      background:rgba(16,23,38,0.6);
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size:12px;
+      color: var(--muted);
+      box-shadow: var(--shadow);
+    }
+    .kbd{
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      border:1px solid var(--grid);
+      background: rgba(0,0,0,0.25);
+      border-radius: 8px;
+      padding: 2px 6px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 14px;
+      margin-top: 14px;
+    }
+    @media (max-width: 1050px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+
+    .card{
+      border:1px solid var(--grid);
+      background: linear-gradient(180deg, rgba(16,23,38,0.85), rgba(15,20,34,0.75));
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .cardHeader{
+      padding: 14px 14px 10px;
+      border-bottom:1px solid var(--grid);
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+    .cardHeader h2{ margin:0; font-size: 14px; letter-spacing: 0.2px; }
+    .cardHeader .small{ color:var(--muted); font-size:12px; }
+    .cardBody{ padding: 14px; }
+
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .btn{
+      border:1px solid var(--grid);
+      background: rgba(10,14,24,0.5);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 9px 12px;
+      font-size: 12px;
+      cursor:pointer;
+      transition: transform 0.06s ease, background 0.15s ease, border-color 0.15s ease;
+      user-select:none;
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+    }
+    .btn:hover{ background: rgba(122,162,255,0.10); border-color: rgba(122,162,255,0.35); }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{ background: rgba(122,162,255,0.14); border-color: rgba(122,162,255,0.45); }
+    .btn.primary:hover{ background: rgba(122,162,255,0.22); }
+    .btn.good{ background: rgba(121,242,192,0.10); border-color: rgba(121,242,192,0.35); }
+    .btn.good:hover{ background: rgba(121,242,192,0.16); }
+    .btn.danger{ background: rgba(255,122,154,0.12); border-color: rgba(255,122,154,0.35); }
+    .btn.danger:hover{ background: rgba(255,122,154,0.18); }
+    .btn.tiny{ padding: 6px 9px; border-radius: 10px; }
+
+    .mini{
+      border:1px solid var(--grid);
+      background: rgba(10,14,24,0.35);
+      border-radius: 14px;
+      padding: 12px;
+    }
+    .mini h3{ margin:0 0 8px; font-size: 12px; color: var(--text); }
+    .mini p{ margin:0; color: var(--muted); font-size: 12px; line-height: 1.4; }
+
+    .mono{ font-family: var(--mono); }
+    .hint{ color: var(--muted); font-size: 12px; }
+
+    .split{ display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 1050px){ .split{ grid-template-columns: 1fr; } }
+
+    .table{ width:100%; border-collapse: collapse; font-size: 12px; }
+    .table th, .table td{ padding: 8px 8px; border-bottom:1px solid var(--grid); text-align:left; vertical-align: top; }
+    .table th{ color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing:0.08em; }
+
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border:1px solid var(--grid);
+      font-size: 11px;
+      color: var(--muted);
+      background: rgba(0,0,0,0.25);
+      white-space:nowrap;
+    }
+    .dot{ width:8px; height:8px; border-radius: 999px; display:inline-block; }
+    .dot.good{ background: var(--good); }
+    .dot.warn{ background: var(--warn); }
+    .dot.bad{ background: var(--bad); }
+
+    .meter{ width:100%; height: 12px; border-radius: 999px; border:1px solid var(--grid); background: rgba(0,0,0,0.25); overflow:hidden; }
+    .meter > div{ height:100%; width:0%; background: linear-gradient(90deg, var(--good), var(--warn), var(--bad)); transition: width 0.25s ease; }
+
+    .log{
+      height: 240px;
+      overflow:auto;
+      padding: 10px;
+      border-radius: 14px;
+      border:1px solid var(--grid);
+      background: rgba(0,0,0,0.22);
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.35;
+      color: #d5e3ff;
+    }
+    .log .t{ color: #9bb4ff; }
+    .log .k{ color: #a9b8d6; }
+    .log .ok{ color: var(--good); }
+    .log .w{ color: var(--warn); }
+    .log .x{ color: var(--bad); }
+
+    .sliderRow{
+      display:grid;
+      grid-template-columns: 210px 1fr 86px;
+      gap: 10px;
+      align-items:center;
+      margin: 8px 0;
+    }
+    @media (max-width: 650px){ .sliderRow{ grid-template-columns: 1fr; } }
+    input[type="range"]{ width:100%; }
+    .score{
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 3px 6px;
+      border-radius: 10px;
+      border:1px solid var(--grid);
+      background: rgba(0,0,0,0.25);
+      color: var(--muted);
+      white-space:nowrap;
+    }
+
+    .svgBox{ border-radius: 14px; border:1px solid var(--grid); background: rgba(0,0,0,0.20); overflow:hidden; }
+
+    details{ border:1px solid var(--grid); background: rgba(0,0,0,0.22); border-radius: 14px; padding: 10px 12px; }
+    summary{ cursor:pointer; font-size:12px; color: var(--text); }
+    details p{ margin: 10px 0 0; color: var(--muted); font-size:12px; line-height: 1.45; }
+
+    .footer{ color: var(--muted); font-size: 12px; margin-top: 10px; line-height: 1.4; }
+
+    .callout{
+      border:1px dashed rgba(255,255,255,0.18);
+      background: rgba(0,0,0,0.18);
+      border-radius: 14px;
+      padding: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .ghost{ opacity:0.65; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <a class="back-link" href="../../index.html">Back to app index</a>
+      <div class="titleRow">
+        <div>
+          <h1>Active Inference Procurement — Cliff Shed</h1>
+          <div class="subtitle">
+            Procurement commitments as <span class="mono">actions that reduce expected free energy</span>: they can be <b>self-fulfilling</b> (stabilize supply, tame variance, make the plan true) or <b>self-deluding</b> (force reality to match a wrong model by spending down optionality, hiding error, and creating unsafe schedule pressure).
+          </div>
+        </div>
+        <div class="pillRow">
+          <div class="pill">Offline / single-file</div>
+          <div class="pill">Press <span class="kbd">Space</span> to step</div>
+          <div class="pill">Press <span class="kbd">1</span>/<span class="kbd">2</span>/<span class="kbd">3</span> for actions</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="grid">
+
+      <!-- LEFT: WORLD + MODEL + GRAPH -->
+      <section class="card" aria-label="World and model">
+        <div class="cardHeader">
+          <div>
+            <h2>1) World vs Model (and what procurement is “trying to do”)</h2>
+            <div class="small">The model predicts materials + time + risk; procurement acts to make those predictions come true.</div>
+          </div>
+          <div class="row">
+            <button class="btn primary" id="btnRun">▶ Run</button>
+            <button class="btn" id="btnStep">⏭ Step</button>
+            <button class="btn" id="btnReset">↺ Reset</button>
+            <button class="btn danger" id="btnShock">⚡ Demand shock</button>
+          </div>
+        </div>
+        <div class="cardBody">
+
+          <div class="split">
+            <div class="mini">
+              <h3>Active inference split</h3>
+              <p>
+                <b>Epistemic</b> actions reduce uncertainty (probe supply, test anchors, sample weather window). <b>Instrumental</b> actions push the world toward preferred states (reserve stock, lock prices, pre-stage on the ledge).
+              </p>
+            </div>
+            <div class="mini">
+              <h3>Failure mode</h3>
+              <p>
+                Self-delusion happens when commitments <b>mask prediction error</b> (sunk-cost rationalization) or <b>amplify hazard</b> (schedule compression on a cliff). You “win” the forecast but lose the project.
+              </p>
+            </div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="svgBox" aria-label="Cliff shed supply scene">
+            <svg id="scene" viewBox="0 0 900 320" width="100%" height="280" role="img" aria-label="Cliff, ledge, shed, supply crates">
+              <defs>
+                <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
+                  <path d="M 30 0 L 0 0 0 30" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="1" />
+                </pattern>
+                <linearGradient id="cliff" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0" stop-color="rgba(255,255,255,0.10)"/>
+                  <stop offset="1" stop-color="rgba(255,255,255,0.02)"/>
+                </linearGradient>
+                <linearGradient id="sky" x1="0" x2="1" y1="0" y2="1">
+                  <stop offset="0" stop-color="rgba(122,162,255,0.18)"/>
+                  <stop offset="1" stop-color="rgba(255,122,154,0.10)"/>
+                </linearGradient>
+              </defs>
+
+              <rect x="0" y="0" width="900" height="320" fill="url(#sky)" />
+              <rect x="0" y="0" width="900" height="320" fill="url(#grid)" opacity="0.55" />
+
+              <!-- Cliff -->
+              <path d="M60,35 C85,70 90,140 120,185 C155,240 160,300 210,320 L0,320 L0,0 L55,0" fill="url(#cliff)" stroke="rgba(255,255,255,0.14)" />
+
+              <!-- Ledge -->
+              <path d="M190,185 C260,170 305,170 375,185 C430,198 520,198 600,185 L600,205 C510,218 430,218 375,206 C310,193 260,193 190,208 Z" fill="rgba(0,0,0,0.25)" stroke="rgba(255,255,255,0.14)" />
+
+              <!-- Shed -->
+              <g>
+                <rect x="395" y="105" width="210" height="120" rx="10" fill="rgba(16,23,38,0.75)" stroke="rgba(255,255,255,0.18)" />
+                <path d="M390,112 L500,50 L615,112" fill="rgba(0,0,0,0.10)" stroke="rgba(255,255,255,0.20)" stroke-width="2" />
+                <rect x="470" y="155" width="60" height="70" rx="8" fill="rgba(0,0,0,0.20)" stroke="rgba(255,255,255,0.14)" />
+                <text x="405" y="140" fill="rgba(233,243,255,0.85)" font-size="12" font-family="var(--mono)">Shed</text>
+              </g>
+
+              <!-- Supply crates (inventory visual) -->
+              <g id="crates">
+                <rect id="crate1" x="300" y="212" width="52" height="34" rx="7" fill="rgba(121,242,192,0.10)" stroke="rgba(121,242,192,0.35)" />
+                <rect id="crate2" x="355" y="212" width="52" height="34" rx="7" fill="rgba(121,242,192,0.10)" stroke="rgba(121,242,192,0.35)" />
+                <rect id="crate3" x="410" y="212" width="52" height="34" rx="7" fill="rgba(121,242,192,0.10)" stroke="rgba(121,242,192,0.35)" />
+                <rect id="crate4" x="465" y="212" width="52" height="34" rx="7" fill="rgba(121,242,192,0.10)" stroke="rgba(121,242,192,0.35)" />
+                <rect id="crate5" x="520" y="212" width="52" height="34" rx="7" fill="rgba(121,242,192,0.10)" stroke="rgba(121,242,192,0.35)" />
+                <text x="300" y="265" fill="rgba(233,243,255,0.70)" font-size="11" font-family="var(--mono)">Pre-staged stock (ledge)</text>
+              </g>
+
+              <!-- Truck / supplier -->
+              <g id="supplier">
+                <rect x="690" y="210" width="140" height="50" rx="10" fill="rgba(0,0,0,0.20)" stroke="rgba(255,255,255,0.16)" />
+                <circle cx="720" cy="265" r="10" fill="rgba(0,0,0,0.25)" stroke="rgba(255,255,255,0.14)" />
+                <circle cx="800" cy="265" r="10" fill="rgba(0,0,0,0.25)" stroke="rgba(255,255,255,0.14)" />
+                <text x="706" y="241" fill="rgba(233,243,255,0.70)" font-size="11" font-family="var(--mono)">Supplier</text>
+              </g>
+
+              <!-- Dissonance overlay pulse -->
+              <g id="overlay" opacity="0">
+                <rect x="0" y="0" width="900" height="320" fill="rgba(255,122,154,0.06)" />
+              </g>
+
+              <!-- Spotlight ring -->
+              <g id="spotlight" opacity="0.95">
+                <circle id="spot" cx="500" cy="140" r="58" fill="none" stroke="rgba(122,162,255,0.55)" stroke-width="2" />
+                <circle id="spot2" cx="500" cy="140" r="40" fill="none" stroke="rgba(122,162,255,0.22)" stroke-width="2" />
+              </g>
+
+              <!-- Small chart area inside the SVG -->
+              <g id="spark" transform="translate(28,22)">
+                <rect x="0" y="0" width="260" height="110" rx="14" fill="rgba(0,0,0,0.18)" stroke="rgba(255,255,255,0.12)" />
+                <text x="12" y="20" fill="rgba(233,243,255,0.75)" font-size="11" font-family="var(--mono)">Timber need vs stock</text>
+                <path id="needLine" d="" fill="none" stroke="rgba(255,210,122,0.70)" stroke-width="2" stroke-linecap="round" />
+                <path id="stockLine" d="" fill="none" stroke="rgba(121,242,192,0.70)" stroke-width="2" stroke-linecap="round" />
+                <text id="sparkLegend" x="12" y="100" fill="rgba(233,243,255,0.60)" font-size="10" font-family="var(--mono)">—</text>
+              </g>
+            </svg>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="split">
+            <div>
+              <div class="hint">Dissonance (model ↔ sensors) — pushes attention</div>
+              <div class="meter"><div id="dissonanceBar"></div></div>
+              <div class="footer" id="dissonanceText">—</div>
+            </div>
+            <div>
+              <div class="hint">Self-fulfilling vs self-deluding index (heuristic)</div>
+              <div class="meter"><div id="sdBar"></div></div>
+              <div class="footer" id="sdText">—</div>
+            </div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="mini">
+            <h3>State snapshot</h3>
+            <table class="table" aria-label="State table">
+              <thead>
+                <tr>
+                  <th>Quantity</th>
+                  <th>World</th>
+                  <th>Model</th>
+                  <th>Error</th>
+                </tr>
+              </thead>
+              <tbody id="stateRows"></tbody>
+            </table>
+            <div class="footer" id="tickText">Tick —</div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- RIGHT: PROCUREMENT CONTROLS + EXPLAINERS + LOG -->
+      <section class="card" aria-label="Procurement controls">
+        <div class="cardHeader">
+          <div>
+            <h2>2) Procurement Console (commitments as interventions)</h2>
+            <div class="small">Choose a procurement move; watch whether it stabilizes reality or forces a hallucination.</div>
+          </div>
+          <div class="row">
+            <button class="btn good" id="btnEpistemic">1) 🧪 Probe supply</button>
+            <button class="btn" id="btnHedge">2) 🧷 Hedge order</button>
+            <button class="btn danger" id="btnBulk">3) 📦 Bulk commit</button>
+          </div>
+        </div>
+
+        <div class="cardBody">
+
+          <div class="mini" id="explainBox">
+            <h3>Walkthrough</h3>
+            <p>
+              Run a few steps, then try <b>Bulk commit</b> early. If your model is right and the supplier is reliable, this becomes self-fulfilling. If your model is wrong or demand shifts, you’ll see delusion: inventory/cash looks “good” while safety/time degrade.
+            </p>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="mini">
+            <h3>World knobs (uncertainty + frictions)</h3>
+            <div class="sliderRow">
+              <div class="hint">Supplier reliability</div>
+              <input id="reliability" type="range" min="0" max="1" step="0.01" value="0.78" />
+              <div class="score" id="reliabilityVal">0.78</div>
+            </div>
+            <div class="sliderRow">
+              <div class="hint">Demand volatility (timber needed)</div>
+              <input id="volatility" type="range" min="0" max="1" step="0.01" value="0.35" />
+              <div class="score" id="volatilityVal">0.35</div>
+            </div>
+            <div class="sliderRow">
+              <div class="hint">Observation noise (sensor quality)</div>
+              <input id="noise" type="range" min="0" max="1" step="0.01" value="0.30" />
+              <div class="score" id="noiseVal">0.30</div>
+            </div>
+            <div class="sliderRow">
+              <div class="hint">Lead-time (ticks)</div>
+              <input id="lead" type="range" min="1" max="10" step="1" value="5" />
+              <div class="score" id="leadVal">5</div>
+            </div>
+            <div class="sliderRow">
+              <div class="hint">Cancellation penalty (locks you in)</div>
+              <input id="cancel" type="range" min="0" max="1" step="0.01" value="0.55" />
+              <div class="score" id="cancelVal">0.55</div>
+            </div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="mini">
+            <h3>Model knobs (priors + stubbornness)</h3>
+            <div class="sliderRow">
+              <div class="hint">Prior optimism (underestimates need)</div>
+              <input id="optimism" type="range" min="-0.5" max="0.5" step="0.01" value="0.12" />
+              <div class="score" id="optimismVal">0.12</div>
+            </div>
+            <div class="sliderRow">
+              <div class="hint">Learning rate (updates from sensors)</div>
+              <input id="lr" type="range" min="0" max="1" step="0.01" value="0.28" />
+              <div class="score" id="lrVal">0.28</div>
+            </div>
+            <div class="sliderRow">
+              <div class="hint">Sunk-cost weight (keeps plan fixed)</div>
+              <input id="sunk" type="range" min="0" max="1" step="0.01" value="0.55" />
+              <div class="score" id="sunkVal">0.55</div>
+            </div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="split">
+            <div class="mini">
+              <h3>Action queue (commitments in flight)</h3>
+              <table class="table" aria-label="Orders table">
+                <thead>
+                  <tr>
+                    <th>Order</th>
+                    <th>Arrives</th>
+                    <th>Qty</th>
+                    <th>Lock-in</th>
+                  </tr>
+                </thead>
+                <tbody id="ordersRows"></tbody>
+              </table>
+              <div class="footer" id="ordersFooter">—</div>
+            </div>
+            <div class="mini">
+              <h3>Event-file log</h3>
+              <div class="log" id="log"></div>
+              <div class="footer">Capture: each action creates an event-file with context → commitment → outcome.</div>
+            </div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <details>
+            <summary>Explainers (buttons as a guided proof sketch)</summary>
+            <p>
+              <b>1) Probe supply</b> is epistemic: you pay a small cost to sharpen beliefs about lead-time/reliability; it reduces future prediction error without locking you in.<br/>
+              <b>2) Hedge order</b> is mixed: it reserves some stock while preserving options; it lowers variance but can still become delusional under high sunk-cost weight.<br/>
+              <b>3) Bulk commit</b> is instrumental: it pushes the world toward your model by reserving capacity and pre-staging inventory. It becomes self-fulfilling when the model is right and frictions dominate; self-deluding when the model is wrong and commitments hide the error (especially with cancellation penalties and schedule pressure).
+            </p>
+          </details>
+
+        </div>
+      </section>
+
+    </div>
+
+    <section class="card" style="margin-top:14px" aria-label="Tutorial">
+      <div class="cardHeader">
+        <div>
+          <h2>3) Mini tutorial: make it self-fulfilling, then make it self-deluding</h2>
+          <div class="small">A pair of controlled “thought experiments” in one screen.</div>
+        </div>
+        <div class="row">
+          <button class="btn tiny" id="btnPresetFulfill">✅ Preset: self-fulfilling</button>
+          <button class="btn tiny" id="btnPresetDelude">⚠️ Preset: self-deluding</button>
+          <button class="btn tiny" id="btnExplain">🧭 Explain what’s happening</button>
+        </div>
+      </div>
+      <div class="cardBody">
+        <div class="split">
+          <div class="mini">
+            <h3>What to watch</h3>
+            <p>
+              Track three coupled quantities: <span class="mono">(i)</span> prediction error (dissonance), <span class="mono">(ii)</span> option value (lock-in), <span class="mono">(iii)</span> safety/time (hazard + schedule pressure). Self-delusion often shows up as “green inventory” with “red risk”.
+            </p>
+          </div>
+          <div class="mini">
+            <h3>Why the cliff matters</h3>
+            <p>
+              On a cliff, logistics and safety are tightly coupled, so commitments can alter the feasible set: pre-staging stock reduces hauling exposure (good), but schedule compression under wrong priors increases fall/anchor risk (bad).
+            </p>
+          </div>
+        </div>
+        <div style="height:12px"></div>
+        <div class="callout" id="explainLong">
+          <b>Active inference translation for leaders:</b> treat commitments as interventions that reshape the future sensor stream. Good governance distinguishes (a) actions that improve epistemic state (better beliefs) from (b) actions that merely force a narrative to remain coherent.
+        </div>
+      </div>
+    </section>
+
+    <div class="footer" style="margin-top:12px">
+      Save this file as <span class="mono">active_inference_procurement.html</span> and open locally; it runs offline.
+    </div>
+  </main>
+
+  <script>
+    /*********************
+     * Active Inference Procurement Toy World
+     *
+     * Core idea:
+     *   - Model predicts timber need and schedule.
+     *   - Procurement commitments act on the world: they change supply, lead-time variance, and (crucially) safety/time coupling.
+     *   - Self-fulfilling: commitments reduce variance and exposure, making the model true.
+     *   - Self-deluding: commitments lock you into a wrong model; sunk-cost weight dampens updates; schedule pressure increases hazard.
+     *********************/
+
+    // --- Utilities
+    const clamp = (x,a,b)=>Math.max(a,Math.min(b,x));
+    const lerp  = (a,b,t)=>a+(b-a)*t;
+    const rndn  = (mu=0, sd=1)=>{
+      let u=0,v=0;
+      while(u===0)u=Math.random();
+      while(v===0)v=Math.random();
+      const z = Math.sqrt(-2.0*Math.log(u))*Math.cos(2.0*Math.PI*v);
+      return mu + sd*z;
+    };
+    const fmt = (x,d=2)=> (Math.round(x*Math.pow(10,d))/Math.pow(10,d)).toFixed(d);
+
+    // --- DOM
+    const el = (id)=>document.getElementById(id);
+    const btnRun = el('btnRun');
+    const btnStep = el('btnStep');
+    const btnReset = el('btnReset');
+    const btnShock = el('btnShock');
+
+    const btnEpistemic = el('btnEpistemic');
+    const btnHedge = el('btnHedge');
+    const btnBulk = el('btnBulk');
+
+    const stateRowsEl = el('stateRows');
+    const ordersRowsEl = el('ordersRows');
+    const ordersFooter = el('ordersFooter');
+    const tickText = el('tickText');
+
+    const logEl = el('log');
+
+    const dissonanceBar = el('dissonanceBar');
+    const dissonanceText = el('dissonanceText');
+    const sdBar = el('sdBar');
+    const sdText = el('sdText');
+
+    const overlay = el('overlay');
+    const spot = el('spot');
+    const spot2 = el('spot2');
+
+    const needLine = el('needLine');
+    const stockLine = el('stockLine');
+    const sparkLegend = el('sparkLegend');
+
+    // Crates
+    const crateIds = ['crate1','crate2','crate3','crate4','crate5'];
+    const crates = crateIds.map(id=>el(id));
+
+    // Sliders
+    const reliability = el('reliability');
+    const volatility  = el('volatility');
+    const noise       = el('noise');
+    const lead        = el('lead');
+    const cancel      = el('cancel');
+
+    const optimism    = el('optimism');
+    const lr          = el('lr');
+    const sunk        = el('sunk');
+
+    const reliabilityVal = el('reliabilityVal');
+    const volatilityVal  = el('volatilityVal');
+    const noiseVal       = el('noiseVal');
+    const leadVal        = el('leadVal');
+    const cancelVal      = el('cancelVal');
+
+    const optimismVal = el('optimismVal');
+    const lrVal       = el('lrVal');
+    const sunkVal     = el('sunkVal');
+
+    // Tutorial
+    const btnPresetFulfill = el('btnPresetFulfill');
+    const btnPresetDelude  = el('btnPresetDelude');
+    const btnExplain       = el('btnExplain');
+    const explainBox       = el('explainBox');
+    const explainLong      = el('explainLong');
+
+    // --- Run loop
+    let isRunning=false;
+    let timer=null;
+
+    // --- Log
+    const log=[];
+    function nowTag(){ return `<span class="t">t=${String(world.tick).padStart(2,'0')}</span>`; }
+    function pushLog(line){
+      log.push(line);
+      while(log.length>260) log.shift();
+      logEl.innerHTML = log.map(l=>`<div>${l}</div>`).join('');
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    // --- World + Model State
+    const world = {
+      tick: 0,
+      // Need evolves with stage + volatility
+      timberNeed: 1.00,     // normalized (1.0 means on-plan demand)
+      stock: 0.85,          // on-ledge stock fraction of need
+      cash: 1.00,           // normalized cash runway
+      schedulePressure: 0.10, // rises when short on stock or behind plan
+      hazard: 0.18,         // composite safety risk
+      weather: 0.35,
+      // Build progress
+      progress: 0.00,       // 0..1
+      // supplier latent states
+      supplierDelayJitter: 0.15, // volatility in lead time
+      surprises: []
+    };
+
+    const model = {
+      tick: 0,
+      timberNeed: 1.00,
+      stock: 0.85,
+      cash: 1.00,
+      schedulePressure: 0.10,
+      hazard: 0.18,
+      weather: 0.35,
+      progress: 0.00,
+      // beliefs about supplier
+      beliefReliability: 0.78,
+      beliefLead: 5,
+      // learning
+      learningRate: 0.28,
+      sunkCostWeight: 0.55,
+      priorOptimism: 0.12,
+      // orders in flight (commitments)
+      orders: []
+    };
+
+    // Sensor buffer for mild delay/noise effect (here we model noise only; lead-time is explicit in orders)
+    function senseWorld(){
+      const n = Number(noise.value);
+      return {
+        tick: world.tick,
+        timberNeed: clamp(world.timberNeed + rndn(0, 0.10*n), 0.5, 1.8),
+        stock: clamp(world.stock + rndn(0, 0.10*n), 0, 2.0),
+        cash: clamp(world.cash + rndn(0, 0.06*n), 0, 2.0),
+        schedulePressure: clamp(world.schedulePressure + rndn(0, 0.10*n), 0, 1.5),
+        hazard: clamp(world.hazard + rndn(0, 0.08*n), 0, 1.5),
+        weather: clamp(world.weather + rndn(0, 0.10*n), 0, 1),
+        progress: clamp(world.progress + rndn(0, 0.05*n), 0, 1)
+      };
+    }
+
+    // --- Procurement actions (active inference interventions)
+    // Orders: { id, kind, qty, placed, arrives, lockIn, cost, epistemicGain }
+    let orderSerial = 0;
+
+    function placeOrder(kind, qty, lockIn, cost, epistemicGain){
+      const L = Number(lead.value);
+      // Real arrival depends on supplier reliability and jitter; commitments can reduce jitter by reserving capacity.
+      const rel = Number(reliability.value);
+      const jitterBase = world.supplierDelayJitter;
+      const jitter = clamp(jitterBase*(1 - 0.7*lockIn), 0.02, 0.35);
+
+      // Delivery failure / delay: lower reliability increases expected delay.
+      const failChance = clamp(0.30*(1-rel) * (1-0.5*lockIn), 0, 0.30);
+      const delayExtra = (Math.random() < failChance) ? Math.ceil(2 + 5*(1-rel)) : Math.max(0, Math.round(rndn(0, jitter*6)));
+      const arrives = world.tick + L + delayExtra;
+
+      const id = `O${++orderSerial}`;
+      const o = { id, kind, qty, placed: world.tick, arrives, lockIn, cost, epistemicGain };
+      model.orders.push(o);
+
+      // Immediate cash impact (commitments spend now)
+      world.cash = clamp(world.cash - cost, 0, 2.0);
+
+      // Lock-in creates an organisational drag: if the model is wrong, cancellation is hard.
+      // We represent this as a rise in sunk-cost pressure, which dampens learning.
+      const sc = Number(sunk.value);
+      model.sunkCostWeight = clamp(lerp(model.sunkCostWeight, clamp(sc + 0.25*lockIn, 0, 1), 0.65), 0, 1);
+
+      // Epistemic gain: update beliefs about reliability/lead-time when you probe.
+      if(epistemicGain > 0){
+        const observeRel = clamp(rel + rndn(0, 0.10*(1-epistemicGain)), 0, 1);
+        const observeLead = clamp(L + rndn(0, 1.5*(1-epistemicGain)), 1, 12);
+        const alpha = clamp(model.learningRate*epistemicGain, 0, 0.8);
+        model.beliefReliability = clamp(lerp(model.beliefReliability, observeRel, alpha), 0, 1);
+        model.beliefLead = clamp(Math.round(lerp(model.beliefLead, observeLead, alpha)), 1, 12);
+      }
+
+      pushLog(`${nowTag()} <span class="ok">COMMIT</span> ${id} ${kind} qty=${fmt(qty,2)} arrives≈t${String(arrives).padStart(2,'0')} lockIn=${fmt(lockIn,2)} cost=${fmt(cost,2)}`);
+    }
+
+    function actionProbeSupply(){
+      // Small cost; modest qty; strong epistemic gain; low lock-in.
+      // Interpretable as: split-test supplier, request confirmed slots, sample haul to ledge.
+      placeOrder('probe', 0.12, 0.10, 0.05, 0.85);
+      explainAction('Probe supply',
+        'Epistemic action: buys information about lead-time/reliability with minimal lock-in. Often best early when volatility/noise are high.'
+      );
+      moveSpotlight('supplier');
+    }
+
+    function actionHedgeOrder(){
+      // Medium cost; medium qty; some lock-in; mixed epistemic/instrumental.
+      placeOrder('hedge', 0.35, 0.35, 0.14, 0.35);
+      explainAction('Hedge order',
+        'Mixed action: reserves partial stock to reduce variance while preserving options. Can still become delusional if sunk-cost weight is high.'
+      );
+      moveSpotlight('crates');
+    }
+
+    function actionBulkCommit(){
+      // High cost; large qty; high lock-in; instrumental.
+      // Also reduces hauling exposure by pre-staging (reduces hazard if it arrives on time), but increases schedule pressure if it doesn’t.
+      placeOrder('bulk', 0.85, 0.80, 0.35, 0.05);
+      explainAction('Bulk commit',
+        'Instrumental action: forces the world toward your model by reserving supply and pre-staging stock. Self-fulfilling when priors are right and reliability dominates; self-deluding when priors are wrong and lock-in masks prediction error.'
+      );
+      moveSpotlight('crates');
+    }
+
+    // --- Surprise: demand shock
+    function demandShock(){
+      // Timber requirement jumps (design change, wind bracing, rework).
+      const bump = 0.20 + 0.45*Math.random();
+      world.timberNeed = clamp(world.timberNeed + bump, 0.5, 1.8);
+      world.surprises.push({ tick: world.tick, bump });
+      overlay.setAttribute('opacity','1');
+      setTimeout(()=>overlay.setAttribute('opacity','0'), 180);
+      pushLog(`${nowTag()} <span class="x">SHOCK</span> timber need increased by +${fmt(bump,2)} (design change / rework / bracing).`);
+      moveSpotlight('spark');
+    }
+
+    // --- Dynamics
+    function worldStep(){
+      world.tick += 1;
+
+      // Weather random walk; affects hazard and pace
+      world.weather = clamp(world.weather + rndn(0,0.05) - 0.03*(world.weather-0.35), 0, 1);
+
+      // Timber need evolves with progress stage + volatility
+      // Early = framing: stable; mid = roof/bracing: more variable; late = finishing: stable.
+      const v = Number(volatility.value);
+      const stage = world.progress;
+      const stageVol = (stage > 0.35 && stage < 0.75) ? 1.35 : 0.85;
+      world.timberNeed = clamp(world.timberNeed + rndn(0, 0.05*v*stageVol) - 0.02*(world.timberNeed-1.00), 0.5, 1.8);
+
+      // Receive due orders
+      const due = model.orders.filter(o => o.arrives <= world.tick);
+      if(due.length){
+        for(const o of due){
+          // Stock increases; bulk/hedge arrives as usable stock.
+          world.stock = clamp(world.stock + o.qty, 0, 2.0);
+          // Pre-staging reduces hazard exposure (less hauling) iff it arrives; magnitude depends on qty.
+          world.hazard = clamp(world.hazard - 0.06*o.qty, 0, 1.5);
+          pushLog(`${nowTag()} <span class="ok">DELIVERY</span> ${o.id} arrived; stock +${fmt(o.qty,2)}; hauling exposure reduced.`);
+        }
+        // Remove delivered
+        model.orders = model.orders.filter(o => o.arrives > world.tick);
+      }
+
+      // Consume stock via work
+      const stockRatio = (world.timberNeed > 0) ? (world.stock / world.timberNeed) : 1.0;
+      const shortage = clamp(1 - stockRatio, 0, 1);
+
+      // Schedule pressure rises if short on stock, low cash, or lead-time is long.
+      const leadPressure = clamp((Number(lead.value)-3)/10, 0, 0.6);
+      world.schedulePressure = clamp(
+        world.schedulePressure + 0.12*shortage + 0.08*leadPressure + 0.06*(1-world.cash) - 0.04*(stockRatio-1),
+        0,
+        1.5
+      );
+
+      // Hazard increases with weather and schedule pressure (rushing on a cliff)
+      world.hazard = clamp(world.hazard + 0.10*world.weather + 0.12*clamp(world.schedulePressure-0.25,0,1.25) - 0.05*clamp(stockRatio-1,0,1), 0, 1.5);
+
+      // Progress depends on having stock and not being too hazardous
+      const pace = clamp(0.10 * clamp(stockRatio,0.2,1.1) * (1 - 0.35*world.weather) * (1 - 0.40*clamp(world.hazard,0,1)), 0.01, 0.12);
+      world.progress = clamp(world.progress + pace, 0, 1);
+
+      // Stock consumption: as you build you consume materials.
+      const consumption = 0.10*pace*world.timberNeed;
+      world.stock = clamp(world.stock - consumption, 0, 2.0);
+
+      // Cash burn: baseline + pressure cost; commitments are separate and already accounted.
+      world.cash = clamp(world.cash - (0.02 + 0.02*clamp(world.schedulePressure,0,1)), 0, 2.0);
+
+      // Small chance of rework under high hazard
+      if(Math.random() < 0.05*clamp(world.hazard,0,1)){
+        const rework = 0.03 + 0.06*Math.random();
+        world.progress = clamp(world.progress - rework, 0, 1);
+        world.timberNeed = clamp(world.timberNeed + 0.05 + 0.12*Math.random(), 0.5, 1.8);
+        pushLog(`${nowTag()} <span class="w">REWORK</span> hazard-driven correction; progress −${fmt(rework,2)}; timber need nudged upward.`);
+      }
+    }
+
+    function modelPredict(){
+      model.tick = world.tick;
+
+      // The model underestimates need if optimistic; it also smooths volatility.
+      const opt = Number(optimism.value);
+      const stage = model.progress;
+      const stageVol = (stage > 0.35 && stage < 0.75) ? 1.20 : 0.75;
+      const v = Number(volatility.value);
+
+      // Need prediction: mean reversion + damped noise + optimism bias
+      model.timberNeed = clamp(
+        model.timberNeed + rndn(0, 0.03*v*stageVol) - 0.03*(model.timberNeed-1.00) - 0.03*opt,
+        0.5,
+        1.8
+      );
+
+      // Stock prediction: subtract expected consumption; add expected deliveries with imperfect knowledge.
+      const expectedConsumption = 0.08 * clamp(model.stock/model.timberNeed,0.2,1.1);
+      model.stock = clamp(model.stock - expectedConsumption, 0, 2.0);
+
+      // Progress prediction: optimistic models underweight hazard
+      const hazProxy = clamp(0.18 + 0.10*model.weather + 0.08*model.schedulePressure - 0.06*opt, 0, 1.5);
+      const pace = clamp(0.10 * clamp(model.stock/model.timberNeed,0.2,1.1) * (1 - 0.25*model.weather) * (1 - 0.30*clamp(hazProxy,0,1)), 0.01, 0.12);
+      model.progress = clamp(model.progress + pace, 0, 1);
+
+      // Schedule pressure prediction: optimistic models understate it
+      const leadPressure = clamp((model.beliefLead-3)/10, 0, 0.6);
+      const shortage = clamp(1 - (model.stock/model.timberNeed), 0, 1);
+      model.schedulePressure = clamp(model.schedulePressure + 0.10*shortage + 0.06*leadPressure - 0.03*opt, 0, 1.5);
+
+      // Hazard prediction: optimistic models understate hazard; also they don’t anticipate schedule compression well.
+      model.hazard = clamp(model.hazard + 0.08*model.weather + 0.08*clamp(model.schedulePressure-0.25,0,1.25) - 0.04*opt, 0, 1.5);
+
+      // Cash prediction: baseline burn
+      model.cash = clamp(model.cash - (0.02 + 0.015*clamp(model.schedulePressure,0,1)), 0, 2.0);
+    }
+
+    function modelCorrectFromSensors(s){
+      const alpha = Number(lr.value);
+      const sc = Number(sunk.value);
+      // Sunk-cost weight dampens updates, especially after lock-in.
+      const damp = clamp(1 - 0.75*sc, 0.10, 1);
+      const a = clamp(alpha*damp, 0, 1);
+
+      model.timberNeed = clamp(lerp(model.timberNeed, s.timberNeed, 0.65*a), 0.5, 1.8);
+      model.stock      = clamp(lerp(model.stock, s.stock, 0.55*a), 0, 2.0);
+      model.cash       = clamp(lerp(model.cash, s.cash, 0.55*a), 0, 2.0);
+      model.schedulePressure = clamp(lerp(model.schedulePressure, s.schedulePressure, 0.55*a), 0, 1.5);
+      model.hazard     = clamp(lerp(model.hazard, s.hazard, 0.55*a), 0, 1.5);
+      model.weather    = clamp(lerp(model.weather, s.weather, 0.45*a), 0, 1);
+      model.progress   = clamp(lerp(model.progress, s.progress, 0.55*a), 0, 1);
+
+      // also set model learning params from sliders (for clarity)
+      model.learningRate = alpha;
+      model.sunkCostWeight = sc;
+      model.priorOptimism = Number(optimism.value);
+    }
+
+    // --- Metrics
+    function predictionErrors(s){
+      const errs = [
+        { key:'timberNeed', label:'Timber need', w: 1.20, now:s.timberNeed, mod:model.timberNeed },
+        { key:'stock', label:'Stock on ledge', w: 1.10, now:s.stock, mod:model.stock },
+        { key:'schedulePressure', label:'Schedule pressure', w: 1.15, now:s.schedulePressure, mod:model.schedulePressure },
+        { key:'hazard', label:'Safety hazard', w: 1.35, now:s.hazard, mod:model.hazard },
+        { key:'cash', label:'Cash', w: 0.85, now:s.cash, mod:model.cash },
+        { key:'progress', label:'Progress', w: 1.00, now:s.progress, mod:model.progress }
+      ];
+      for(const e of errs){
+        e.err = Math.abs(e.now - e.mod);
+        e.score = e.w * e.err;
+      }
+      const total = errs.reduce((a,e)=>a+e.score,0);
+      const D = clamp(total*0.9, 0, 1);
+      return { errs, D };
+    }
+
+    function selfDelusionIndex(s, D){
+      // Heuristic: delusion rises when lock-in is high and learning is low,
+      // especially if hazard is rising while stock looks fine (a classic "green inventory / red risk" split).
+      const lockIn = currentLockIn();
+      const lr0 = Number(lr.value);
+      const sc = Number(sunk.value);
+      const cancelPenalty = Number(cancel.value);
+
+      const stockRatio = (s.timberNeed>0) ? (s.stock/s.timberNeed) : 1;
+      const greenInventory = clamp((stockRatio-0.9)/0.6, 0, 1); // 0..1
+      const redRisk = clamp((s.hazard-0.25)/0.85, 0, 1);
+
+      const hidingError = clamp(greenInventory*redRisk, 0, 1);
+
+      // If dissonance is low because you're not updating (low lr, high sunk), that's delusion not coherence.
+      const pseudoCoherence = clamp((1-D) * (1-lr0) * sc, 0, 1);
+
+      // Lock-in amplifies both.
+      const delusion = clamp(0.45*hidingError + 0.35*pseudoCoherence + 0.35*lockIn*cancelPenalty, 0, 1);
+
+      // Self-fulfilling is roughly the complement when inventory improves while hazard and pressure drop.
+      const pressureDrop = clamp((0.35 - s.schedulePressure)/0.6, 0, 1);
+      const hazardDrop   = clamp((0.35 - s.hazard)/0.6, 0, 1);
+      const fulfill = clamp(0.45*greenInventory + 0.30*pressureDrop + 0.35*hazardDrop, 0, 1);
+
+      return { delusion, fulfill, lockIn, hidingError, pseudoCoherence };
+    }
+
+    // --- Orders and lock-in
+    function currentLockIn(){
+      if(model.orders.length===0) return 0;
+      const total = model.orders.reduce((a,o)=>a+o.qty,0);
+      const w = model.orders.reduce((a,o)=>a+o.qty*o.lockIn,0);
+      return clamp(w/Math.max(total,1e-6), 0, 1);
+    }
+
+    // --- Rendering
+    function severityTag(sev){
+      const s = clamp(sev,0,1);
+      if(s < 0.33) return `<span class="tag"><span class="dot good"></span>low</span>`;
+      if(s < 0.66) return `<span class="tag"><span class="dot warn"></span>med</span>`;
+      return `<span class="tag"><span class="dot bad"></span>high</span>`;
+    }
+
+    function renderState(errs){
+      stateRowsEl.innerHTML = errs.map(e=>{
+        const sev = clamp(e.score*2.2, 0, 1);
+        return `
+          <tr>
+            <td>${e.label}<div style="margin-top:6px">${severityTag(sev)}</div></td>
+            <td class="mono">${fmt(e.now,2)}</td>
+            <td class="mono">${fmt(e.mod,2)}</td>
+            <td class="mono">${fmt(e.err,2)}</td>
+          </tr>
+        `;
+      }).join('');
+      tickText.textContent = `Tick ${world.tick} · progress=${fmt(world.progress,2)} · stock/need=${fmt(world.stock/world.timberNeed,2)}`;
+    }
+
+    function renderOrders(){
+      if(model.orders.length===0){
+        ordersRowsEl.innerHTML = `<tr><td colspan="4" class="ghost">No orders in flight.</td></tr>`;
+        ordersFooter.textContent = 'Try an action (1/2/3) to create a commitment.';
+        return;
+      }
+      ordersRowsEl.innerHTML = model.orders
+        .slice()
+        .sort((a,b)=>a.arrives-b.arrives)
+        .map(o=>{
+          const lock = fmt(o.lockIn,2);
+          const sev = clamp(o.lockIn,0,1);
+          const badge = severityTag(sev);
+          return `
+            <tr>
+              <td>${o.id} ${o.kind}<div style="margin-top:6px">${badge}</div></td>
+              <td class="mono">t${String(o.arrives).padStart(2,'0')}</td>
+              <td class="mono">${fmt(o.qty,2)}</td>
+              <td class="mono">${lock}</td>
+            </tr>
+          `;
+        }).join('');
+
+      ordersFooter.textContent = `Lock-in (weighted): ${fmt(currentLockIn(),2)} · cancellation penalty: ${fmt(Number(cancel.value),2)}`;
+    }
+
+    function renderDissonance(D){
+      dissonanceBar.style.width = `${Math.round(D*100)}%`;
+      const verdict = (D < 0.28) ? 'Mostly coherent.' : (D < 0.55) ? 'Mismatch growing: update or probe.' : 'High mismatch: treat your procurement story as suspect.';
+      dissonanceText.innerHTML = `<b>Dissonance</b> = ${fmt(D,2)} — ${verdict}`;
+      overlay.setAttribute('opacity', String(clamp((D-0.55)*1.8, 0, 0.6)));
+    }
+
+    function renderSD(sd){
+      // Display delusion (bad) vs fulfill (good) as a single bar that skews toward bad.
+      // We use delusion as the primary measure; label also includes fulfill.
+      sdBar.style.width = `${Math.round(sd.delusion*100)}%`;
+      const txt = (sd.delusion < 0.28)
+        ? 'Commitments look healthy: low lock-in pathologies.'
+        : (sd.delusion < 0.55)
+          ? 'Risk of narrative lock-in: watch hazard vs inventory.'
+          : 'Delusion regime: commitments may be masking error or driving unsafe pressure.';
+      sdText.innerHTML = `<b>Delusion</b> = ${fmt(sd.delusion,2)} · <b>Fulfill</b> = ${fmt(sd.fulfill,2)} · lockIn=${fmt(sd.lockIn,2)} — ${txt}`;
+    }
+
+    function moveSpotlight(where){
+      const map = {
+        supplier: {x: 760, y: 240},
+        crates:   {x: 420, y: 230},
+        spark:    {x: 145, y: 72},
+        shed:     {x: 505, y: 140}
+      };
+      const p = map[where] || map.shed;
+      spot.setAttribute('cx', String(p.x));
+      spot.setAttribute('cy', String(p.y));
+      spot2.setAttribute('cx', String(p.x));
+      spot2.setAttribute('cy', String(p.y));
+    }
+
+    function renderCrates(){
+      // Visualize stock on ledge as crates filled: 0..~1.5 -> 0..5 crates
+      const ratio = clamp(world.stock/world.timberNeed, 0, 1.5);
+      const n = Math.round(clamp(ratio/1.5, 0, 1)*5);
+      for(let i=0;i<crates.length;i++){
+        const on = i < n;
+        crates[i].setAttribute('fill', on ? 'rgba(121,242,192,0.16)' : 'rgba(121,242,192,0.06)');
+        crates[i].setAttribute('stroke', on ? 'rgba(121,242,192,0.60)' : 'rgba(121,242,192,0.22)');
+      }
+    }
+
+    // Tiny sparkline for last N ticks
+    const hist = {
+      need: [],
+      stockRatio: []
+    };
+
+    function pushHistory(){
+      hist.need.push(world.timberNeed);
+      hist.stockRatio.push(world.stock/world.timberNeed);
+      if(hist.need.length > 18){ hist.need.shift(); hist.stockRatio.shift(); }
+    }
+
+    function sparkPath(series, yMin, yMax){
+      const W=230, H=66;
+      const x0=12, y0=32;
+      const n=series.length;
+      if(n<2) return '';
+      const xs = (i)=> x0 + (W*(i/(n-1)));
+      const ys = (v)=> y0 + H*(1 - clamp((v - yMin)/(yMax-yMin), 0, 1));
+      let d = `M${xs(0)},${ys(series[0])}`;
+      for(let i=1;i<n;i++) d += ` L${xs(i)},${ys(series[i])}`;
+      return d;
+    }
+
+    function renderSpark(){
+      // Need line: scaled around [0.7..1.6]
+      needLine.setAttribute('d', sparkPath(hist.need, 0.7, 1.6));
+      // Stock ratio line: scale [0..1.5]
+      stockLine.setAttribute('d', sparkPath(hist.stockRatio, 0.0, 1.5));
+      sparkLegend.textContent = `need=${fmt(world.timberNeed,2)} · stock/need=${fmt(world.stock/world.timberNeed,2)} · rel=${fmt(Number(reliability.value),2)}`;
+    }
+
+    function explainAction(title, body){
+      explainBox.innerHTML = `<h3>${title}</h3><p>${body}</p>`;
+    }
+
+    // --- Step
+    function step(){
+      // World evolves
+      worldStep();
+
+      // Model predicts (top-down)
+      modelPredict();
+
+      // Sense and correct (bottom-up)
+      const s = senseWorld();
+      const { errs, D } = predictionErrors(s);
+      modelCorrectFromSensors(s);
+
+      // Compute self-fulfilling vs deluding index
+      const sd = selfDelusionIndex(s, D);
+
+      // Render
+      renderState(errs);
+      renderOrders();
+      renderDissonance(D);
+      renderSD(sd);
+      renderCrates();
+      pushHistory();
+      renderSpark();
+
+      // Passive “attention”: spotlight toggles based on which mismatch is salient
+      const worst = errs.slice().sort((a,b)=>b.score-a.score)[0];
+      if(worst){
+        if(worst.key==='timberNeed' || worst.key==='stock') moveSpotlight('crates');
+        else if(worst.key==='hazard' || worst.key==='schedulePressure') moveSpotlight('shed');
+        else moveSpotlight('spark');
+      }
+
+      // Delusion warning
+      if(sd.delusion > 0.62 && Math.random() < 0.55){
+        pushLog(`${nowTag()} <span class="x">WARNING</span> delusion regime: lockIn=${fmt(sd.lockIn,2)} pseudoCoherence=${fmt(sd.pseudoCoherence,2)} hazard=${fmt(s.hazard,2)} stock/need=${fmt(s.stock/s.timberNeed,2)}`);
+      }
+
+      // Completion condition
+      if(world.progress >= 0.999){
+        pushLog(`${nowTag()} <span class="ok">DONE</span> build completed. Postmortem: delusion=${fmt(sd.delusion,2)} fulfill=${fmt(sd.fulfill,2)} cash=${fmt(world.cash,2)} hazard=${fmt(world.hazard,2)}`);
+        if(isRunning) toggleRun();
+      }
+    }
+
+    // --- Controls
+    function toggleRun(){
+      if(isRunning){
+        isRunning=false;
+        btnRun.textContent='▶ Run';
+        if(timer) clearInterval(timer);
+        timer=null;
+      } else {
+        isRunning=true;
+        btnRun.textContent='⏸ Pause';
+        timer=setInterval(()=>step(), 700);
+      }
+    }
+
+    function resetAll(){
+      isRunning=false;
+      if(timer) clearInterval(timer);
+      timer=null;
+      btnRun.textContent='▶ Run';
+
+      world.tick=0;
+      world.timberNeed=1.00;
+      world.stock=0.85;
+      world.cash=1.00;
+      world.schedulePressure=0.10;
+      world.hazard=0.18;
+      world.weather=0.35;
+      world.progress=0.00;
+      world.supplierDelayJitter=0.15;
+      world.surprises=[];
+
+      model.tick=0;
+      model.timberNeed=1.00;
+      model.stock=0.85;
+      model.cash=1.00;
+      model.schedulePressure=0.10;
+      model.hazard=0.18;
+      model.weather=0.35;
+      model.progress=0.00;
+      model.orders=[];
+      model.beliefReliability=Number(reliability.value);
+      model.beliefLead=Number(lead.value);
+
+      // Make the model params mirror sliders
+      model.learningRate=Number(lr.value);
+      model.sunkCostWeight=Number(sunk.value);
+      model.priorOptimism=Number(optimism.value);
+
+      // Reset log & history
+      log.length=0;
+      logEl.innerHTML='';
+      hist.need.length=0;
+      hist.stockRatio.length=0;
+
+      moveSpotlight('shed');
+      renderCrates();
+
+      pushHistory();
+      renderSpark();
+
+      pushLog(`${nowTag()} <span class="k">Reset</span> — Ready. Try actions: 1 probe, 2 hedge, 3 bulk.`);
+
+      // Force a first render
+      const s = senseWorld();
+      const { errs, D } = predictionErrors(s);
+      renderState(errs);
+      renderOrders();
+      renderDissonance(D);
+      renderSD(selfDelusionIndex(s, D));
+    }
+
+    // Slider readouts
+    function syncSliderReadouts(){
+      reliabilityVal.textContent = fmt(Number(reliability.value),2);
+      volatilityVal.textContent  = fmt(Number(volatility.value),2);
+      noiseVal.textContent       = fmt(Number(noise.value),2);
+      leadVal.textContent        = String(Number(lead.value));
+      cancelVal.textContent      = fmt(Number(cancel.value),2);
+
+      optimismVal.textContent = fmt(Number(optimism.value),2);
+      lrVal.textContent       = fmt(Number(lr.value),2);
+      sunkVal.textContent     = fmt(Number(sunk.value),2);
+    }
+
+    // Presets
+    function presetSelfFulfill(){
+      reliability.value = 0.90;
+      volatility.value  = 0.20;
+      noise.value       = 0.15;
+      lead.value        = 4;
+      cancel.value      = 0.25;
+
+      optimism.value = 0.05;
+      lr.value       = 0.40;
+      sunk.value     = 0.25;
+
+      syncSliderReadouts();
+      explainLong.innerHTML = `<b>Preset: self-fulfilling.</b> High reliability + moderate lead-time + good learning means a bulk/hedge commitment can genuinely reduce variance and hauling exposure, making the plan true rather than merely coherent.`;
+      resetAll();
+    }
+
+    function presetSelfDelude(){
+      reliability.value = 0.62;
+      volatility.value  = 0.55;
+      noise.value       = 0.40;
+      lead.value        = 7;
+      cancel.value      = 0.80;
+
+      optimism.value = 0.22;
+      lr.value       = 0.18;
+      sunk.value     = 0.75;
+
+      syncSliderReadouts();
+      explainLong.innerHTML = `<b>Preset: self-deluding.</b> Low reliability + high volatility + high cancellation penalty makes bulk commitments lock you into a wrong model; low learning + sunk-cost weight dampens updates, so you chase coherence while hazard and pressure climb.`;
+      resetAll();
+    }
+
+    function explainWhatHappening(){
+      const txt = `
+        <b>What you’re seeing:</b> procurement changes the future sensor stream in two ways. (1) It changes <b>inventory dynamics</b> (arrivals, variance, pre-staging), which can reduce exposure and stabilize pace. (2) It changes <b>organizational epistemics</b>: high lock-in + cancellation penalty increases sunk-cost pressure, which reduces the effective learning rate (you stop believing sensors).
+        <br/><br/>
+        <b>Self-fulfilling</b> = instrumental commitments that reduce variance and hazard while the model remains updateable. <b>Self-deluding</b> = commitments that create pseudo-coherence (low dissonance because you refuse to update) and/or a split where stock looks good but hazard rises.
+        <br/><br/>
+        Try: in deluding preset, bulk commit twice, then trigger a demand shock — watch “green inventory / red risk” and the warning lines.
+      `;
+      explainLong.innerHTML = txt;
+    }
+
+    // Wiring
+    btnRun.addEventListener('click', toggleRun);
+    btnStep.addEventListener('click', ()=>step());
+    btnReset.addEventListener('click', resetAll);
+    btnShock.addEventListener('click', demandShock);
+
+    btnEpistemic.addEventListener('click', actionProbeSupply);
+    btnHedge.addEventListener('click', actionHedgeOrder);
+    btnBulk.addEventListener('click', actionBulkCommit);
+
+    btnPresetFulfill.addEventListener('click', presetSelfFulfill);
+    btnPresetDelude.addEventListener('click', presetSelfDelude);
+    btnExplain.addEventListener('click', explainWhatHappening);
+
+    // Slider events
+    const sliders = [reliability, volatility, noise, lead, cancel, optimism, lr, sunk];
+    for(const sld of sliders){
+      sld.addEventListener('input', ()=>{
+        syncSliderReadouts();
+        // Keep model beliefs roughly aligned to sliders for clarity
+        model.beliefReliability = Number(reliability.value);
+        model.beliefLead = Number(lead.value);
+      });
+    }
+
+    // Keyboard shortcuts
+    window.addEventListener('keydown', (e)=>{
+      if(e.code==='Space'){ e.preventDefault(); step(); }
+      if(e.key==='1'){ actionProbeSupply(); }
+      if(e.key==='2'){ actionHedgeOrder(); }
+      if(e.key==='3'){ actionBulkCommit(); }
+      if(e.key==='p' || e.key==='P'){ toggleRun(); }
+      if(e.key==='r' || e.key==='R'){ resetAll(); }
+      if(e.key==='x' || e.key==='X'){ demandShock(); }
+    });
+
+    // Init
+    syncSliderReadouts();
+    resetAll();
+  </script>
+</body>
+</html>
