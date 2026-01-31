@@ -29,7 +29,7 @@ The suite currently includes:
    ```bash
    npm start
    ```
-By default this serves the `portfolio-state-machine` template. The server loads the template app at [http://localhost:3000](http://localhost:3000). Future apps can be served by setting `APP=<app-name>`.
+By default this serves the `wbs-via-pddl` app. The server loads the app at [http://localhost:3000](http://localhost:3000). Future apps can be served by setting `APP=<app-name>`.
 
 3. **Run tests**
    ```bash

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // https://vitejs.dev/config/
-const appName = process.env.APP || 'portfolio-state-machine';
+const appName = process.env.APP || 'wbs-via-pddl';
 
 export default defineConfig({
   root: resolve(__dirname, `apps/${appName}`),
