@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Emergency Shelter – Gimmer Crag (Langdale) | WBS + Site Context</title>
+
+  <style>
+    :root{
+      --bg:#fff;
+      --fg:#111;
+      --muted:#5b5b5b;
+      --card:#f6f6f6;
+      --line:#e5e5e5;
+      --accent:#222;
+      --gap:1rem;
+      --radius:.5rem;
+      --shadow:0 2px 10px rgba(0,0,0,.06);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    *{ box-sizing:border-box; margin:0; padding:0; }
+    body{
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      line-height:1.55;
+      background:var(--bg);
+      color:var(--fg);
+      padding: clamp(.75rem, 2vw, 1.25rem);
+    }
+
+    header{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap: var(--gap);
+      margin-bottom: var(--gap);
+    }
+    header h1{
+      font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+      letter-spacing: -.02em;
+    }
+    header p{
+      color:var(--muted);
+      max-width: 75ch;
+    }
+
+    nav{
+      display:flex;
+      flex-wrap:wrap;
+      gap:.5rem;
+      margin: .25rem 0 var(--gap);
+    }
+    nav a{
+      display:inline-flex;
+      align-items:center;
+      gap:.5rem;
+      padding:.4rem .7rem;
+      border:1px solid var(--line);
+      border-radius: 999px;
+      text-decoration:none;
+      color: var(--fg);
+      background:#fff;
+    }
+    nav a:hover{ border-color:#cfcfcf; }
+
+    .layout{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: var(--gap);
+      align-items:start;
+    }
+    @media (min-width: 980px){
+      .layout{ grid-template-columns: 1.08fr .92fr; }
+    }
+
+    section.card{
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: var(--gap);
+    }
+
+    h2{
+      font-size: 1.15rem;
+      margin-bottom: .75rem;
+    }
+    h3{
+      font-size: 1rem;
+      margin: 1rem 0 .5rem;
+    }
+    .muted{ color: var(--muted); }
+
+    details{
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      padding:.6rem .7rem;
+      margin-bottom: .6rem;
+    }
+    details[open]{ box-shadow: 0 1px 0 rgba(0,0,0,.03); }
+    summary{
+      cursor:pointer;
+      font-weight: 650;
+      list-style: none;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    summary::before{
+      content:"▸";
+      display:inline-block;
+      margin-right:.5rem;
+      transform: translateY(-1px);
+      color: var(--muted);
+    }
+    details[open] summary::before{ content:"▾"; }
+
+    ul,ol{ margin-left: 1.2rem; }
+    li{ margin: .25rem 0; }
+
+    code{
+      font-family: var(--mono);
+      font-size: .92em;
+      background: #00000010;
+      padding: .15rem .35rem;
+      border-radius: .3rem;
+    }
+    pre{
+      font-family: var(--mono);
+      font-size: .9rem;
+      overflow:auto;
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      padding: .8rem;
+      margin-top:.6rem;
+    }
+
+    .row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:.6rem;
+      align-items:center;
+    }
+    .row > *{ flex: 0 0 auto; }
+
+    input[type="search"]{
+      width: min(560px, 100%);
+      padding:.55rem .7rem;
+      border:1px solid var(--line);
+      border-radius: .55rem;
+      background:#fff;
+      font-size: 1rem;
+    }
+
+    button{
+      padding:.55rem .85rem;
+      font-size: 1rem;
+      border:1px solid #0000;
+      border-radius: .55rem;
+      background: var(--accent);
+      color:#fff;
+      cursor:pointer;
+    }
+    button.secondary{
+      background:#fff;
+      color: var(--fg);
+      border-color: var(--line);
+    }
+    button.secondary:hover{ border-color:#cfcfcf; }
+    button:disabled{ opacity:.45; cursor:not-allowed; }
+
+    .min-h-64{ min-height: 16rem; }
+    #wbsMount{ margin-top: .75rem; }
+    .wbs-note{ font-size: .95rem; color: var(--muted); margin-top:.5rem; }
+
+    /* Stepper */
+    #planControls{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap: .75rem;
+      margin-top: .75rem;
+    }
+    #stepLabel{
+      flex: 1 1 420px;
+      padding:.65rem .75rem;
+      border:1px solid var(--line);
+      border-radius: .55rem;
+      background:#fff;
+    }
+    .progress{
+      height: .55rem;
+      background:#00000010;
+      border-radius: 999px;
+      overflow:hidden;
+      border:1px solid var(--line);
+      margin-top: .65rem;
+    }
+    .progress > div{
+      height:100%;
+      width:0%;
+      background:#111;
+    }
+
+    footer{
+      margin-top: var(--gap);
+      color: var(--muted);
+      font-size: .9rem;
+    }
+
+    /* Toast */
+    #toast{
+      position:fixed;
+      bottom: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background:#111;
+      color:#fff;
+      padding:.6rem 1rem;
+      border-radius: 999px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+      display:none;
+      z-index: 999;
+      max-width: min(900px, 92vw);
+    }
+
+    /* Print */
+    @media print{
+      nav, #toast, .no-print{ display:none !important; }
+      section.card{ box-shadow:none; }
+      details{ break-inside:avoid; }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div>
+      <h1>Emergency Shelter – Gimmer Crag</h1>
+      <p class="muted">
+        Single-file, offline-friendly canvas: site context + WBS + interactive plan steps + a small PDDL extract.
+        <br class="no-print" />
+        <b>Note:</b> the site notes below are <i>planning context</i> and intentionally conservative/approximate — verify locally before any operational decisions.
+      </p>
+    </div>
+    <div class="muted">
+      <div><b>Timezone:</b> Europe/London</div>
+      <div><b>Page build:</b> <span id="buildStamp">—</span></div>
+    </div>
+  </header>
+
+  <nav class="no-print" aria-label="Page navigation">
+    <a href="#context">Site context</a>
+    <a href="#wbs">WBS</a>
+    <a href="#plan">Plan steps</a>
+    <a href="#pddl">PDDL</a>
+  </nav>
+
+  <div class="layout">
+    <!-- ===================== LEFT: SITE CONTEXT ===================== -->
+    <section id="context" class="card" aria-label="Site context">
+      <h2>📍 Gimmer Crag (Great Langdale) – Context Pack</h2>
+
+      <details open>
+        <summary>Snapshot</summary>
+        <ul>
+          <li><b>Location:</b> Great Langdale, Lake District National Park (UK)</li>
+          <li><b>Approx. OS grid reference:</b> NY 277 069</li>
+          <li><b>Approx. coordinates:</b> 54.447°N, −3.108°W</li>
+          <li><b>Altitude band:</b> ~500–600 m (varies by ledge/approach)</li>
+          <li><b>Aspect:</b> primarily S–SW facing cliff system; exposed to westerlies</li>
+          <li><b>Rock type (broad):</b> Borrowdale Volcanic Group (hard volcanic tuff/andesitic units)</li>
+          <li><b>Land & access:</b> Open-access fell terrain; sensitive ecology; check current restrictions and local notices</li>
+        </ul>
+        <p class="wbs-note">
+          If you use this as a real project brief, add a “verification pass” to confirm grid ref, landownership boundaries,
+          and any seasonal access constraints.
+        </p>
+      </details>
+
+      <details>
+        <summary>Approach & access considerations</summary>
+        <p>
+          <b>Typical pedestrian approach:</b> From Great Langdale valley access points (often via Dungeon Ghyll / Stickle area),
+          taking established paths/trods to the crag base and then steeper ground/ledges.
+        </p>
+        <ul>
+          <li><b>Time & elevation:</b> expect a sustained uphill approach; plan for weather changes and wet rock.</li>
+          <li><b>Load carriage:</b> avoid widening paths; prefer modular loads and “single-hand carry” constraints where possible.</li>
+          <li><b>Heli-lift concept (if ever permitted):</b> would require strict planning controls, noise/ecology assessment, and a defined drop zone
+              away from nesting areas and popular climbing lines.</li>
+          <li><b>Emergency access:</b> align with local mountain rescue practices and known stretcher-friendly routes where feasible.</li>
+        </ul>
+      </details>
+
+      <details>
+        <summary>Geology, anchors & stability notes</summary>
+        <p>
+          The crag is formed in very strong volcanic rocks. While generally solid, cliff-top and ledge edges can hold
+          <b>weathered veneers</b>, frost-shattered flakes, and vegetation-rooted seams.
+        </p>
+        <ul>
+          <li><b>Anchoring principle:</b> design for “fresh rock” engagement; avoid obvious weathered planes and suspect dykes/weak bands.</li>
+          <li><b>Testing:</b> treat any fixed-anchor scheme as an engineered system — include pull-out tests, corrosion planning,
+              and inspection intervals.</li>
+          <li><b>Foundations:</b> prefer micro-footings and reversible connections to minimise excavation and turf loss.</li>
+        </ul>
+      </details>
+
+      <details>
+        <summary>Ecology & seasonal sensitivity</summary>
+        <p>
+          Cliff nesting birds (e.g., raptors) and upland ground-nesters can trigger seasonal access guidance or restrictions
+          in some years. Also expect sensitive heath/bilberry turf on terraces.
+        </p>
+        <ul>
+          <li><b>Seasonal checks:</b> include weekly restriction checks during spring/early summer windows.</li>
+          <li><b>Minimise disturbance:</b> keep all movements on durable surfaces; avoid creating new trods or shortcuts.</li>
+          <li><b>Construction timing:</b> schedule noisy/flight operations only if permitted and outside sensitive windows.</li>
+        </ul>
+      </details>
+
+      <details>
+        <summary>Climbing heritage & stakeholder context</summary>
+        <p>
+          Gimmer is a major traditional climbing venue with many classic multi-pitch lines and teaching value.
+          Any shelter concept must avoid interfering with established routes, belay stances, and the visual character of the crag.
+        </p>
+        <ul>
+          <li><b>Stakeholders likely involved:</b> land managers, park authority, climbing access groups, local rescue organisations.</li>
+          <li><b>Design constraint:</b> keep footprint minimal; prioritise reversibility; avoid increasing footfall impacts.</li>
+        </ul>
+      </details>
+
+      <details>
+        <summary>Operational design drivers for a “micro-shelter”</summary>
+        <ul>
+          <li><b>Wind:</b> gust resilience; secure doors/vents; eliminate loose external components.</li>
+          <li><b>Water:</b> robust flashing; condensation control; drip edges; quick-draining thresholds.</li>
+          <li><b>Freeze–thaw:</b> avoid water traps in joints; use frost-tolerant sealants and drainage paths.</li>
+          <li><b>Lightning:</b> bonding/earthing concept if any metal frame or beacon system is fitted.</li>
+          <li><b>Human factors:</b> clear signage for emergency-only use; durable interior; minimal maintenance burden.</li>
+        </ul>
+      </details>
+    </section>
+
+    <!-- ===================== RIGHT: WBS + PLAN ===================== -->
+    <section id="wbs" class="card min-h-64" aria-label="Work breakdown structure">
+      <h2>🧩 Work Breakdown Structure (Interactive)</h2>
+
+      <div class="row no-print" aria-label="WBS controls">
+        <input id="wbsSearch" type="search" placeholder="Search WBS (e.g., ecology, anchors, commissioning)…" aria-label="Search WBS" />
+        <button id="expandAllBtn" class="secondary" type="button">Expand all</button>
+        <button id="collapseAllBtn" class="secondary" type="button">Collapse all</button>
+        <button id="exportBtn" type="button">Export WBS JSON</button>
+      </div>
+
+      <div id="wbsMount" class="min-h-64" data-timeout="3000">
+        <noscript>Enable JavaScript to view the interactive WBS.</noscript>
+      </div>
+
+      <p class="wbs-note">
+        Tip: search will highlight matches and temporarily expand relevant branches.
+      </p>
+
+      <hr style="border:none;border-top:1px solid var(--line); margin: 1rem 0;" />
+
+      <section id="plan" aria-label="Plan stepper">
+        <h2>🧭 Plan steps</h2>
+        <div id="stepLabel" aria-live="polite">—</div>
+
+        <div class="progress" aria-label="Progress">
+          <div id="progressBar"></div>
+        </div>
+
+        <div id="planControls" class="no-print">
+          <button id="prevBtn" type="button" disabled>Prev</button>
+          <button id="nextBtn" type="button">Next</button>
+          <button id="resetBtn" class="secondary" type="button">Reset</button>
+        </div>
+      </section>
+
+      <hr style="border:none;border-top:1px solid var(--line); margin: 1rem 0;" />
+
+      <section id="pddl" aria-label="PDDL excerpt">
+        <h2>🧠 PDDL model (extract)</h2>
+        <details>
+          <summary>Show PDDL snippet</summary>
+<pre>
+;; ---------- Domain (extract) ----------
+(define (domain gimmer-shelter)
+  (:requirements :strips :typing :durative-actions)
+  (:types task resource location)
+  (:predicates
+    (done ?t - task)
+    (available ?r - resource)
+    (at ?r - resource ?l - location))
+
+  (:durative-action assemble-panel
+    :parameters (?panel - task ?loc - location)
+    :duration   (= ?duration 4)
+    :condition  (and (not (done ?panel)))
+    :effect     (done ?panel)))
+
+;; ---------- Problem (extract) ----------
+(define (problem build-shelter-gimmer)
+  (:domain gimmer-shelter)
+  (:objects basecamp summit - location)
+  (:init (available helicopter) (at helicopter basecamp))
+  (:goal (and (done panel-assembly)
+              (done utilities-installed)
+              (done commissioning))))
+</pre>
+        </details>
+      </section>
+    </section>
+  </div>
+
+  <footer>
+    <div><b>Offline-friendly:</b> no external libraries. Print-friendly output.</div>
+    <div class="muted">If anything fails to initialise, the app will fall back to a static outline automatically.</div>
+  </footer>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+  (function(){
+    "use strict";
+
+    const mount = document.getElementById("wbsMount");
+    const toastEl = document.getElementById("toast");
+    const buildStamp = document.getElementById("buildStamp");
+
+    function toast(msg){
+      toastEl.textContent = msg;
+      toastEl.style.display = "block";
+      window.clearTimeout(toastEl.__t);
+      toastEl.__t = window.setTimeout(()=> toastEl.style.display="none", 3200);
+    }
+
+    function setBuildStamp(){
+      try{
+        const dt = new Date();
+        buildStamp.textContent = dt.toLocaleString("en-GB", { timeZone: "Europe/London" });
+      }catch(_){
+        buildStamp.textContent = new Date().toString();
+      }
+    }
+
+    /* ======================== DATA ======================== */
+    const wbs = {
+      name:"Build Emergency Shelter – Gimmer Crag",
+      children:[
+        {name:"1 Initiation & Governance",children:[
+          {name:"1.1 Define objectives & scope"},
+          {name:"1.2 Stakeholder map (land manager, park authority, access groups, rescue)"},
+          {name:"1.3 Funding, budget & governance"},
+          {name:"1.4 Programme baseline & reporting cadence"}]},
+
+        {name:"2 Site Assessment (Context + Constraints)",children:[
+          {name:"2.1 Reconnaissance survey (routes, ledges, approach lines)"},
+          {name:"2.2 Risk/hazard register (rockfall, exposure, weather, human factors)"},
+          {name:"2.3 Topographic survey (benchmarks, ledge geometry)"},
+          {name:"2.4 Geological mapping & anchor feasibility testing"},
+          {name:"2.5 Ecology survey (nesting / sensitive turf) + timing windows"},
+          {name:"2.6 Visual / heritage impact check"}]},
+
+        {name:"3 Concept & Detailed Design",children:[
+          {name:"3.1 Shelter concept (capacity, emergency-only signage, internal layout)"},
+          {name:"3.2 Structural design (wind, uplift, fixings, redundancy)"},
+          {name:"3.3 Envelope design (waterproofing, condensation, ventilation)"},
+          {name:"3.4 Low-impact foundations / reversible interfaces"},
+          {name:"3.5 Systems design (lighting, beacon/comms, optional PV/battery)"},
+          {name:"3.6 Constructability review + method statement"}]},
+
+        {name:"4 Permissions & Compliance",children:[
+          {name:"4.1 Planning consent strategy (park authority requirements)"},
+          {name:"4.2 Landowner agreement / lease / maintenance responsibilities"},
+          {name:"4.3 Environmental statement & mitigation plan"},
+          {name:"4.4 Access liaison + seasonal restriction plan"},
+          {name:"4.5 Aviation permissions if any lift is proposed (noise, flight plan, safety)"}]},
+
+        {name:"5 Logistics & Access",children:[
+          {name:"5.1 Approach route optimisation (minimise erosion)"},
+          {name:"5.2 Staging area definition (durable surfaces, no new scars)"},
+          {name:"5.3 Safety plan (work at height, rescue, comms, weather triggers)"},
+          {name:"5.4 Load plan (modular weights, packaging, manual handling)"},
+          {name:"5.5 Option: aerial delivery concept with approved drop zone(s)"}]},
+
+        {name:"6 Procurement",children:[
+          {name:"6.1 Structural kit (prefab panels / frame)"},
+          {name:"6.2 Anchors & fasteners (corrosion planning, inspection spec)"},
+          {name:"6.3 Weatherproofing materials (tapes, flashings, sealants)"},
+          {name:"6.4 Safety & comms (beacon, signage, first-aid cache)"},
+          {name:"6.5 Renewable kit (optional PV, battery, controller)"}]},
+
+        {name:"7 Off-site Prefabrication",children:[
+          {name:"7.1 Fabrication (workshop)"},
+          {name:"7.2 QA inspection (dimensional checks, fastener QA)"},
+          {name:"7.3 Packaging for carry/hoist/air-lift (if applicable)"}]},
+
+        {name:"8 Access Installation (Temporary Works)",children:[
+          {name:"8.1 Temporary fixed points / protection plan (if required)"},
+          {name:"8.2 Haul lines / handrails (temporary, removable)"},
+          {name:"8.3 Working platforms or safe stance management"}]},
+
+        {name:"9 On-site Construction",children:[
+          {name:"9.1 Site prep (minimal disturbance, debris management)"},
+          {name:"9.2 Micro-foundation / base interface installation"},
+          {name:"9.3 Panel/frame assembly"},
+          {name:"9.4 Weatherproofing & detailing"},
+          {name:"9.5 Finishing, signage, and snag list"}]},
+
+        {name:"10 Utilities & Services",children:[
+          {name:"10.1 Lighting (robust, low-maintenance)"},
+          {name:"10.2 Emergency beacon / comms (if specified)"},
+          {name:"10.3 Water concept (if allowed/appropriate)"},
+          {name:"10.4 PV & battery commissioning (optional)"}]},
+
+        {name:"11 Safety Systems",children:[
+          {name:"11.1 Lightning / bonding concept (if metalwork present)"},
+          {name:"11.2 Fire & alarms (if applicable)"},
+          {name:"11.3 First-aid cache + inventory checks"},
+          {name:"11.4 Emergency use guidance & ethics (avoid encouraging risk-taking)"}]},
+
+        {name:"12 Testing & Commissioning",children:[
+          {name:"12.1 Anchor/pull-out verification (as specified)"},
+          {name:"12.2 Weatherproofing checks (spray test / inspection)"},
+          {name:"12.3 Systems tests (beacon, lighting, PV)"},
+          {name:"12.4 Snag rectification & final inspection"}]},
+
+        {name:"13 Handover & Training",children:[
+          {name:"13.1 Documentation pack (as-built, inspection intervals)"},
+          {name:"13.2 Maintenance training & responsibilities"},
+          {name:"13.3 Formal sign-off + comms to user community"}]},
+
+        {name:"14 Close-out & Review",children:[
+          {name:"14.1 Lessons learned"},
+          {name:"14.2 Final accounts"},
+          {name:"14.3 Archive + long-term monitoring plan"}]}
+      ]
+    };
+
+    const steps = [
+      "Mobilise governance: objectives, stakeholders, and a ‘do no harm’ access principle.",
+      "Run site reconnaissance: approach lines, ledge options, and emergency access constraints.",
+      "Complete geo/ecology checks: anchor feasibility + seasonal sensitivity windows.",
+      "Freeze the concept: emergency-only design brief + reversible installation philosophy.",
+      "Produce detailed design: wind/uplift, waterproofing, condensation, materials & durability.",
+      "Secure permissions: planning/landowner + any access liaison and operational constraints.",
+      "Plan logistics: modular load plan; staging strategy; safety/rescue plan; go/no-go weather triggers.",
+      "Prefabricate off-site: QA checks; pack for carry/hoist (or permitted aerial lift).",
+      "Install temporary works: safe stances, hauling plan, minimal-impact access controls.",
+      "Construct on site: base interface, assembly, weather detailing, signage and snagging.",
+      "Install systems: lighting/beacon/optional PV-battery; keep it maintenance-light.",
+      "Commission & test: anchor verification (if specified), weatherproof checks, systems tests.",
+      "Handover: as-built documentation, inspection intervals, responsibilities, community comms.",
+      "Close-out: lessons learned, long-term monitoring, and decommission plan if required."
+    ];
+
+    /* ======================== RENDERING ======================== */
+    function escapeHTML(s){
+      return String(s).replace(/[&<>"']/g, m => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+      })[m]);
+    }
+
+    function renderWBSNode(node, depth){
+      const det = document.createElement("details");
+      // open only top levels by default (keeps the UI tidy)
+      if(depth <= 1) det.open = true;
+
+      const sum = document.createElement("summary");
+      sum.innerHTML = escapeHTML(node.name);
+      det.appendChild(sum);
+
+      if(Array.isArray(node.children) && node.children.length){
+        for(const child of node.children){
+          det.appendChild(renderWBSNode(child, depth+1));
+        }
+      }
+      return det;
+    }
+
+    function rebuildWBS(){
+      mount.innerHTML = "";
+      mount.appendChild(renderWBSNode(wbs, 0));
+    }
+
+    function getAllDetails(){
+      return Array.from(mount.querySelectorAll("details"));
+    }
+
+    function expandAll(){
+      for(const d of getAllDetails()) d.open = true;
+    }
+    function collapseAll(){
+      // keep the top node open for orientation
+      const details = getAllDetails();
+      details.forEach((d, i) => d.open = (i===0));
+    }
+
+    function clearHighlights(){
+      const summaries = mount.querySelectorAll("summary");
+      summaries.forEach(s=>{
+        s.style.background = "";
+        s.style.borderRadius = "";
+        s.style.padding = "";
+      });
+    }
+
+    function highlightMatches(query){
+      clearHighlights();
+      if(!query) return;
+
+      const q = query.toLowerCase().trim();
+      if(!q) return;
+
+      const summaries = Array.from(mount.querySelectorAll("summary"));
+      let hits = 0;
+
+      for(const s of summaries){
+        const text = s.textContent.toLowerCase();
+        if(text.includes(q)){
+          hits++;
+          s.style.background = "#fff7";
+          s.style.borderRadius = ".4rem";
+          s.style.padding = ".15rem .25rem";
+
+          // ensure parents are expanded so the match is visible
+          let p = s.parentElement;
+          while(p && p !== mount){
+            if(p.tagName && p.tagName.toLowerCase() === "details") p.open = true;
+            p = p.parentElement;
+          }
+        }
+      }
+
+      toast(hits ? `Found ${hits} match(es).` : "No matches found.");
+    }
+
+    /* ======================== STEPPER ======================== */
+    const stepLabel = document.getElementById("stepLabel");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const progressBar = document.getElementById("progressBar");
+    let stepIdx = 0;
+
+    function updateStepper(){
+      stepLabel.textContent = `Step ${stepIdx+1}/${steps.length}: ${steps[stepIdx]}`;
+      prevBtn.disabled = (stepIdx === 0);
+      nextBtn.disabled = (stepIdx === steps.length - 1);
+      const pct = Math.round(((stepIdx+1) / steps.length) * 100);
+      progressBar.style.width = pct + "%";
+    }
+
+    /* ======================== EXPORT ======================== */
+    function downloadJSON(obj, filename){
+      const text = JSON.stringify(obj, null, 2);
+      const blob = new Blob([text], {type:"application/json"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    /* ======================== FALLBACK ======================== */
+    function fallback(reason){
+      toast(`Interactive failed (${reason}). Showing static outline.`);
+      mount.innerHTML = `<pre>${escapeHTML(JSON.stringify(wbs, null, 2))}</pre>`;
+      window.__canvasStatus = "fallback";
+    }
+
+    /* ======================== INIT + SMOKE WATCHDOG ======================== */
+    function init(){
+      setBuildStamp();
+
+      // Render
+      rebuildWBS();
+      updateStepper();
+
+      // Wire controls
+      document.getElementById("expandAllBtn").addEventListener("click", expandAll);
+      document.getElementById("collapseAllBtn").addEventListener("click", collapseAll);
+
+      document.getElementById("exportBtn").addEventListener("click", ()=>{
+        downloadJSON(wbs, "gimmer-crag-wbs.json");
+        toast("Exported gimmer-crag-wbs.json");
+      });
+
+      document.getElementById("wbsSearch").addEventListener("input", (e)=>{
+        highlightMatches(e.target.value);
+      });
+
+      prevBtn.addEventListener("click", ()=>{
+        if(stepIdx > 0){ stepIdx--; updateStepper(); }
+      });
+      nextBtn.addEventListener("click", ()=>{
+        if(stepIdx < steps.length-1){ stepIdx++; updateStepper(); }
+      });
+      resetBtn.addEventListener("click", ()=>{
+        stepIdx = 0; updateStepper(); toast("Stepper reset.");
+      });
+
+      // Smoke watchdog (protect against partial execution / runtime errors)
+      window.__canvasStatus = "booting";
+      const timeoutMs = Number(mount.dataset.timeout || 3000);
+      const start = Date.now();
+      const watcher = window.setInterval(()=>{
+        const elapsed = Date.now() - start;
+        if(window.__canvasStatus === "ready"){
+          window.clearInterval(watcher);
+        }else if(elapsed >= timeoutMs){
+          window.clearInterval(watcher);
+          fallback("timeout");
+        }
+      }, 250);
+
+      // If we made it here, declare ready.
+      window.__canvasStatus = "ready";
+    }
+
+    try{
+      init();
+    }catch(err){
+      console.error(err);
+      fallback("error");
+    }
+  })();
+  </script>
+</body>
+</html>
