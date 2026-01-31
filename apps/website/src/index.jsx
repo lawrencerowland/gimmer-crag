@@ -6,6 +6,7 @@ import Home from './pages/Home.jsx';
 import Projects from './pages/Projects.jsx';
 import Sandbox from './pages/Sandbox.jsx';
 import AITools from './pages/AITools.jsx';
+import PetriNetToWBS from './pages/PetriNetToWBS.jsx';
 import Systems from './pages/Systems.jsx';
 import Lifecycle from './pages/Lifecycle.jsx';
 import Insights from './pages/Insights.jsx';
@@ -16,7 +17,7 @@ function Navbar() {
       <Link className="hover:text-accent-600 hover:underline decoration-2" to="/">Home</Link>
       <Link className="hover:text-accent-600 hover:underline decoration-2" to="/projects">Projects</Link>
       <Link className="hover:text-accent-600 hover:underline decoration-2" to="/sandbox">Galois Adjoints</Link>
-      <Link className="hover:text-accent-600 hover:underline decoration-2" to="/ai-tools">AI Tools</Link>
+      <Link className="hover:text-accent-600 hover:underline decoration-2" to="/petri-net-to-wbs">Petri net to WBS</Link>
       <Link className="hover:text-accent-600 hover:underline decoration-2" to="/systems">Systems Thinking</Link>
       <Link className="hover:text-accent-600 hover:underline decoration-2" to="/lifecycle">Lifecycle</Link>
       <Link className="hover:text-accent-600 hover:underline decoration-2" to="/insights">Insights</Link>
@@ -35,6 +36,7 @@ function App() {
           <Route path="/projects" element={<Projects />} />
           <Route path="/sandbox" element={<Sandbox />} />
           <Route path="/ai-tools" element={<AITools />} />
+          <Route path="/petri-net-to-wbs" element={<PetriNetToWBS />} />
           <Route path="/systems" element={<Systems />} />
           <Route path="/lifecycle" element={<Lifecycle />} />
           <Route path="/insights" element={<Insights />} />
