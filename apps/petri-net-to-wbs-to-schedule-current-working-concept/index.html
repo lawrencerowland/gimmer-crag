@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Petri net to WBS to schedule current working concept</title>
+  <link rel="stylesheet" href="../../common.css">
+</head>
+<body>
+  <a href="../../index.html">Back to app index</a>
+  <main>
+    <h1>Petri net to WBS to schedule current working concept</h1>
+    <p>
+      Treat the project&rsquo;s &ldquo;physics&rdquo; as a Petri net whose firing rule enforces what can
+      actually happen given resources/conditions. Planning and scheduling then explore the
+      reachable markings from an initial marking&mdash;the feasible state-space of configurations.
+      Categorically, the same net freely generates a (very strict) symmetric/commutative monoidal
+      process category where sequential composition is &ldquo;do this then that&rdquo; and the tensor is
+      &ldquo;do these independently&rdquo;. Alternative WBS/schedule candidates show up as different
+      factorizations/paths that still denote net-compliant executions. This cleanly separates the
+      invariant constraint skeleton (the net) from a particular execution witness (the schedule).
+      If richer state than token-counts is needed, you can lift to DPO-style rewriting on structured
+      world-states.
+    </p>
+
+    <section>
+      <h2>Here&rsquo;s a tightened, more technically accurate version</h2>
+      <p>Keeping the intent, but correcting categorical and rewrite details:</p>
+      <ul>
+        <li>
+          <strong>A Petri net</strong> (places = resource/condition types; tokens = available units;
+          transitions = activities) encodes <strong>feasibility</strong> via the firing rule: an activity can
+          occur exactly when its required input multiset of tokens is present in the current
+          <strong>marking</strong>, producing a new marking.
+        </li>
+        <li>
+          Under the <strong>collective-token</strong> reading (tokens indistinguishable), a Petri net (P)
+          <strong>presents</strong> (i.e., freely generates) a <strong>commutative monoidal category</strong> (F<sub>P</sub>)
+          (a very strict form of symmetric monoidal category):
+          <ul>
+            <li><strong>objects</strong> are <strong>markings</strong> (token multisets),</li>
+            <li>each transition (&tau;) gives a generating <strong>morphism</strong> (s(&tau;) &rarr; t(&tau;)),</li>
+            <li>
+              general morphisms are built from <strong>sequential composition</strong> and the monoidal product
+              (often written (+) / (&otimes;)) for &ldquo;doing things in parallel&rdquo;.
+            </li>
+          </ul>
+        </li>
+        <li>
+          With a chosen <strong>initial marking</strong> (m<sub>0</sub>), the &ldquo;possible project configurations&rdquo; are
+          the markings <strong>reachable</strong> from (m<sub>0</sub>). Equivalently, (n) is reachable from
+          (m<sub>0</sub>) <strong>iff</strong> there exists a morphism (m<sub>0</sub> &rarr; n) in (F<sub>P</sub>).
+        </li>
+        <li>
+          Each marking can be treated as a <strong>world state</strong>. A (resource-feasible, <strong>untimed</strong>)
+          schedule/plan can be represented as either:
+          <ul>
+            <li>a <strong>firing sequence</strong> (a path in the reachability graph of markings), or</li>
+            <li>
+              a <strong>morphism/string diagram</strong> in (F<sub>P</sub>).
+              Different ways of factoring a morphism into sequential vs parallel parts give
+              different (still net-compliant) <strong>decompositions</strong>, which you can interpret as
+              candidate <strong>WBS-like groupings</strong>&mdash;but note that this factorization/WBS is
+              generally <strong>not unique</strong>.
+            </li>
+          </ul>
+        </li>
+        <li>
+          If you want an explicit <strong>rewriting</strong> perspective: <strong>DPO rewriting</strong> is a general
+          mechanism for applying &ldquo;actions&rdquo; (spans/rules) to &ldquo;world states&rdquo; modeled as
+          <strong>C-sets</strong>; Petri-net firing is a simpler multiset-style rewriting discipline and can be
+          embedded into richer DPO-style frameworks when you need more structure than plain
+          markings.
+        </li>
+        <li>
+          <strong>Summary (generative claim, corrected):</strong> the Petri net generates the space of
+          feasible executions; <strong>causality</strong> corresponds to composition, <strong>concurrency</strong> to the
+          monoidal product, and <strong>dependencies/resource constraints</strong> to the enabling condition
+          on markings. (If you mean schedules with durations/calendars, you&rsquo;ll want a timed/weighted
+          extension or a separate time semantics on top of the net.)
+        </li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
