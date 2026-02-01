@@ -6,3 +6,4 @@
 6,active-inference-procurement,Active inference procurement console for the Cliff Shed,Assistant,HTML/JS,"active inference, procurement, console",,
 7,project-binding-experiments,Project binding concurrent experiment prompts,Assistant,HTML/JS,"binding, experiments, prompts",,
 8,processes-plans-shed-on-a-cliff,Processes to plans category view for Shed-on-a-Cliff,Assistant,HTML/JS,"category theory, processes, plans",,
+9,build-a-shed-mini-generator,Build-a-Shed Petri net reachability generator (Julia stdlib),Assistant,Julia,"petri net, reachability, shed",,
