@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Petri Net → WBS (Mermaid)</title>
+  <link rel="stylesheet" href="../../common.css" />
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      background: #0b0f14;
+      color: #e8eef6;
+    }
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .page h1 {
+      margin: 16px 0 8px;
+    }
+    .page p {
+      color: #a7b5c6;
+      margin: 0 0 16px;
+    }
+    .card {
+      border: 1px solid #223246;
+      border-radius: 16px;
+      padding: 16px;
+      background: #101824;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    }
+    .nav-links {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .nav-links a {
+      color: #79c0ff;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .mermaid {
+      font-family: "Inter", system-ui, sans-serif;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.5/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <div class="page">
+    <div class="nav-links">
+      <a href="index.html">← Back to WBS app</a>
+      <a href="../../index.html">Back to app index</a>
+    </div>
+
+    <h1>Petri net → WBS</h1>
+    <p>A Mermaid rendering of the Petri net-to-WBS flow.</p>
+
+    <div class="card">
+      <div class="mermaid">
+flowchart TB
+  A["Physical Constraints"] --> B(("Petri Net Structure"))
+  B --> C["Places: Resources, Sites"]
+  B --> D["Transitions: Activities"]
+  C --> E["OPEN PETRI NET (P)"]
+  D --> E
+  E --> F["Symmetric Monoidal Category<br/>P as a presentation of SMC<br/>(FP, the free SMC on P)"]
+  F --> G["Markings: Initial States<br/>(Tokens representing resources)"]
+  G --> H["GENERATE WBS OPTIONS<br/>- Each marking ⇒ schedule<br/>- Compatible with FP<br/>- Composition = feasible<br/>paths (sequence or &otimes;)"]
+  H --> I["Schedules + Work Packages<br/>- Constrained by physical logic<br/>- Derived from process structure<br/>- Represented as string diagrams"]
+  I --> J["TOOLING LAYERS<br/>- Catlab.jl / AlgebraicJulia<br/>- DPO Rewriting for dynamics<br/>- StockFlow & CatColab logics"]
+      </div>
+    </div>
+  </div>
+
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: "dark" });
+  </script>
+</body>
+</html>
