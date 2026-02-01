@@ -11,4 +11,6 @@ The following apps were removed from `apps/` per the current cleanup request:
 - galois-adjoints
 - geometry-of-interaction
 - group-actions-project-thinking
+- presheaves-and-opposite-categories
 - sheaf-schedule-playground
+- push-out-pull-back
