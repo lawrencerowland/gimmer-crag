@@ -1,0 +1,867 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Build-a-Shed Mini-Generator</title>
+  <link rel="stylesheet" href="../../common.css" />
+  <style>
+    .page {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px 16px 40px;
+    }
+    .card {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 16px;
+      padding: 18px;
+      margin-top: 16px;
+    }
+    .code-block {
+      background: #0b1120;
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      padding: 16px;
+      overflow-x: auto;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #e2e8f0;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    .meta {
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      background: rgba(15, 23, 42, 0.35);
+      font-size: 14px;
+    }
+    .meta h3 {
+      margin-top: 0;
+      font-size: 14px;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .actions a {
+      display: inline-block;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      text-decoration: none;
+    }
+    details summary {
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .note {
+      font-size: 14px;
+      color: #cbd5f5;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <a href="../../index.html">Back to app index</a>
+    <h1>Build-a-Shed Mini-Generator</h1>
+    <p class="note">A stdlib-only Julia script that enumerates the reachability graph for a shed-construction Petri net and produces TSV + HTML outputs for inspection.</p>
+
+    <section class="card">
+      <h2>What this script does</h2>
+      <div class="meta-grid">
+        <div class="meta">
+          <h3>Petri net semantics</h3>
+          <p>Defines places, transitions, and pre/post incidence matrices for the shed build sequence.</p>
+        </div>
+        <div class="meta">
+          <h3>Reachability</h3>
+          <p>BFS enumerates every reachable marking and records firing edges with durations.</p>
+        </div>
+        <div class="meta">
+          <h3>Artifacts</h3>
+          <p>Outputs TSV node/edge tables plus a self-contained D3/Tailwind HTML visualization.</p>
+        </div>
+      </div>
+      <div class="actions">
+        <a href="./shed_petri_net.jl" download>Download Julia script</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Run locally</h2>
+      <pre class="code-block">julia shed_petri_net.jl
+# Outputs:
+#   /tmp/shed_markings.tsv
+#   /tmp/shed_edges.tsv
+#   /tmp/shed_reachability.html</pre>
+    </section>
+
+    <section class="card">
+      <details>
+        <summary>Show the full Julia source</summary>
+        <pre class="code-block"><code>###############################
+#  Build‑a‑Shed mini‑generator #
+#  Reachability (markings) + HTML viz
+#  Julia (no external runtime deps beyond stdlib)
+###############################
+#
+# Why “stdlib‑only”?
+# -----------------
+# In earlier iterations we gestured at Catlab / AlgebraicRewriting.
+# In practice, package resolution is the first thing that breaks in
+# sandboxed / offline environments. For the *marking enumeration* and
+# reachability graph, we can implement the Petri semantics directly
+# (collective‑token philosophy) and keep this file runnable anywhere.
+#
+# This file therefore:
+#   1) Defines the shed Petri net (places, transitions, pre/post incidence)
+#   2) BFS‑enumerates all reachable markings from the initial marking
+#   3) Builds a reachability graph (nodes=markings, edges=firings)
+#   4) Writes:
+#        • shed_markings.tsv
+#        • shed_edges.tsv
+#        • shed_reachability.html (self‑contained HTML + Tailwind + D3)
+#
+# Run:
+#   julia shed_petri_net.jl
+#
+# Outputs:
+#   /tmp/shed_markings.tsv
+#   /tmp/shed_edges.tsv
+#   /tmp/shed_reachability.html
+#
+# NOTE: If you *do* want the Catlab / AlgebraicPetri version later, we can
+# add it as an optional path guarded by `ENV[&quot;USE_CATLAB&quot;]=1`.
+
+using Printf
+using Random
+using Dates
+
+# -------------------------
+# 1) Petri net definition
+# -------------------------
+
+&quot;&quot;&quot;A plain, collective‑token Petri net.
+
+- `places` is an ordered list of place symbols
+- `transitions` is an ordered list of transition symbols
+- `pre[i,j]` is tokens required from place i to fire transition j
+- `post[i,j]` is tokens produced into place i by transition j
+&quot;&quot;&quot;
+struct PetriNet
+    places::Vector{Symbol}
+    transitions::Vector{Symbol}
+    pre::Matrix{Int}
+    post::Matrix{Int}
+end
+
+&quot;&quot;&quot;A marking is an Int vector aligned with `net.places`.&quot;&quot;&quot;
+const Marking = Vector{Int}
+
+&quot;&quot;&quot;Pretty name for places (for UI).&quot;&quot;&quot;
+const PLACE_LABELS = Dict(
+    :SiteClear        =&gt; &quot;Site clear&quot;,
+    :FoundationDone   =&gt; &quot;Foundation done&quot;,
+    :FrameDone        =&gt; &quot;Frame done&quot;,
+    :RoofDone         =&gt; &quot;Roof done&quot;,
+    :WallsDone        =&gt; &quot;Walls done&quot;,
+    :DoorHung         =&gt; &quot;Door hung&quot;,
+    :ShedPainted      =&gt; &quot;Shed painted&quot;
+)
+
+&quot;&quot;&quot;Pretty name for transitions (for UI).&quot;&quot;&quot;
+const TRANS_LABELS = Dict(
+    :ClearSite       =&gt; &quot;Clear site&quot;,
+    :PourFoundation  =&gt; &quot;Pour foundation&quot;,
+    :ErectFrame      =&gt; &quot;Erect frame&quot;,
+    :SheathRoof      =&gt; &quot;Sheath roof&quot;,
+    :AttachWalls     =&gt; &quot;Attach walls&quot;,
+    :HangDoor        =&gt; &quot;Hang door&quot;,
+    :PaintShed       =&gt; &quot;Paint shed&quot;
+)
+
+&quot;&quot;&quot;Duration (days) for an evaluation‑functor-ish time score.&quot;&quot;&quot;
+const TRANS_DAYS = Dict(
+    :ClearSite       =&gt; 1,
+    :PourFoundation  =&gt; 2,
+    :ErectFrame      =&gt; 2,
+    :SheathRoof      =&gt; 1,
+    :AttachWalls     =&gt; 1,
+    :HangDoor        =&gt; 1,
+    :PaintShed       =&gt; 2
+)
+
+function build_shed_net()::Tuple{PetriNet,Marking}
+    places = [:SiteClear,:FoundationDone,:FrameDone,:RoofDone,:WallsDone,:DoorHung,:ShedPainted]
+    transitions = [:ClearSite,:PourFoundation,:ErectFrame,:SheathRoof,:AttachWalls,:HangDoor,:PaintShed]
+
+    P = length(places)
+    T = length(transitions)
+    pre  = zeros(Int, P, T)
+    post = zeros(Int, P, T)
+
+    # Helper: index lookup
+    pidx = Dict(p=&gt;i for (i,p) in enumerate(places))
+    tidx = Dict(t=&gt;j for (j,t) in enumerate(transitions))
+
+    # t0: ClearSite  SiteClear -&gt; (consumes it, representing “done”)
+    pre[pidx[:SiteClear], tidx[:ClearSite]] = 1
+
+    # t1: PourFoundation  SiteClear -&gt; FoundationDone
+    pre[pidx[:SiteClear], tidx[:PourFoundation]] = 1
+    post[pidx[:FoundationDone], tidx[:PourFoundation]] = 1
+
+    # t2: ErectFrame  FoundationDone -&gt; FrameDone
+    pre[pidx[:FoundationDone], tidx[:ErectFrame]] = 1
+    post[pidx[:FrameDone], tidx[:ErectFrame]] = 1
+
+    # t3: SheathRoof  FrameDone -&gt; RoofDone
+    pre[pidx[:FrameDone], tidx[:SheathRoof]] = 1
+    post[pidx[:RoofDone], tidx[:SheathRoof]] = 1
+
+    # t4: AttachWalls  FrameDone -&gt; WallsDone
+    pre[pidx[:FrameDone], tidx[:AttachWalls]] = 1
+    post[pidx[:WallsDone], tidx[:AttachWalls]] = 1
+
+    # t5: HangDoor  WallsDone -&gt; DoorHung
+    pre[pidx[:WallsDone], tidx[:HangDoor]] = 1
+    post[pidx[:DoorHung], tidx[:HangDoor]] = 1
+
+    # t6: PaintShed  RoofDone + DoorHung -&gt; ShedPainted
+    pre[pidx[:RoofDone], tidx[:PaintShed]] = 1
+    pre[pidx[:DoorHung], tidx[:PaintShed]] = 1
+    post[pidx[:ShedPainted], tidx[:PaintShed]] = 1
+
+    net = PetriNet(places, transitions, pre, post)
+
+    # Initial marking: token at SiteClear
+    m0 = zeros(Int, P)
+    m0[pidx[:SiteClear]] = 1
+
+    return net, m0
+end
+
+# ---------------------------------
+# 2) Core semantics: fire &amp; enabled
+# ---------------------------------
+
+&quot;&quot;&quot;Return true iff transition `tj` is enabled at marking `m`.&quot;&quot;&quot;
+@inline function enabled(net::PetriNet, m::Marking, tj::Int)::Bool
+    @inbounds for i in eachindex(net.places)
+        if m[i] &lt; net.pre[i,tj]
+            return false
+        end
+    end
+    return true
+end
+
+&quot;&quot;&quot;Fire transition `tj` at marking `m`, returning a new marking (does not mutate `m`).&quot;&quot;&quot;
+function fire(net::PetriNet, m::Marking, tj::Int)::Marking
+    newm = similar(m)
+    @inbounds for i in eachindex(net.places)
+        newm[i] = m[i] - net.pre[i,tj] + net.post[i,tj]
+    end
+    return newm
+end
+
+&quot;&quot;&quot;Canonical key for hashing a marking.&quot;&quot;&quot;
+@inline marking_key(m::Marking) = join(m, &quot;,&quot;)
+
+&quot;&quot;&quot;Short human label like: [Site clear=0, Foundation done=1, ...] but compact.&quot;&quot;&quot;
+function marking_label(net::PetriNet, m::Marking)::String
+    parts = String[]
+    for (i,p) in enumerate(net.places)
+        v = m[i]
+        v == 0 &amp;&amp; continue
+        push!(parts, &quot;$(get(PLACE_LABELS,p,string(p)))=$v&quot;)
+    end
+    isempty(parts) ? &quot;∅&quot; : join(parts, &quot;, &quot;)
+end
+
+# -----------------------------------
+# 3) Enumerate reachable markings BFS
+# -----------------------------------
+
+&quot;&quot;&quot;Enumerate all reachable markings, returning:
+- `nodes::Vector{Marking}`
+- `edges::Vector{NamedTuple}` with fields: from, to, tname, days
+&quot;&quot;&quot;
+function enumerate_reachability(net::PetriNet, m0::Marking)
+    nodes = Marking[]
+    node_index = Dict{String,Int}()
+    edges = NamedTuple[]
+
+    function add_node!(m::Marking)
+        k = marking_key(m)
+        if haskey(node_index, k)
+            return node_index[k]
+        else
+            push!(nodes, copy(m))
+            idx = length(nodes)
+            node_index[k] = idx
+            return idx
+        end
+    end
+
+    q = Int[]
+    start_idx = add_node!(m0)
+    push!(q, start_idx)
+
+    head = 1
+    while head &lt;= length(q)
+        u = q[head]; head += 1
+        m = nodes[u]
+
+        for (tj, tname) in enumerate(net.transitions)
+            if enabled(net, m, tj)
+                m2 = fire(net, m, tj)
+                v = add_node!(m2)
+                push!(edges, (from=u, to=v, tname=tname, days=get(TRANS_DAYS,tname,0)))
+                # BFS frontier discovery
+                if v == length(nodes) # heuristic: new node just appended
+                    push!(q, v)
+                end
+            end
+        end
+    end
+
+    return nodes, edges
+end
+
+# ------------------------
+# 4) Simple path scoring
+# ------------------------
+
+&quot;&quot;&quot;Compute a crude shortest‑time distance to each node using Dijkstra on edge weights (=days).
+
+This is *not* a full schedule optimizer; it’s a minimal &#x27;evaluation functor&#x27; hook.
+&quot;&quot;&quot;
+function dijkstra_days(n_nodes::Int, edges)
+    adj = [Int[] for _ in 1:n_nodes]
+    wts = [Int[] for _ in 1:n_nodes]
+    for e in edges
+        push!(adj[e.from], e.to)
+        push!(wts[e.from], max(e.days, 0))
+    end
+
+    dist = fill(typemax(Int), n_nodes)
+    dist[1] = 0
+    visited = fill(false, n_nodes)
+
+    for _ in 1:n_nodes
+        # pick unvisited min
+        u = 0
+        best = typemax(Int)
+        for i in 1:n_nodes
+            if !visited[i] &amp;&amp; dist[i] &lt; best
+                best = dist[i]
+                u = i
+            end
+        end
+        u == 0 &amp;&amp; break
+        visited[u] = true
+        for (k,v) in enumerate(adj[u])
+            alt = dist[u] + wts[u][k]
+            if alt &lt; dist[v]
+                dist[v] = alt
+            end
+        end
+    end
+
+    return dist
+end
+
+# ------------------------
+# 5) Write TSV + HTML viz
+# ------------------------
+
+function write_tsv(outdir::String, net::PetriNet, nodes::Vector{Marking}, edges)
+    mkpath(outdir)
+
+    nodes_path = joinpath(outdir, &quot;shed_markings.tsv&quot;)
+    edges_path = joinpath(outdir, &quot;shed_edges.tsv&quot;)
+
+    open(nodes_path, &quot;w&quot;) do io
+        println(io, &quot;id\tlabel\tkey\tplace_counts&quot;)
+        for (i,m) in enumerate(nodes)
+            println(io, &quot;$(i)\t$(replace(marking_label(net,m), &#x27;\t&#x27;=&gt;&#x27; &#x27;))\t$(marking_key(m))\t$(join(m,&#x27;,&#x27;))&quot;)
+        end
+    end
+
+    open(edges_path, &quot;w&quot;) do io
+        println(io, &quot;from\tto\ttransition\tdays&quot;)
+        for e in edges
+            println(io, &quot;$(e.from)\t$(e.to)\t$(e.tname)\t$(e.days)&quot;)
+        end
+    end
+
+    return nodes_path, edges_path
+end
+
+function html_escape(s::AbstractString)
+    s = replace(s, &quot;&amp;&quot;=&gt;&quot;&amp;amp;&quot;, &quot;&lt;&quot;=&gt;&quot;&amp;lt;&quot;, &quot;&gt;&quot;=&gt;&quot;&amp;gt;&quot;, &quot;\&quot;&quot;=&gt;&quot;&amp;quot;&quot;, &quot;&#x27;&quot;=&gt;&quot;&amp;#39;&quot;)
+    return s
+end
+
+function write_html(outdir::String, net::PetriNet, nodes::Vector{Marking}, edges, dist_days::Vector{Int})
+    html_path = joinpath(outdir, &quot;shed_reachability.html&quot;)
+
+    # Build JSON-ish literals without needing a JSON package
+    node_rows = String[]
+    for (i,m) in enumerate(nodes)
+        label = html_escape(marking_label(net,m))
+        key = marking_key(m)
+        counts = join(m, &quot;,&quot;)
+        days = dist_days[i] == typemax(Int) ? &quot;null&quot; : string(dist_days[i])
+        push!(node_rows, &quot;{id:$i,label:\&quot;$label\&quot;,key:\&quot;$key\&quot;,counts:\&quot;$counts\&quot;,dmin:$days}&quot;)
+    end
+
+    edge_rows = String[]
+    for (idx,e) in enumerate(edges)
+        tlabel = html_escape(get(TRANS_LABELS, e.tname, string(e.tname)))
+        push!(edge_rows, &quot;{id:$idx,source:$(e.from),target:$(e.to),tname:\&quot;$(e.tname)\&quot;,tlabel:\&quot;$tlabel\&quot;,days:$(e.days)}&quot;)
+    end
+
+    # --- Explainer modal content ---
+    explainers = Dict(
+        &quot;marking&quot; =&gt; &quot;A **marking** is just a token‑count vector over places (collective token semantics). Each node in this graph is one such vector; each directed edge is a single enabled firing that transforms one vector into another.&quot;,
+        &quot;reading&quot; =&gt; &quot;Edges are labeled by *tasks* (transitions). If two tasks are enabled from the same marking, that’s a real **choice point** (branch). If two tasks are enabled and commute (different tokens/places), you’ll see different paths that reconverge—your algebraic hint of **concurrency**.&quot;,
+        &quot;time&quot;    =&gt; &quot;The ‘Min days’ number is a lightweight evaluation (Dijkstra over edge durations). It’s *not* full CPM with resource calendars; it’s the simplest functorial semantics: morphisms ↦ additive costs.&quot;,
+        &quot;smc&quot;     =&gt; &quot;Formally, the Petri net presents a free commutative (or symmetric strict) monoidal category: markings are objects, firing sequences are morphisms. This UI is browsing the reachability relation, a shadow of that category.&quot;,
+        &quot;export&quot;  =&gt; &quot;TSV outputs are intentionally boring: you can drop them into Excel, Python, Neo4j, etc. The HTML is a convenience layer; the TSV is the real ‘audit trail’ for downstream tooling.&quot;
+    )
+
+    modal_items = String[]
+    for (k,v) in explainers
+        push!(modal_items, &quot;\n&lt;div class=\&quot;hidden\&quot; data-explainer=\&quot;$k\&quot;&gt;$(html_escape(v))&lt;/div&gt;&quot;)
+    end
+
+    html = &quot;&quot;&quot;
+&lt;!doctype html&gt;
+&lt;html lang=\&quot;en\&quot;&gt;
+&lt;head&gt;
+  &lt;meta charset=\&quot;utf-8\&quot; /&gt;
+  &lt;meta name=\&quot;viewport\&quot; content=\&quot;width=device-width, initial-scale=1\&quot; /&gt;
+  &lt;title&gt;Shed Petri Net — Reachability of Markings&lt;/title&gt;
+  &lt;script src=\&quot;https://cdn.tailwindcss.com?plugins=typography\&quot;&gt;&lt;/script&gt;
+  &lt;script src=\&quot;https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js\&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body class=\&quot;bg-slate-950 text-slate-100\&quot;&gt;
+
+  &lt;!-- Header --&gt;
+  &lt;div class=\&quot;max-w-6xl mx-auto px-4 py-4\&quot;&gt;
+    &lt;div class=\&quot;flex flex-col gap-2 md:flex-row md:items-center md:justify-between\&quot;&gt;
+      &lt;div&gt;
+        &lt;h1 class=\&quot;text-xl md:text-2xl font-semibold\&quot;&gt;Shed Petri Net — Reachability Graph&lt;/h1&gt;
+        &lt;p class=\&quot;text-slate-300 text-sm\&quot;&gt;Nodes = markings (token distributions). Edges = single firings. Tap a node to inspect its place‑vector.&lt;/p&gt;
+      &lt;/div&gt;
+      &lt;div class=\&quot;text-xs text-slate-400\&quot;&gt;Generated: $(Dates.format(now(), &quot;yyyy-mm-dd HH:MM&quot;))&lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;!-- Explainer buttons --&gt;
+    &lt;div class=\&quot;mt-3 flex flex-wrap gap-2\&quot;&gt;
+      &lt;button class=\&quot;px-3 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-sm\&quot; data-open=\&quot;marking\&quot;&gt;What is a marking?&lt;/button&gt;
+      &lt;button class=\&quot;px-3 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-sm\&quot; data-open=\&quot;reading\&quot;&gt;How to read the graph&lt;/button&gt;
+      &lt;button class=\&quot;px-3 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-sm\&quot; data-open=\&quot;time\&quot;&gt;About the time score&lt;/button&gt;
+      &lt;button class=\&quot;px-3 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-sm\&quot; data-open=\&quot;smc\&quot;&gt;SMC viewpoint&lt;/button&gt;
+      &lt;button class=\&quot;px-3 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-sm\&quot; data-open=\&quot;export\&quot;&gt;Exports&lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;!-- Main layout --&gt;
+  &lt;div class=\&quot;max-w-6xl mx-auto px-4 pb-6\&quot;&gt;
+    &lt;div class=\&quot;grid grid-cols-1 lg:grid-cols-3 gap-4\&quot;&gt;
+
+      &lt;!-- Viz card --&gt;
+      &lt;div class=\&quot;lg:col-span-2 bg-slate-900/60 border border-slate-800 rounded-2xl shadow-lg overflow-hidden\&quot;&gt;
+        &lt;div class=\&quot;p-3 flex flex-col md:flex-row gap-2 md:items-center md:justify-between border-b border-slate-800\&quot;&gt;
+          &lt;div class=\&quot;text-sm text-slate-300\&quot;&gt;Drag nodes. Scroll/trackpad to zoom. Double‑click background to re-center.&lt;/div&gt;
+          &lt;div class=\&quot;flex flex-wrap gap-2\&quot;&gt;
+            &lt;button id=\&quot;btnReset\&quot; class=\&quot;px-3 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm\&quot;&gt;Reset view&lt;/button&gt;
+            &lt;button id=\&quot;btnFreeze\&quot; class=\&quot;px-3 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm\&quot;&gt;Freeze layout&lt;/button&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=\&quot;relative\&quot;&gt;
+          &lt;svg id=\&quot;graph\&quot; class=\&quot;w-full\&quot; style=\&quot;height: 70vh; min-height: 420px;\&quot;&gt;&lt;/svg&gt;
+          &lt;div id=\&quot;toast\&quot; class=\&quot;hidden absolute left-4 bottom-4 bg-slate-800/90 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100\&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;!-- Inspector card --&gt;
+      &lt;div class=\&quot;bg-slate-900/60 border border-slate-800 rounded-2xl shadow-lg\&quot;&gt;
+        &lt;div class=\&quot;p-4 border-b border-slate-800\&quot;&gt;
+          &lt;h2 class=\&quot;text-lg font-semibold\&quot;&gt;Node inspector&lt;/h2&gt;
+          &lt;p class=\&quot;text-slate-300 text-sm\&quot;&gt;Click any node to see its marking vector and enabled tasks.&lt;/p&gt;
+        &lt;/div&gt;
+        &lt;div class=\&quot;p-4 space-y-3\&quot;&gt;
+          &lt;div class=\&quot;p-3 rounded-xl bg-slate-950/40 border border-slate-800\&quot;&gt;
+            &lt;div class=\&quot;text-xs text-slate-400\&quot;&gt;Selected node&lt;/div&gt;
+            &lt;div id=\&quot;selTitle\&quot; class=\&quot;mt-1 text-sm\&quot;&gt;(none)&lt;/div&gt;
+          &lt;/div&gt;
+
+          &lt;div class=\&quot;grid grid-cols-2 gap-2\&quot;&gt;
+            &lt;div class=\&quot;p-3 rounded-xl bg-slate-950/40 border border-slate-800\&quot;&gt;
+              &lt;div class=\&quot;text-xs text-slate-400\&quot;&gt;Marking key&lt;/div&gt;
+              &lt;div id=\&quot;selKey\&quot; class=\&quot;mt-1 text-xs break-all\&quot;&gt;—&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=\&quot;p-3 rounded-xl bg-slate-950/40 border border-slate-800\&quot;&gt;
+              &lt;div class=\&quot;text-xs text-slate-400\&quot;&gt;Min days (from start)&lt;/div&gt;
+              &lt;div id=\&quot;selDays\&quot; class=\&quot;mt-1 text-sm\&quot;&gt;—&lt;/div&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+
+          &lt;div class=\&quot;p-3 rounded-xl bg-slate-950/40 border border-slate-800\&quot;&gt;
+            &lt;div class=\&quot;text-xs text-slate-400\&quot;&gt;Place counts&lt;/div&gt;
+            &lt;div id=\&quot;selCounts\&quot; class=\&quot;mt-1 text-sm whitespace-pre-wrap\&quot;&gt;—&lt;/div&gt;
+          &lt;/div&gt;
+
+          &lt;div class=\&quot;p-3 rounded-xl bg-slate-950/40 border border-slate-800\&quot;&gt;
+            &lt;div class=\&quot;text-xs text-slate-400\&quot;&gt;Enabled transitions at this marking&lt;/div&gt;
+            &lt;div id=\&quot;selEnabled\&quot; class=\&quot;mt-2 flex flex-wrap gap-2\&quot;&gt;—&lt;/div&gt;
+          &lt;/div&gt;
+
+          &lt;div class=\&quot;p-3 rounded-xl bg-slate-950/40 border border-slate-800\&quot;&gt;
+            &lt;div class=\&quot;text-xs text-slate-400\&quot;&gt;Legend&lt;/div&gt;
+            &lt;div class=\&quot;mt-2 text-sm text-slate-200\&quot;&gt;
+              &lt;div&gt;&lt;span class=\&quot;inline-block w-3 h-3 rounded-full bg-slate-300 mr-2\&quot;&gt;&lt;/span&gt;Marking (state)&lt;/div&gt;
+              &lt;div class=\&quot;mt-1\&quot;&gt;&lt;span class=\&quot;inline-block w-3 h-0.5 bg-slate-300 mr-2 align-middle\&quot;&gt;&lt;/span&gt;Firing (task edge)&lt;/div&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+
+        &lt;/div&gt;
+      &lt;/div&gt;
+
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;!-- Modal (no alert()) --&gt;
+  &lt;div id=\&quot;modal\&quot; class=\&quot;hidden fixed inset-0 z-50\&quot;&gt;
+    &lt;div class=\&quot;absolute inset-0 bg-black/60\&quot; id=\&quot;modalBackdrop\&quot;&gt;&lt;/div&gt;
+    &lt;div class=\&quot;relative max-w-2xl mx-auto mt-16 p-4\&quot;&gt;
+      &lt;div class=\&quot;bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden\&quot;&gt;
+        &lt;div class=\&quot;p-4 border-b border-slate-800 flex items-center justify-between\&quot;&gt;
+          &lt;div id=\&quot;modalTitle\&quot; class=\&quot;text-lg font-semibold\&quot;&gt;Explainer&lt;/div&gt;
+          &lt;button id=\&quot;modalClose\&quot; class=\&quot;px-3 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm\&quot;&gt;Close&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;div class=\&quot;p-4\&quot;&gt;
+          &lt;div id=\&quot;modalBody\&quot; class=\&quot;prose prose-invert max-w-none\&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;!-- Hidden explainer payloads --&gt;
+    $(join(modal_items, &quot;\n&quot;))
+  &lt;/div&gt;
+
+&lt;script&gt;
+(() =&gt; {
+  // ---------------------------
+  // Data injected by Julia
+  // ---------------------------
+  const nodes = [
+    ${join(node_rows, &quot;,\n    &quot;)}
+  ];
+  const links = [
+    ${join(edge_rows, &quot;,\n    &quot;)}
+  ];
+
+  const places = ${repr([get(PLACE_LABELS,p,string(p)) for p in net.places])};
+  const transitions = ${repr([get(TRANS_LABELS,t,string(t)) for t in net.transitions])};
+
+  // Pre/Post matrices embedded for enabled‑set computation in the UI.
+  const PRE  = ${repr(net.pre)};
+  const POST = ${repr(net.post)};
+
+  // ---------------------------
+  // Small UI helpers
+  // ---------------------------
+  const toast = document.getElementById(&#x27;toast&#x27;);
+  let toastTimer = null;
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.remove(&#x27;hidden&#x27;);
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() =&gt; toast.classList.add(&#x27;hidden&#x27;), 2000);
+  }
+
+  function parseCounts(countsStr) {
+    return countsStr.split(&#x27;,&#x27;).map(x =&gt; parseInt(x, 10));
+  }
+
+  function enabledTransitions(counts) {
+    const enabled = [];
+    for (let tj = 0; tj &lt; PRE[0].length; tj++) {
+      let ok = true;
+      for (let pi = 0; pi &lt; PRE.length; pi++) {
+        if (counts[pi] &lt; PRE[pi][tj]) { ok = false; break; }
+      }
+      if (ok) enabled.push(tj);
+    }
+    return enabled;
+  }
+
+  // ---------------------------
+  // Modal explainers
+  // ---------------------------
+  const modal = document.getElementById(&#x27;modal&#x27;);
+  const modalTitle = document.getElementById(&#x27;modalTitle&#x27;);
+  const modalBody = document.getElementById(&#x27;modalBody&#x27;);
+  const modalClose = document.getElementById(&#x27;modalClose&#x27;);
+  const modalBackdrop = document.getElementById(&#x27;modalBackdrop&#x27;);
+
+  function openExplainer(key, title) {
+    const el = modal.querySelector(`[data-explainer=&quot;${key}&quot;]`);
+    if (!el) return;
+    modalTitle.textContent = title;
+    // Simple markdown-ish formatting: **bold** and newlines.
+    let txt = el.textContent;
+    txt = txt.replace(/\*\*(.*?)\*\*/g, &#x27;&lt;strong&gt;$1&lt;/strong&gt;&#x27;);
+    txt = txt.replace(/\n/g, &#x27;&lt;br/&gt;&#x27;);
+    modalBody.innerHTML = `&lt;p&gt;${txt}&lt;/p&gt;`;
+    modal.classList.remove(&#x27;hidden&#x27;);
+  }
+
+  function closeModal() {
+    modal.classList.add(&#x27;hidden&#x27;);
+  }
+  modalClose.addEventListener(&#x27;click&#x27;, closeModal);
+  modalBackdrop.addEventListener(&#x27;click&#x27;, closeModal);
+
+  document.querySelectorAll(&#x27;[data-open]&#x27;).forEach(btn =&gt; {
+    btn.addEventListener(&#x27;click&#x27;, () =&gt; {
+      const key = btn.getAttribute(&#x27;data-open&#x27;);
+      openExplainer(key, btn.textContent.trim());
+    });
+  });
+
+  // ---------------------------
+  // D3 force graph
+  // ---------------------------
+  const svg = d3.select(&#x27;#graph&#x27;);
+  const width = () =&gt; svg.node().clientWidth;
+  const height = () =&gt; svg.node().clientHeight;
+
+  const g = svg.append(&#x27;g&#x27;);
+
+  // Zoom / pan
+  const zoom = d3.zoom()
+    .scaleExtent([0.3, 3.0])
+    .on(&#x27;zoom&#x27;, (event) =&gt; g.attr(&#x27;transform&#x27;, event.transform));
+  svg.call(zoom);
+
+  // Double‑click background to re-center
+  svg.on(&#x27;dblclick.zoom&#x27;, null);
+  svg.on(&#x27;dblclick&#x27;, () =&gt; {
+    svg.transition().duration(250).call(zoom.transform, d3.zoomIdentity);
+    showToast(&#x27;View reset&#x27;);
+  });
+
+  // Arrow marker
+  svg.append(&#x27;defs&#x27;).append(&#x27;marker&#x27;)
+    .attr(&#x27;id&#x27;, &#x27;arrow&#x27;)
+    .attr(&#x27;viewBox&#x27;, &#x27;0 -5 10 10&#x27;)
+    .attr(&#x27;refX&#x27;, 18)
+    .attr(&#x27;refY&#x27;, 0)
+    .attr(&#x27;markerWidth&#x27;, 6)
+    .attr(&#x27;markerHeight&#x27;, 6)
+    .attr(&#x27;orient&#x27;, &#x27;auto&#x27;)
+    .append(&#x27;path&#x27;)
+    .attr(&#x27;d&#x27;, &#x27;M0,-5L10,0L0,5&#x27;);
+
+  const link = g.append(&#x27;g&#x27;)
+    .attr(&#x27;stroke&#x27;, &#x27;currentColor&#x27;)
+    .attr(&#x27;stroke-opacity&#x27;, 0.45)
+    .selectAll(&#x27;line&#x27;)
+    .data(links)
+    .join(&#x27;line&#x27;)
+    .attr(&#x27;stroke-width&#x27;, 1.2)
+    .attr(&#x27;marker-end&#x27;, &#x27;url(#arrow)&#x27;);
+
+  const node = g.append(&#x27;g&#x27;)
+    .selectAll(&#x27;circle&#x27;)
+    .data(nodes)
+    .join(&#x27;circle&#x27;)
+    .attr(&#x27;r&#x27;, 8)
+    .attr(&#x27;stroke&#x27;, &#x27;currentColor&#x27;)
+    .attr(&#x27;stroke-opacity&#x27;, 0.7)
+    .attr(&#x27;stroke-width&#x27;, 1.2)
+    .attr(&#x27;fill&#x27;, &#x27;currentColor&#x27;)
+    .attr(&#x27;fill-opacity&#x27;, 0.85)
+    .call(d3.drag()
+      .on(&#x27;start&#x27;, dragstarted)
+      .on(&#x27;drag&#x27;, dragged)
+      .on(&#x27;end&#x27;, dragended)
+    );
+
+  const label = g.append(&#x27;g&#x27;)
+    .selectAll(&#x27;text&#x27;)
+    .data(nodes)
+    .join(&#x27;text&#x27;)
+    .text(d =&gt; d.id)
+    .attr(&#x27;font-size&#x27;, 10)
+    .attr(&#x27;dx&#x27;, 10)
+    .attr(&#x27;dy&#x27;, 4)
+    .attr(&#x27;fill&#x27;, &#x27;currentColor&#x27;)
+    .attr(&#x27;opacity&#x27;, 0.75);
+
+  const sim = d3.forceSimulation(nodes)
+    .force(&#x27;link&#x27;, d3.forceLink(links).id(d =&gt; d.id).distance(80).strength(0.6))
+    .force(&#x27;charge&#x27;, d3.forceManyBody().strength(-260))
+    .force(&#x27;center&#x27;, d3.forceCenter(width()/2, height()/2))
+    .force(&#x27;collision&#x27;, d3.forceCollide().radius(18));
+
+  sim.on(&#x27;tick&#x27;, () =&gt; {
+    link
+      .attr(&#x27;x1&#x27;, d =&gt; d.source.x)
+      .attr(&#x27;y1&#x27;, d =&gt; d.source.y)
+      .attr(&#x27;x2&#x27;, d =&gt; d.target.x)
+      .attr(&#x27;y2&#x27;, d =&gt; d.target.y);
+
+    node
+      .attr(&#x27;cx&#x27;, d =&gt; d.x)
+      .attr(&#x27;cy&#x27;, d =&gt; d.y);
+
+    label
+      .attr(&#x27;x&#x27;, d =&gt; d.x)
+      .attr(&#x27;y&#x27;, d =&gt; d.y);
+  });
+
+  // Responsive resize
+  window.addEventListener(&#x27;resize&#x27;, () =&gt; {
+    sim.force(&#x27;center&#x27;, d3.forceCenter(width()/2, height()/2));
+    sim.alpha(0.6).restart();
+  });
+
+  // Freeze toggle
+  let frozen = false;
+  document.getElementById(&#x27;btnFreeze&#x27;).addEventListener(&#x27;click&#x27;, () =&gt; {
+    frozen = !frozen;
+    if (frozen) { sim.stop(); showToast(&#x27;Layout frozen&#x27;); }
+    else { sim.alpha(0.6).restart(); showToast(&#x27;Layout resumed&#x27;); }
+  });
+
+  // Reset button
+  document.getElementById(&#x27;btnReset&#x27;).addEventListener(&#x27;click&#x27;, () =&gt; {
+    svg.transition().duration(250).call(zoom.transform, d3.zoomIdentity);
+    sim.alpha(0.8).restart();
+    showToast(&#x27;Reset&#x27;);
+  });
+
+  function dragstarted(event, d) {
+    if (!event.active &amp;&amp; !frozen) sim.alphaTarget(0.3).restart();
+    d.fx = d.x;
+    d.fy = d.y;
+  }
+  function dragged(event, d) {
+    d.fx = event.x;
+    d.fy = event.y;
+  }
+  function dragended(event, d) {
+    if (!event.active &amp;&amp; !frozen) sim.alphaTarget(0);
+    d.fx = null;
+    d.fy = null;
+  }
+
+  // ---------------------------
+  // Inspector
+  // ---------------------------
+  const selTitle = document.getElementById(&#x27;selTitle&#x27;);
+  const selKey = document.getElementById(&#x27;selKey&#x27;);
+  const selDays = document.getElementById(&#x27;selDays&#x27;);
+  const selCounts = document.getElementById(&#x27;selCounts&#x27;);
+  const selEnabled = document.getElementById(&#x27;selEnabled&#x27;);
+
+  function renderCounts(counts) {
+    const lines = [];
+    for (let i = 0; i &lt; places.length; i++) {
+      lines.push(`${places[i]}: ${counts[i]}`);
+    }
+    return lines.join(&#x27;\n&#x27;);
+  }
+
+  function setSelected(d) {
+    selTitle.textContent = d.label || `Node ${d.id}`;
+    selKey.textContent = d.key;
+    selDays.textContent = (d.dmin === null || d.dmin === undefined) ? &#x27;—&#x27; : String(d.dmin);
+
+    const counts = parseCounts(d.counts);
+    selCounts.textContent = renderCounts(counts);
+
+    const ens = enabledTransitions(counts);
+    selEnabled.innerHTML = &#x27;&#x27;;
+    if (ens.length === 0) {
+      selEnabled.textContent = &#x27;—&#x27;;
+      return;
+    }
+    ens.forEach(tj =&gt; {
+      const pill = document.createElement(&#x27;span&#x27;);
+      pill.className = &#x27;px-2 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs&#x27;;
+      pill.textContent = transitions[tj];
+      selEnabled.appendChild(pill);
+    });
+  }
+
+  node.on(&#x27;click&#x27;, (event, d) =&gt; {
+    // mild highlight: enlarge selected; reset others
+    node.attr(&#x27;r&#x27;, n =&gt; (n.id === d.id ? 10 : 8));
+    setSelected(d);
+  });
+
+  // Default select start node
+  const start = nodes.find(n =&gt; n.id === 1);
+  if (start) {
+    setSelected(start);
+    node.attr(&#x27;r&#x27;, n =&gt; (n.id === 1 ? 10 : 8));
+  }
+})();
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+&quot;&quot;&quot;
+
+    open(html_path, &quot;w&quot;) do io
+        write(io, html)
+    end
+
+    return html_path
+end
+
+# ------------------------
+# 6) Main
+# ------------------------
+
+function main()
+    net, m0 = build_shed_net()
+    nodes, edges = enumerate_reachability(net, m0)
+    dist_days = dijkstra_days(length(nodes), edges)
+
+    outdir = &quot;/tmp&quot;
+    nodes_path, edges_path = write_tsv(outdir, net, nodes, edges)
+    html_path = write_html(outdir, net, nodes, edges, dist_days)
+
+    println(&quot;\n=== Shed reachability artefacts ===&quot;)
+    println(&quot;Nodes TSV:  &quot;, nodes_path)
+    println(&quot;Edges TSV:  &quot;, edges_path)
+    println(&quot;HTML viz:   &quot;, html_path)
+    println(&quot;\nTip: open the HTML file in a browser.\n&quot;)
+
+    return nothing
+end
+
+# Execute when run as a script
+if abspath(PROGRAM_FILE) == @__FILE__
+    main()
+end
+</code></pre>
+      </details>
+    </section>
+  </main>
+</body>
+</html>
