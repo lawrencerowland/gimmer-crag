@@ -439,12 +439,37 @@ function drawEdge(g, a, b, dashed=false){
   return line;
 }
 
-function drawLabel(g, x, y, text, small=false){
-  return el("text", {
-    x, y,
+function splitLabel(text, maxLen=14){
+  if(!text.includes(" ") || text.length <= maxLen){
+    return [text];
+  }
+  const words = text.split(" ");
+  const target = Math.ceil(text.length / 2);
+  const lines = ["", ""];
+  let idx = 0;
+  for(const word of words){
+    if(idx === 0 && (lines[0].length + word.length) > target){
+      idx = 1;
+    }
+    lines[idx] = lines[idx] ? `${lines[idx]} ${word}` : word;
+  }
+  return lines[1] ? lines : [lines[0]];
+}
+
+function drawLabel(g, x, y, text, small=false, offsetY=0, wrap=true){
+  const lines = wrap ? splitLabel(text) : [text];
+  const lineHeight = small ? 11 : 13;
+  const baseY = y + offsetY - ((lines.length - 1) * lineHeight) / 2;
+  const label = el("text", {
+    x, y: baseY,
     class: "label" + (small ? " small" : ""),
     "text-anchor":"middle"
-  }, g).appendChild(document.createTextNode(text));
+  }, g);
+  lines.forEach((line, index)=>{
+    const tspan = el("tspan", { x, y: baseY + index * lineHeight }, label);
+    tspan.textContent = line;
+  });
+  return label;
 }
 
 function roundedRect(g, cx, cy, w, h, r, cls, id, kind){
@@ -636,19 +661,21 @@ function render(){
     const procH = Math.max(26, Math.min(34,  Lproc.rect.h*0.06));
 
     // states
-    for(const s of procCat.objects){
+    procCat.objects.forEach((s, index)=>{
       const p=Lproc.statePos[s]; if(!p) continue;
       const c = circle(gProc, p.x, p.y, rState, "state"+(isSel(s)?" sel":""), s, "state");
       attachNodeHandler(c, (sel)=>{selected=sel; updateSelectionPanel(); render();});
-      drawLabel(gProc, p.x, p.y - rState - 8, s, true);
-    }
+      const labelOffset = index % 2 === 0 ? -4 : -14;
+      drawLabel(gProc, p.x, p.y - rState - 8, s, true, labelOffset, true);
+    });
     // processes
-    for(const m of procCat.morphisms){
+    procCat.morphisms.forEach((m, index)=>{
       const p=Lproc.procPos[m.id]; if(!p) continue;
       const rr = roundedRect(gProc, p.x, p.y, procW, procH, 8, "process"+(isSel(m.id)?" sel":""), m.id, "process");
       attachNodeHandler(rr, (sel)=>{selected=sel; updateSelectionPanel(); render();});
-      drawLabel(gProc, p.x, p.y - procH/2 - 8, m.id, true);
-    }
+      const labelOffset = index % 2 === 0 ? -4 : -16;
+      drawLabel(gProc, p.x, p.y - procH/2 - 8, m.id, true, labelOffset, true);
+    });
   }
 
   function drawDepView(){
@@ -659,12 +686,13 @@ function render(){
     }
     // nodes
     const rTask = Math.max(14, Math.min(22, Ldep.rect.w*0.035));
-    for(const t of depCat.objects){
+    depCat.objects.forEach((t, index)=>{
       const p=Ldep.pos[t]; if(!p) continue;
       const c = circle(gDep, p.x, p.y, rTask, "task"+(isSel(t)?" sel":""), t, "task");
       attachNodeHandler(c, (sel)=>{selected=sel; updateSelectionPanel(); render();});
-      drawLabel(gDep, p.x, p.y - rTask - 8, t, true);
-    }
+      const labelOffset = index % 2 === 0 ? -4 : -16;
+      drawLabel(gDep, p.x, p.y - rTask - 8, t, true, labelOffset, true);
+    });
   }
 
   function drawSplitConnectors(){
