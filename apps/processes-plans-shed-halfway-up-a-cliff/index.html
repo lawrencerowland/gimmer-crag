@@ -1,0 +1,1597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Processes → Plans (Prototype): Shed Halfway Up a Cliff</title>
+  <link rel="stylesheet" href="../../common.css">
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --panel: #111825;
+      --panel2: #0f1622;
+      --text: #e7eef7;
+      --muted: #a9b7c7;
+      --accent: #66c2ff;
+      --accent2: #7affb8;
+      --warn: #ffcc66;
+      --bad: #ff6b6b;
+      --good: #7affb8;
+      --line: #283447;
+      --shadow: rgba(0,0,0,0.35);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+
+    html, body {
+      height: 100%;
+      background: radial-gradient(1200px 700px at 20% 10%, #142034 0%, var(--bg) 55%),
+                  radial-gradient(1200px 700px at 90% 0%, #1a2b3f 0%, var(--bg) 55%);
+      color: var(--text);
+      font-family: var(--sans);
+      margin: 0;
+    }
+
+    a { color: var(--accent); }
+
+    header {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(17,24,37,0.9), rgba(17,24,37,0.6));
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(8px);
+    }
+
+    header .title {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      font-size: 12px;
+      padding: 4px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(102,194,255,0.08);
+      color: var(--accent);
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 6px;
+      line-height: 1.45;
+      max-width: 1100px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.25fr 1fr;
+      gap: 14px;
+      padding: 14px;
+    }
+
+    @media (max-width: 1100px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: linear-gradient(180deg, rgba(17,24,37,0.92), rgba(17,24,37,0.75));
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: 0 12px 30px var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(15,22,34,0.8);
+      gap: 10px;
+    }
+
+    .panel .panel-header h2 {
+      font-size: 14px;
+      margin: 0;
+      letter-spacing: 0.4px;
+      font-weight: 650;
+    }
+
+    .panel .panel-header .hint {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .panel .panel-body {
+      padding: 12px 14px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    button, select {
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 9px 10px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      border-color: rgba(102,194,255,0.7);
+      box-shadow: 0 0 0 3px rgba(102,194,255,0.12);
+    }
+
+    button.primary {
+      background: rgba(102,194,255,0.18);
+      border-color: rgba(102,194,255,0.45);
+    }
+
+    button.good {
+      background: rgba(122,255,184,0.12);
+      border-color: rgba(122,255,184,0.35);
+    }
+
+    button.warn {
+      background: rgba(255,204,102,0.12);
+      border-color: rgba(255,204,102,0.35);
+    }
+
+    button.bad {
+      background: rgba(255,107,107,0.12);
+      border-color: rgba(255,107,107,0.35);
+    }
+
+    .mini {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 0.9fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .split { grid-template-columns: 1fr; }
+    }
+
+    .viz {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(10, 15, 22, 0.55);
+      overflow: hidden;
+    }
+
+    svg {
+      width: 100%;
+      height: 520px;
+      display: block;
+      background: radial-gradient(900px 600px at 30% 20%, rgba(102,194,255,0.06), transparent 55%),
+                  radial-gradient(900px 600px at 80% 0%, rgba(122,255,184,0.05), transparent 55%);
+    }
+
+    .node {
+      cursor: pointer;
+    }
+
+    .node rect {
+      fill: rgba(17,24,37,0.88);
+      stroke: rgba(120,150,190,0.45);
+      stroke-width: 1.2;
+      rx: 10;
+    }
+
+    .node circle {
+      fill: rgba(17,24,37,0.92);
+      stroke: rgba(120,150,190,0.5);
+      stroke-width: 1.2;
+    }
+
+    .node text {
+      fill: var(--text);
+      font-size: 12px;
+      pointer-events: none;
+    }
+
+    .node .sub {
+      fill: var(--muted);
+      font-size: 10.5px;
+    }
+
+    .node.selected rect, .node.selected circle {
+      stroke: var(--accent);
+      stroke-width: 2.2;
+      filter: drop-shadow(0 0 10px rgba(102,194,255,0.3));
+    }
+
+    .edge path {
+      stroke: rgba(170, 200, 235, 0.38);
+      stroke-width: 1.35;
+      fill: none;
+    }
+
+    .edge.strong path {
+      stroke: rgba(122,255,184,0.42);
+    }
+
+    .edge.constraint path {
+      stroke: rgba(255,204,102,0.5);
+      stroke-dasharray: 5 4;
+    }
+
+    .edge.weak path {
+      stroke: rgba(102,194,255,0.35);
+      stroke-dasharray: 2 4;
+    }
+
+    .edge text {
+      fill: rgba(231,238,247,0.75);
+      font-size: 10px;
+      font-family: var(--mono);
+      pointer-events: none;
+    }
+
+    .legend {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend .k {
+      display: inline-flex;
+      gap: 7px;
+      align-items: center;
+    }
+
+    .swatch {
+      width: 14px;
+      height: 6px;
+      border-radius: 6px;
+      background: rgba(170,200,235,0.38);
+      border: 1px solid rgba(170,200,235,0.38);
+    }
+
+    .swatch.strong { background: rgba(122,255,184,0.42); border-color: rgba(122,255,184,0.42); }
+    .swatch.constraint { background: rgba(255,204,102,0.2); border-color: rgba(255,204,102,0.5); }
+    .swatch.weak { background: rgba(102,194,255,0.12); border-color: rgba(102,194,255,0.35); }
+
+    .table {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      background: rgba(10, 15, 22, 0.55);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    th, td {
+      border-bottom: 1px solid rgba(40,52,71,0.7);
+      padding: 8px 10px;
+      vertical-align: top;
+    }
+
+    th {
+      text-align: left;
+      color: var(--muted);
+      font-weight: 650;
+      background: rgba(15,22,34,0.7);
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(120,150,190,0.35);
+      font-size: 11px;
+      color: var(--muted);
+      gap: 6px;
+      background: rgba(255,255,255,0.04);
+    }
+
+    .pill.good { color: var(--good); border-color: rgba(122,255,184,0.35); background: rgba(122,255,184,0.08); }
+    .pill.bad { color: var(--bad); border-color: rgba(255,107,107,0.35); background: rgba(255,107,107,0.08); }
+    .pill.warn { color: var(--warn); border-color: rgba(255,204,102,0.35); background: rgba(255,204,102,0.08); }
+
+    .inspector {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(10, 15, 22, 0.55);
+      padding: 10px 10px;
+      min-height: 190px;
+    }
+
+    .inspector h3 {
+      margin: 0 0 6px 0;
+      font-size: 13px;
+      letter-spacing: 0.2px;
+    }
+
+    .inspector .mono {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: rgba(231,238,247,0.87);
+      white-space: pre-wrap;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tab {
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+      cursor: pointer;
+      color: var(--muted);
+    }
+
+    .tab.active {
+      color: var(--text);
+      border-color: rgba(102,194,255,0.5);
+      background: rgba(102,194,255,0.14);
+    }
+
+    .gantt {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      background: rgba(10, 15, 22, 0.55);
+    }
+
+    .gantt .row {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      border-bottom: 1px solid rgba(40,52,71,0.7);
+      align-items: center;
+      min-height: 30px;
+    }
+
+    .gantt .row:last-child { border-bottom: none; }
+
+    .gantt .label {
+      padding: 6px 10px;
+      color: rgba(231,238,247,0.9);
+      font-size: 12px;
+      border-right: 1px solid rgba(40,52,71,0.7);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .gantt .barwrap {
+      position: relative;
+      height: 26px;
+      margin: 0 8px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .gantt .bar {
+      position: absolute;
+      top: 4px;
+      height: 18px;
+      border-radius: 8px;
+      background: rgba(102,194,255,0.22);
+      border: 1px solid rgba(102,194,255,0.35);
+    }
+
+    .gantt .bar.done {
+      background: rgba(122,255,184,0.18);
+      border-color: rgba(122,255,184,0.38);
+    }
+
+    .gantt .bar.pending {
+      background: rgba(255,204,102,0.14);
+      border-color: rgba(255,204,102,0.34);
+    }
+
+    .gantt .bartext {
+      position: absolute;
+      top: 2px;
+      left: 8px;
+      font-size: 11px;
+      color: rgba(231,238,247,0.92);
+      font-family: var(--mono);
+      pointer-events: none;
+    }
+
+    details {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      background: rgba(10,15,22,0.55);
+    }
+
+    details summary {
+      cursor: pointer;
+      color: var(--text);
+      font-weight: 650;
+    }
+
+    .foot {
+      padding: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .codebox {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      white-space: pre;
+      overflow: auto;
+      background: rgba(0,0,0,0.25);
+      padding: 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(40,52,71,0.7);
+      max-height: 260px;
+    }
+
+    .callout {
+      border-left: 4px solid rgba(102,194,255,0.45);
+      padding: 10px 12px;
+      background: rgba(102,194,255,0.08);
+      border-radius: 10px;
+      color: rgba(231,238,247,0.92);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .callout strong { color: var(--text); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title">
+      <div style="font-size:18px; font-weight:800; letter-spacing:0.3px;">Processes → Plans</div>
+      <span class="badge">interactive prototype</span>
+      <span class="badge">scenario: shed halfway up a cliff</span>
+      <span class="badge" id="modeBadge">mode: Process-first</span>
+    </div>
+    <div class="subtitle">
+      A single underlying <strong>process/state model</strong> (resources + transformations) generates multiple stakeholder views:
+      <strong>(1) State view</strong>, <strong>(2) Process wiring view</strong>, and <strong>(3) Task/schedule view</strong>.
+      The <em>Process → Plan</em> map is precise; the reverse <em>Plan → Process</em> map is intentionally <em>lax</em> (it must guess missing resource semantics).
+    </div>
+  </header>
+
+  <div style="padding: 0 20px 6px;">
+    <a href="../../index.html">Back to app index</a>
+  </div>
+
+  <div class="grid">
+    <!-- LEFT: Process/State -->
+    <section class="panel" id="panelProc">
+      <div class="panel-header">
+        <div>
+          <h2>Project state + process view (processes as arrows)</h2>
+          <div class="hint">Think: systems/resources = wire types; processes = boxes; wiring = composition.</div>
+        </div>
+        <div class="controls">
+          <select id="datasetSelect">
+            <option value="processFirst">Dataset A: Full process model</option>
+            <option value="taskFirst">Dataset B: Task-only stub (under-specified)</option>
+          </select>
+          <button class="primary" id="btnReset">Reset</button>
+          <button class="good" id="btnStep">Simulate step</button>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <div class="split">
+          <div>
+            <div class="viz">
+              <svg id="svgProc" viewBox="0 0 980 520" preserveAspectRatio="xMidYMid meet"></svg>
+            </div>
+            <div class="legend">
+              <span class="k"><span class="swatch"></span>dependency edge</span>
+              <span class="k"><span class="swatch strong"></span>resource-flow (strong precedence)</span>
+              <span class="k"><span class="swatch constraint"></span>safety/regulatory constraint</span>
+              <span class="k"><span class="swatch weak"></span>weak/optional (iteration / risk)</span>
+            </div>
+          </div>
+
+          <div>
+            <div class="inspector" id="inspector">
+              <h3>Inspector</h3>
+              <div class="mini">Click a process/task node (either diagram) to inspect. Simulation will highlight <span class="pill warn">Ready</span> tasks.</div>
+              <div class="mono" id="inspectorText" style="margin-top:10px;"></div>
+            </div>
+
+            <div style="height:12px"></div>
+
+            <div class="table">
+              <table id="stateTable">
+                <thead>
+                  <tr>
+                    <th style="width:44%">State / resource</th>
+                    <th style="width:20%">Kind</th>
+                    <th style="width:36%">Status</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+
+            <div style="height:12px"></div>
+
+            <details>
+              <summary>Show underlying model JSON</summary>
+              <div class="codebox" id="jsonBox"></div>
+            </details>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT: Task/Schedule -->
+    <section class="panel" id="panelPlan">
+      <div class="panel-header">
+        <div>
+          <h2>Task & schedule view (dependencies as constraints)</h2>
+          <div class="hint">Derived from resource-flow + explicit constraints. Task-only input loses semantics.</div>
+        </div>
+        <div class="controls">
+          <button class="primary" id="btnDerive">Process → Plan (F)</button>
+          <button class="warn" id="btnInfer">Plan → Process (G, lax)</button>
+          <button id="btnAutoSchedule">Auto-schedule</button>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <div class="viz">
+          <svg id="svgTask" viewBox="0 0 980 520" preserveAspectRatio="xMidYMid meet"></svg>
+        </div>
+
+        <div style="height:12px"></div>
+
+        <div class="gantt" id="gantt"></div>
+
+        <div style="height:12px"></div>
+
+        <details open>
+          <summary>What you’re seeing</summary>
+          <div class="callout" style="margin-top:10px;">
+            <strong>Process → Plan (F):</strong> For each resource wire from process <span class="pill">A</span> to process <span class="pill">B</span>,
+            we emit a precedence constraint <span class="pill good">A ≺ B</span>. Then we add explicit constraints (e.g. safety, regulation, weather windows).
+            This aligns with the design-roadmap idea that tasks should be defined with explicit inputs/outputs rather than only arrows.
+            <br/><br/>
+            <strong>Plan → Process (G):</strong> A pure dependency graph does <em>not</em> uniquely determine resource semantics.
+            Here we create placeholder “witness” resources (e.g. <span class="pill">Done(Task X)</span>) to make the graph compositional again.
+            That choice is intentionally non-unique, i.e. <em>lax</em>.
+          </div>
+        </details>
+
+      </div>
+    </section>
+
+    <!-- ABOUT -->
+    <section class="panel" style="grid-column: 1 / -1;">
+      <div class="panel-header">
+        <div>
+          <h2>Explainers (category/operad framing, plus engineering-design heuristics)</h2>
+          <div class="hint">A compact “why this works” for process-first planning.</div>
+        </div>
+        <div class="tabs">
+          <div class="tab active" data-tab="tab1">1) Two views + one model</div>
+          <div class="tab" data-tab="tab2">2) The categorical story</div>
+          <div class="tab" data-tab="tab3">3) Why “lax” back-mapping</div>
+          <div class="tab" data-tab="tab4">4) Iteration, uncertainty, risk</div>
+        </div>
+      </div>
+
+      <div class="panel-body" id="aboutBody">
+        <div id="tab1" class="tabpane">
+          <div class="callout">
+            <strong>Idea:</strong> keep a <em>single</em> “graph data structure” (GDS) as the authoritative project model, and render stakeholder views from it.
+            This matches the MBSE pattern of Concept → Model → Graph → View: a conceptual model is transformed into a generic graph data structure, then
+            rendered into multiple views (visual graphs, matrices) to inform different stakeholders. In this prototype, the GDS is a typed process network.
+          </div>
+          <p class="mini" style="margin-top:10px;">
+            The left side shows <strong>state</strong> (what is true / available) and <strong>process</strong> (how state changes). The right side shows the
+            <strong>schedule</strong> abstraction (what must precede what). You can switch datasets to see the consequence of starting from a task-only DAG.
+          </p>
+          <ul class="mini">
+            <li><strong>State view:</strong> resources/deliverables/risks with availability status.</li>
+            <li><strong>Process view:</strong> boxes with typed inputs/outputs (resource semantics are explicit).</li>
+            <li><strong>Task plan:</strong> precedence constraints (resource semantics are mostly hidden).</li>
+          </ul>
+        </div>
+
+        <div id="tab2" class="tabpane" style="display:none;">
+          <div class="callout">
+            <strong>Processes as arrows, systems as objects.</strong> A “process theory” treats systems/resources as objects and transformations as morphisms.
+            Traditional process theories correspond to symmetric monoidal categories (SMCs), and can also be expressed as algebras of wiring operads.
+            The wiring diagram itself encodes composition (connecting outputs to inputs), rather than privileging only sequential vs parallel composition.
+          </div>
+
+          <div class="mini" style="margin-top:10px;">
+            In this prototype we use a lightweight, engineering-friendly version:
+            <ul>
+              <li><strong>System types</strong> = resource/deliverable types (e.g. <span class="pill">PermitsApproved</span>, <span class="pill">AnchorsInstalled</span>).</li>
+              <li><strong>Primitive processes</strong> = tasks with typed inputs/outputs (e.g. <span class="pill">InstallAnchors</span>).</li>
+              <li><strong>Composition</strong> = wiring outputs to later inputs (acyclic wiring).</li>
+              <li><strong>Monoidal product</strong> = doing things “side-by-side” when independent (parallel work).</li>
+            </ul>
+          </div>
+
+          <details style="margin-top:10px;">
+            <summary>Formal sketch (kept short)</summary>
+            <div class="mini" style="margin-top:8px;">
+              Let <span class="pill">R</span> be a set of resource types. Objects are finite lists/multisets of elements of <span class="pill">R</span>.
+              A primitive process is a morphism <span class="pill">f : A → B</span> between such objects.
+              Wiring diagrams compose morphisms by matching output types to input types (acyclic). Parallel composition is multiset union.
+              A schedule view is the preorder category on tasks: <span class="pill">A ≤ B</span> iff there is a path of prerequisite edges.
+            </div>
+          </details>
+        </div>
+
+        <div id="tab3" class="tabpane" style="display:none;">
+          <div class="callout">
+            <strong>Why the reverse map is lax:</strong> A dependency edge <span class="pill">A ≺ B</span> only says “A finishes before B starts”.
+            It does <em>not</em> say <em>what</em> flows (materials? info? risk reduction? access?) nor <em>how much</em>, nor whether it can be substituted.
+            So many distinct process models collapse to the same schedule. Recovering the process semantics needs extra choices (templates, ontologies,
+            constraints, or data).
+          </div>
+          <p class="mini" style="margin-top:10px;">
+            In category terms: the Process → Plan map behaves like a <em>forgetful</em> projection. It can be useful (for planning) but is not invertible.
+            The Plan → Process map therefore behaves like a <em>lax functor</em>: it can add “witness” structure, but only up to non-unique refinement.
+          </p>
+        </div>
+
+        <div id="tab4" class="tabpane" style="display:none;">
+          <div class="callout">
+            <strong>Iteration, uncertainty, risk:</strong> Real design and construction aren’t strictly acyclic.
+            Engineering process models often include iteration loops, rework propagation, and “process variables” that change over time.
+            One practical technique is to keep the diagram mostly acyclic while representing iteration via versioned deliverables
+            (<span class="pill">Design_v0 → Review → Design_v1</span>) or via probabilistic outcomes.
+          </div>
+          <p class="mini" style="margin-top:10px;">
+            This prototype hints at that by treating risks and information maturity as first-class “state resources”.
+            Next steps would be:
+          </p>
+          <ul class="mini">
+            <li><strong>Process variables</strong> (e.g. “design maturity”, “weather confidence”) that gate task availability.</li>
+            <li><strong>Probabilistic iteration</strong> (e.g. review may trigger rework with probability), yielding schedule risk bands.</li>
+            <li><strong>Enrichment</strong> (cost, probability, metrics) so composition tracks more than mere feasibility.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="foot">
+        <strong>Tip:</strong> switch to <em>Dataset B</em> (task-only stub), then click <em>Plan → Process (G, lax)</em>. You’ll see “witness” resources
+        created because the schedule alone doesn’t say what the tasks actually transform.
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // -------------------------
+    // Data: two datasets
+    // -------------------------
+
+    function deepClone(x){ return JSON.parse(JSON.stringify(x)); }
+
+    const DATASETS = {
+      processFirst: {
+        meta: {
+          name: "Dataset A: Full process model (shed halfway up a cliff)",
+          note: "Process-first: tasks are processes with explicit typed inputs/outputs. Dependencies are derived from resource flow + explicit constraints."
+        },
+        resources: [
+          { id:"ProjectStart", name:"Project start", kind:"milestone", initial:true },
+
+          { id:"SurveyData", name:"Site survey data", kind:"info" },
+          { id:"GeotechReport", name:"Geotechnical report", kind:"info" },
+          { id:"DesignDrawings", name:"Design drawings (v1)", kind:"info" },
+          { id:"PermitsApproved", name:"Permits approved", kind:"info" },
+
+          { id:"AccessRouteBuilt", name:"Access route built", kind:"physical" },
+          { id:"SafetyRigInstalled", name:"Safety rigging installed", kind:"physical" },
+          { id:"AnchorsInstalled", name:"Anchors installed (cliff anchors)", kind:"physical" },
+
+          { id:"WeatherWindowConfirmed", name:"Weather window confirmed", kind:"risk" },
+          { id:"RockfallRiskReduced", name:"Rockfall risk reduced", kind:"risk" },
+
+          { id:"MaterialsOnSite", name:"Materials staged on-site", kind:"physical" },
+          { id:"FoundationComplete", name:"Foundation complete", kind:"physical" },
+          { id:"FrameComplete", name:"Frame complete", kind:"physical" },
+          { id:"RoofComplete", name:"Roof + weatherproofing complete", kind:"physical" },
+          { id:"ExteriorComplete", name:"Exterior/cladding complete", kind:"physical" },
+          { id:"InteriorComplete", name:"Interior fit-out complete", kind:"physical" },
+          { id:"InspectionPassed", name:"Final inspection passed", kind:"info" },
+          { id:"ShedComplete", name:"Shed complete", kind:"milestone", goal:true }
+        ],
+        processes: [
+          {
+            id:"P1", name:"Site survey", duration:1,
+            inputs:["ProjectStart"], outputs:["SurveyData"],
+            notes:"Capture dimensions, slope, access constraints."
+          },
+          {
+            id:"P2", name:"Geotechnical assessment", duration:2,
+            inputs:["SurveyData"], outputs:["GeotechReport"],
+            notes:"Confirm load-bearing, anchor strategy, drainage risks."
+          },
+          {
+            id:"P3", name:"Concept & detailed design", duration:3,
+            inputs:["GeotechReport"], outputs:["DesignDrawings"],
+            notes:"Design for cliff-side anchoring, wind uplift, drainage."
+          },
+          {
+            id:"P4", name:"Permitting & approvals", duration:10,
+            inputs:["DesignDrawings"], outputs:["PermitsApproved"],
+            notes:"Local code + cliff safety. Long lead time."
+          },
+          {
+            id:"P5", name:"Weather & lift window planning", duration:1,
+            inputs:["PermitsApproved"], outputs:["WeatherWindowConfirmed"],
+            notes:"Confirm weather window suitable for transport and roofing."
+          },
+          {
+            id:"P6", name:"Build/secure access route", duration:3,
+            inputs:["PermitsApproved"], outputs:["AccessRouteBuilt"],
+            notes:"Trail, staging pads, tie-off points."
+          },
+          {
+            id:"P7", name:"Install safety rigging", duration:1,
+            inputs:["AccessRouteBuilt"], outputs:["SafetyRigInstalled"],
+            notes:"Rope access lines, fall protection, exclusion zones."
+          },
+          {
+            id:"P8", name:"Rockfall protection", duration:2,
+            inputs:["SafetyRigInstalled"], outputs:["RockfallRiskReduced"],
+            notes:"Netting / scaling loose rock; risk mitigation."
+          },
+          {
+            id:"P9", name:"Install cliff anchors", duration:2,
+            inputs:["SafetyRigInstalled","GeotechReport"], outputs:["AnchorsInstalled"],
+            notes:"Drill & set anchors; proof load."
+          },
+          {
+            id:"P10", name:"Stage/transport materials", duration:2,
+            inputs:["AccessRouteBuilt","WeatherWindowConfirmed"], outputs:["MaterialsOnSite"],
+            notes:"Helicopter lift or manual carry."
+          },
+          {
+            id:"P11", name:"Build foundation & tie-ins", duration:2,
+            inputs:["AnchorsInstalled","MaterialsOnSite","RockfallRiskReduced"], outputs:["FoundationComplete"],
+            notes:"Concrete/pier footings anchored to cliff, drainage."
+          },
+          {
+            id:"P12", name:"Frame shed", duration:3,
+            inputs:["FoundationComplete","MaterialsOnSite"], outputs:["FrameComplete"],
+            notes:"Walls + structural bracing for wind."
+          },
+          {
+            id:"P13", name:"Roof & weatherproof", duration:2,
+            inputs:["FrameComplete","MaterialsOnSite","WeatherWindowConfirmed"], outputs:["RoofComplete"],
+            notes:"Roofing membrane/shingles; seal penetrations."
+          },
+          {
+            id:"P14", name:"Exterior cladding", duration:2,
+            inputs:["RoofComplete","MaterialsOnSite"], outputs:["ExteriorComplete"],
+            notes:"Cladding, flashing, exterior trim."
+          },
+          {
+            id:"P15", name:"Interior fit-out", duration:2,
+            inputs:["ExteriorComplete","MaterialsOnSite"], outputs:["InteriorComplete"],
+            notes:"Shelving, floor, ventilation, storage."
+          },
+          {
+            id:"P16", name:"Final inspection", duration:1,
+            inputs:["InteriorComplete","PermitsApproved"], outputs:["InspectionPassed"],
+            notes:"Safety + structural inspection."
+          },
+          {
+            id:"P17", name:"Handover", duration:0.5,
+            inputs:["InspectionPassed"], outputs:["ShedComplete"],
+            notes:"Clean-up, documentation, sign-off."
+          }
+        ],
+        // Extra constraints not implied by pure resource flow.
+        // These are where "schedule as constraints" is intentionally richer than simple material/info flow.
+        constraints: [
+          { from:"P4", to:"P6", type:"constraint", reason:"Access work requires permits" },
+          { from:"P7", to:"P10", type:"constraint", reason:"Material staging requires safety controls in place" },
+          { from:"P5", to:"P13", type:"constraint", reason:"Roofing is weather-gated" }
+        ]
+      },
+
+      taskFirst: {
+        meta: {
+          name: "Dataset B: Task-only stub (under-specified)",
+          note: "Task-first: only dependencies are given; resource semantics are missing. The reverse map must invent witness resources."
+        },
+        // Here we start with tasks only; process model is empty until inferred.
+        tasksOnly: {
+          tasks: [
+            { id:"T1", name:"Permitting & approvals", duration:10 },
+            { id:"T2", name:"Build access route", duration:3 },
+            { id:"T3", name:"Install safety rigging", duration:1 },
+            { id:"T4", name:"Install anchors", duration:2 },
+            { id:"T5", name:"Transport materials", duration:2 },
+            { id:"T6", name:"Build foundation", duration:2 },
+            { id:"T7", name:"Frame shed", duration:3 },
+            { id:"T8", name:"Roof & weatherproof", duration:2 },
+            { id:"T9", name:"Cladding & exterior", duration:2 },
+            { id:"T10", name:"Interior fit-out", duration:2 },
+            { id:"T11", name:"Final inspection", duration:1 }
+          ],
+          edges: [
+            { from:"T1", to:"T2", type:"strong", label:"(unspecified)" },
+            { from:"T2", to:"T3", type:"constraint", label:"safety gating" },
+            { from:"T3", to:"T4", type:"strong", label:"(unspecified)" },
+            { from:"T2", to:"T5", type:"strong", label:"(unspecified)" },
+            { from:"T4", to:"T6", type:"strong", label:"(unspecified)" },
+            { from:"T5", to:"T6", type:"strong", label:"(unspecified)" },
+            { from:"T6", to:"T7", type:"strong", label:"(unspecified)" },
+            { from:"T7", to:"T8", type:"constraint", label:"weather gating" },
+            { from:"T8", to:"T9", type:"strong", label:"(unspecified)" },
+            { from:"T9", to:"T10", type:"strong", label:"(unspecified)" },
+            { from:"T10", to:"T11", type:"strong", label:"(unspecified)" }
+          ]
+        }
+      }
+    };
+
+    // -------------------------
+    // State: current working model
+    // -------------------------
+
+    const STATE = {
+      datasetKey: "processFirst",
+      model: null,           // process model (resources + processes)
+      plan: null,            // derived plan (tasks + edges)
+      sim: null,             // simulation state
+      selected: null         // selected node id
+    };
+
+    function setModeBadge(text){
+      document.getElementById('modeBadge').textContent = text;
+    }
+
+    // -------------------------
+    // Helpers: graph + scheduling
+    // -------------------------
+
+    function uniq(arr){ return Array.from(new Set(arr)); }
+
+    function topoSort(nodes, edges){
+      // nodes: array of ids
+      const incoming = new Map();
+      const outgoing = new Map();
+      nodes.forEach(n => { incoming.set(n, new Set()); outgoing.set(n, new Set()); });
+      edges.forEach(e => {
+        if(!incoming.has(e.to) || !outgoing.has(e.from)) return;
+        incoming.get(e.to).add(e.from);
+        outgoing.get(e.from).add(e.to);
+      });
+      const q = [];
+      nodes.forEach(n => { if(incoming.get(n).size===0) q.push(n); });
+      const order = [];
+      while(q.length){
+        const n = q.shift();
+        order.push(n);
+        for(const m of outgoing.get(n)){
+          incoming.get(m).delete(n);
+          if(incoming.get(m).size===0) q.push(m);
+        }
+      }
+      if(order.length !== nodes.length){
+        return { ok:false, order, cycle:true };
+      }
+      return { ok:true, order, cycle:false };
+    }
+
+    function computeLevels(nodes, edges){
+      // Longest-path layering in DAG. If cycles, fall back to index order.
+      const preds = new Map();
+      const succs = new Map();
+      nodes.forEach(n=>{ preds.set(n, []); succs.set(n, []); });
+      edges.forEach(e=>{
+        if(preds.has(e.to) && succs.has(e.from)){
+          preds.get(e.to).push(e.from);
+          succs.get(e.from).push(e.to);
+        }
+      });
+
+      const ts = topoSort(nodes, edges);
+      if(!ts.ok){
+        const level = new Map();
+        nodes.forEach((n,i)=>level.set(n, i));
+        return level;
+      }
+      const level = new Map();
+      ts.order.forEach(n=>{
+        const ps = preds.get(n) || [];
+        let m = 0;
+        for(const p of ps){
+          m = Math.max(m, (level.get(p) ?? 0) + 1);
+        }
+        level.set(n, m);
+      });
+      return level;
+    }
+
+    function autoSchedule(tasks, edges){
+      const ids = tasks.map(t=>t.id);
+      const preds = new Map();
+      ids.forEach(id=>preds.set(id, []));
+      edges.forEach(e=>{
+        if(preds.has(e.to)) preds.get(e.to).push(e.from);
+      });
+
+      const ts = topoSort(ids, edges);
+      if(!ts.ok){
+        return { ok:false, reason:"Cycle detected in dependency graph", schedule:[] };
+      }
+
+      const dur = new Map(tasks.map(t=>[t.id, t.duration || 0]));
+      const start = new Map();
+      const finish = new Map();
+      ts.order.forEach(id=>{
+        let s = 0;
+        for(const p of (preds.get(id) || [])){
+          s = Math.max(s, finish.get(p) || 0);
+        }
+        start.set(id, s);
+        finish.set(id, s + (dur.get(id) || 0));
+      });
+
+      const schedule = tasks.map(t=>({
+        id: t.id,
+        name: t.name,
+        duration: t.duration || 0,
+        start: start.get(t.id) || 0,
+        finish: finish.get(t.id) || 0
+      })).sort((a,b)=>a.start-b.start || a.finish-b.finish);
+
+      const makespan = Math.max(...schedule.map(x=>x.finish), 0);
+      return { ok:true, schedule, makespan };
+    }
+
+    function buildPlanFromProcessModel(model){
+      // F: Process → Plan
+      const tasks = model.processes.map(p=>({ id:p.id, name:p.name, duration:p.duration }));
+      const edges = [];
+
+      // Map resource -> producers/consumers
+      const producers = new Map();
+      const consumers = new Map();
+      model.resources.forEach(r=>{ producers.set(r.id, []); consumers.set(r.id, []); });
+      model.processes.forEach(p=>{
+        (p.outputs||[]).forEach(r=>{ if(producers.has(r)) producers.get(r).push(p.id); });
+        (p.inputs||[]).forEach(r=>{ if(consumers.has(r)) consumers.get(r).push(p.id); });
+      });
+
+      // Strong precedence edges: for each resource produced by A and used by B
+      model.resources.forEach(r=>{
+        const ps = producers.get(r.id) || [];
+        const cs = consumers.get(r.id) || [];
+        ps.forEach(a=>{
+          cs.forEach(b=>{
+            if(a===b) return;
+            edges.push({ from:a, to:b, type:"strong", label:r.id });
+          });
+        });
+      });
+
+      // Also add explicit constraints
+      (model.constraints || []).forEach(c=>{
+        edges.push({ from:c.from, to:c.to, type:c.type || "constraint", label:c.reason || "constraint" });
+      });
+
+      // Deduplicate edges (by from,to,type,label)
+      const seen = new Set();
+      const edges2 = [];
+      edges.forEach(e=>{
+        const k = `${e.from}→${e.to}|${e.type}|${e.label}`;
+        if(seen.has(k)) return;
+        seen.add(k);
+        edges2.push(e);
+      });
+
+      return { tasks, edges: edges2 };
+    }
+
+    function inferProcessModelFromPlan(plan){
+      // G: Plan → Process (lax)
+      // Invent "witness" resources: Done(Task X) that flow along edges.
+      // This makes a compositional process model again, but semantics are placeholders.
+      const resources = [];
+      const processes = [];
+
+      resources.push({ id:"ProjectStart", name:"Project start", kind:"milestone", initial:true });
+
+      // One deliverable per task
+      plan.tasks.forEach(t=>{
+        resources.push({
+          id:`Done_${t.id}`,
+          name:`Done(${t.name})`,
+          kind:"info",
+          inferred:true
+        });
+      });
+
+      // For each task, inputs are predecessors' Done_*, or ProjectStart if none.
+      const preds = new Map();
+      plan.tasks.forEach(t=>preds.set(t.id, []));
+      plan.edges.forEach(e=>{
+        if(preds.has(e.to)) preds.get(e.to).push(e.from);
+      });
+
+      plan.tasks.forEach(t=>{
+        const p = preds.get(t.id) || [];
+        const inRes = p.length ? p.map(x=>`Done_${x}`) : ["ProjectStart"];
+        processes.push({
+          id: t.id.replace(/^T/, "P"),
+          name: t.name,
+          duration: t.duration,
+          inputs: inRes,
+          outputs: [`Done_${t.id}`],
+          notes: "Inferred from dependency only: inputs/outputs are witness placeholders (lax back-mapping).",
+          inferred: true
+        });
+      });
+
+      // If there is a clear last task, define a goal resource
+      const maybeLast = guessLastTasks(plan.tasks, plan.edges);
+      if(maybeLast.length===1){
+        resources.push({ id:"Goal", name:"Goal achieved", kind:"milestone", goal:true, inferred:true });
+        const last = maybeLast[0];
+        processes.push({
+          id: "P_goal",
+          name: "Declare completion",
+          duration: 0,
+          inputs: [`Done_${last}`],
+          outputs: ["Goal"],
+          notes: "Auto-added completion milestone.",
+          inferred: true
+        });
+      }
+
+      return { meta:{ name:"Inferred process model", note:"Created by lax Plan→Process mapping" }, resources, processes, constraints: [] };
+    }
+
+    function guessLastTasks(tasks, edges){
+      const out = new Map();
+      tasks.forEach(t=>out.set(t.id,0));
+      edges.forEach(e=>{ if(out.has(e.from)) out.set(e.from, out.get(e.from)+1); });
+      return tasks.filter(t=>out.get(t.id)===0).map(t=>t.id);
+    }
+
+    // -------------------------
+    // Simulation: ASM-like availability statuses
+    // -------------------------
+
+    function initSimulation(model){
+      const resById = new Map(model.resources.map(r=>[r.id, r]));
+      const producedBy = new Map();
+      model.resources.forEach(r=>producedBy.set(r.id, []));
+      model.processes.forEach(p=>{
+        (p.outputs||[]).forEach(r=>{
+          if(producedBy.has(r)) producedBy.get(r).push(p.id);
+        });
+      });
+
+      // Status: Unavailable | Updated | Available (consumed)
+      const status = new Map();
+      model.resources.forEach(r=>{
+        if(r.initial || (producedBy.get(r.id)||[]).length===0){
+          status.set(r.id, "Updated");
+        } else {
+          status.set(r.id, "Unavailable");
+        }
+      });
+
+      const done = new Set();
+
+      return { status, done, resById };
+    }
+
+    function isProcessReady(proc, sim){
+      if(sim.done.has(proc.id)) return false;
+      const inputs = proc.inputs || [];
+      if(inputs.length===0) return true;
+      return inputs.every(r => (sim.status.get(r) || "Unavailable") !== "Unavailable");
+    }
+
+    function simulateStep(model, sim){
+      const ready = model.processes.filter(p=>isProcessReady(p, sim));
+      if(!ready.length) return { ok:false, reason:"No available process (check constraints / missing resources)." };
+      // Pick the first ready process with the most unmet outputs (heuristic)
+      ready.sort((a,b)=>{
+        const aOut = (a.outputs||[]).filter(r=>sim.status.get(r)==="Unavailable").length;
+        const bOut = (b.outputs||[]).filter(r=>sim.status.get(r)==="Unavailable").length;
+        return bOut - aOut;
+      });
+      const p = ready[0];
+
+      // Consume inputs: Updated -> Available
+      (p.inputs||[]).forEach(r=>{
+        if(sim.status.get(r)==="Updated") sim.status.set(r, "Available");
+      });
+
+      // Produce outputs: set to Updated
+      (p.outputs||[]).forEach(r=>{
+        sim.status.set(r, "Updated");
+      });
+
+      sim.done.add(p.id);
+
+      return { ok:true, executed:p.id };
+    }
+
+    // -------------------------
+    // Rendering
+    // -------------------------
+
+    function clearSVG(svg){ while(svg.firstChild) svg.removeChild(svg.firstChild); }
+
+    function renderGraph(svg, nodes, edges, options){
+      // nodes: [{id,name,sub,kind,done,ready}]
+      // edges: [{from,to,type,label}]
+      const showLabels = !!options.showLabels;
+      const nodeMap = new Map(nodes.map(n=>[n.id,n]));
+
+      const W = 980, H = 520;
+      clearSVG(svg);
+
+      const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+      defs.innerHTML = `
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(170, 200, 235, 0.55)"></path>
+        </marker>
+        <marker id="arrowStrong" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(122,255,184,0.65)"></path>
+        </marker>
+        <marker id="arrowConstraint" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(255,204,102,0.8)"></path>
+        </marker>
+      `;
+      svg.appendChild(defs);
+
+      // Layering layout
+      const ids = nodes.map(n=>n.id);
+      const level = computeLevels(ids, edges);
+      const levels = {};
+      ids.forEach(id=>{
+        const l = level.get(id) || 0;
+        levels[l] = levels[l] || [];
+        levels[l].push(id);
+      });
+      const maxL = Math.max(...Object.keys(levels).map(x=>parseInt(x,10)), 0);
+
+      const marginX = 50;
+      const marginY = 40;
+      const dx = (W - 2*marginX) / Math.max(1, maxL);
+
+      const pos = new Map();
+      Object.keys(levels).forEach(k=>{
+        const l = parseInt(k,10);
+        const arr = levels[l];
+        const dy = (H - 2*marginY) / Math.max(1, arr.length);
+        arr.forEach((id, i)=>{
+          const x = marginX + l*dx;
+          const y = marginY + (i+0.5)*dy;
+          pos.set(id, {x,y});
+        });
+      });
+
+      // Edges group
+      const gEdges = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      gEdges.setAttribute("class", "edges");
+      svg.appendChild(gEdges);
+
+      edges.forEach(e=>{
+        if(!pos.has(e.from) || !pos.has(e.to)) return;
+        const a = pos.get(e.from);
+        const b = pos.get(e.to);
+        const mx = (a.x + b.x) / 2;
+
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        const d = `M ${a.x+110} ${a.y} C ${mx} ${a.y}, ${mx} ${b.y}, ${b.x-10} ${b.y}`;
+        path.setAttribute("d", d);
+        path.setAttribute("marker-end", e.type==="strong" ? "url(#arrowStrong)" : (e.type==="constraint" ? "url(#arrowConstraint)" : "url(#arrow)"));
+
+        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        g.setAttribute("class", `edge ${e.type||""}`);
+        g.appendChild(path);
+
+        if(showLabels){
+          const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          txt.textContent = e.label || "";
+          txt.setAttribute("x", mx);
+          txt.setAttribute("y", (a.y + b.y)/2 - 6);
+          g.appendChild(txt);
+        }
+
+        gEdges.appendChild(g);
+      });
+
+      // Nodes group
+      const gNodes = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      gNodes.setAttribute("class", "nodes");
+      svg.appendChild(gNodes);
+
+      nodes.forEach(n=>{
+        const p = pos.get(n.id) || {x:60,y:60};
+        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        g.setAttribute("class", `node ${STATE.selected===n.id ? "selected" : ""}`);
+        g.setAttribute("data-id", n.id);
+
+        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        rect.setAttribute("x", p.x);
+        rect.setAttribute("y", p.y-20);
+        rect.setAttribute("width", 220);
+        rect.setAttribute("height", 44);
+
+        if(n.done){
+          rect.style.stroke = "rgba(122,255,184,0.55)";
+          rect.style.filter = "drop-shadow(0 0 10px rgba(122,255,184,0.18))";
+        } else if(n.ready){
+          rect.style.stroke = "rgba(255,204,102,0.7)";
+          rect.style.filter = "drop-shadow(0 0 10px rgba(255,204,102,0.18))";
+        }
+
+        g.appendChild(rect);
+
+        const t1 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        t1.setAttribute("x", p.x+12);
+        t1.setAttribute("y", p.y+ -2);
+        t1.textContent = n.name;
+        g.appendChild(t1);
+
+        const t2 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        t2.setAttribute("x", p.x+12);
+        t2.setAttribute("y", p.y+ 14);
+        t2.setAttribute("class", "sub");
+        t2.textContent = n.sub || "";
+        g.appendChild(t2);
+
+        g.addEventListener('click', ()=>selectNode(n.id));
+        gNodes.appendChild(g);
+      });
+    }
+
+    function renderStateTable(model, sim){
+      const tbody = document.querySelector('#stateTable tbody');
+      tbody.innerHTML = "";
+      model.resources.forEach(r=>{
+        const tr = document.createElement('tr');
+        const status = sim.status.get(r.id) || "Unavailable";
+        const kind = r.kind || "";
+
+        const td1 = document.createElement('td');
+        td1.textContent = r.name;
+
+        const td2 = document.createElement('td');
+        td2.innerHTML = `<span class="pill">${kind}${r.inferred ? " • inferred" : ""}</span>`;
+
+        const td3 = document.createElement('td');
+        let pillClass = "bad";
+        let label = status;
+        if(status === "Updated") { pillClass = "good"; label = "Available (new/updated)"; }
+        if(status === "Available") { pillClass = "warn"; label = "Available (consumed)"; }
+        if(status === "Unavailable") { pillClass = "bad"; label = "Unavailable"; }
+
+        if(r.goal){
+          // If goal, show achieved when available
+          if(status !== "Unavailable") { pillClass = "good"; label = "Achieved"; }
+        }
+
+        td3.innerHTML = `<span class="pill ${pillClass}">${label}</span>`;
+
+        tr.appendChild(td1);
+        tr.appendChild(td2);
+        tr.appendChild(td3);
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderGantt(plan, sim, scheduleRes){
+      const gantt = document.getElementById('gantt');
+      gantt.innerHTML = "";
+      if(!plan){
+        gantt.innerHTML = `<div class="foot">No schedule yet. Click <strong>Process → Plan (F)</strong> or load the task-only dataset and click <strong>Auto-schedule</strong>.</div>`;
+        return;
+      }
+
+      if(!scheduleRes || !scheduleRes.ok){
+        gantt.innerHTML = `<div class="foot">Auto-schedule unavailable: ${scheduleRes ? scheduleRes.reason : "(no data)"}.</div>`;
+        return;
+      }
+
+      const sched = scheduleRes.schedule;
+      const makespan = Math.max(scheduleRes.makespan, 0.0001);
+
+      // Header row
+      const header = document.createElement('div');
+      header.className = 'row';
+      header.innerHTML = `<div class="label" style="color:var(--muted); font-weight:700;">Gantt (earliest-start)</div>
+                          <div class="barwrap"><div class="bartext">0 → ${makespan.toFixed(1)} days</div></div>`;
+      gantt.appendChild(header);
+
+      sched.forEach(item=>{
+        const row = document.createElement('div');
+        row.className = 'row';
+
+        const label = document.createElement('div');
+        label.className = 'label';
+        label.textContent = item.name;
+
+        const barwrap = document.createElement('div');
+        barwrap.className = 'barwrap';
+
+        const bar = document.createElement('div');
+        bar.className = 'bar';
+        const leftPct = (item.start / makespan) * 100;
+        const widthPct = Math.max(2, (item.duration / makespan) * 100);
+        bar.style.left = `calc(${leftPct}% + 2px)`;
+        bar.style.width = `calc(${widthPct}% - 4px)`;
+
+        // Done/pending styling based on sim
+        const done = sim && sim.done && sim.done.has(item.id);
+        const ready = sim && STATE.model && STATE.model.processes && STATE.model.processes.find(p=>p.id===item.id && isProcessReady(p, sim));
+        if(done){ bar.classList.add('done'); }
+        else if(ready){ bar.classList.add('pending'); }
+
+        const txt = document.createElement('div');
+        txt.className = 'bartext';
+        txt.textContent = `${item.start.toFixed(1)}→${item.finish.toFixed(1)} (${item.duration}d)`;
+
+        barwrap.appendChild(bar);
+        barwrap.appendChild(txt);
+
+        row.appendChild(label);
+        row.appendChild(barwrap);
+        gantt.appendChild(row);
+      });
+
+      const foot = document.createElement('div');
+      foot.className = 'foot';
+      foot.innerHTML = `<strong>Makespan:</strong> ${makespan.toFixed(1)} days (precedence-only; ignores crew/resource capacity).`;
+      gantt.appendChild(foot);
+    }
+
+    function formatInspectorForProcess(model, plan, sim, id){
+      const p = model.processes.find(x=>x.id===id);
+      if(p){
+        const status = sim.done.has(p.id) ? "DONE" : (isProcessReady(p, sim) ? "READY" : "BLOCKED");
+        const inStr = (p.inputs||[]).map(r=>`${r}(${sim.status.get(r)||"Unavailable"})`).join(", ") || "(none)";
+        const outStr = (p.outputs||[]).map(r=>`${r}`).join(", ") || "(none)";
+        const depOut = plan ? plan.edges.filter(e=>e.from===p.id).map(e=>`${e.to} [${e.type}]`).join(", ") : "(plan not derived)";
+        const depIn  = plan ? plan.edges.filter(e=>e.to===p.id).map(e=>`${e.from} [${e.type}]`).join(", ") : "(plan not derived)";
+
+        return `PROCESS ${p.id}: ${p.name}\n`+
+               `Status: ${status}\n`+
+               `Duration: ${p.duration} days\n\n`+
+               `Inputs:  ${inStr}\n`+
+               `Outputs: ${outStr}\n\n`+
+               `Plan constraints IN:  ${depIn}\n`+
+               `Plan constraints OUT: ${depOut}\n\n`+
+               `Notes: ${p.notes || ""}`;
+      }
+
+      // Maybe task-first ids mismatch
+      if(plan){
+        const t = plan.tasks.find(x=>x.id===id);
+        if(t){
+          return `TASK ${t.id}: ${t.name}\nDuration: ${t.duration} days\n\n(No matching process node in this dataset.)`;
+        }
+      }
+
+      return `Nothing selected.`;
+    }
+
+    function selectNode(id){
+      STATE.selected = id;
+      updateAll();
+    }
+
+    // -------------------------
+    // Update pipeline
+    // -------------------------
+
+    function loadDataset(key){
+      STATE.datasetKey = key;
+      STATE.selected = null;
+
+      if(key === "processFirst"){
+        STATE.model = deepClone(DATASETS.processFirst);
+        STATE.plan = null;
+        STATE.sim = initSimulation(STATE.model);
+        setModeBadge("mode: Process-first");
+      } else {
+        // Start from tasks only
+        STATE.model = {
+          meta: deepClone(DATASETS.taskFirst.meta),
+          resources: [{ id:"ProjectStart", name:"Project start", kind:"milestone", initial:true }],
+          processes: [],
+          constraints: []
+        };
+        STATE.plan = deepClone(DATASETS.taskFirst.tasksOnly);
+        STATE.sim = initSimulation(STATE.model);
+        setModeBadge("mode: Task-first (under-specified)");
+      }
+
+      updateAll();
+    }
+
+    function updateAll(){
+      // JSON view
+      document.getElementById('jsonBox').textContent = JSON.stringify({ model: STATE.model, plan: STATE.plan }, null, 2);
+
+      // Compute plan if already derived
+      const procSVG = document.getElementById('svgProc');
+      const taskSVG = document.getElementById('svgTask');
+
+      // Ready/done markers
+      const procNodes = STATE.model.processes.map(p=>({
+        id: p.id,
+        name: p.name,
+        sub: `${p.duration}d • ${(p.inputs||[]).length} in / ${(p.outputs||[]).length} out${p.inferred ? " • inferred" : ""}`,
+        done: STATE.sim.done.has(p.id),
+        ready: isProcessReady(p, STATE.sim)
+      }));
+
+      // For process view we render with labels, because it is the semantics-rich view.
+      const procEdges = (STATE.plan ? STATE.plan.edges : buildPlanFromProcessModel(STATE.model).edges)
+        .filter(e=>STATE.model.processes.find(p=>p.id===e.from) && STATE.model.processes.find(p=>p.id===e.to));
+
+      renderGraph(procSVG, procNodes, procEdges, { showLabels:true });
+
+      // State table
+      renderStateTable(STATE.model, STATE.sim);
+
+      // Task view
+      if(STATE.plan){
+        const taskNodes = STATE.plan.tasks.map(t=>({
+          id: t.id,
+          name: t.name,
+          sub: `${t.duration}d`,
+          done: STATE.sim.done.has(t.id) || STATE.sim.done.has(t.id.replace(/^T/,"P")),
+          ready: false
+        }));
+
+        // If the plan came from process nodes, we can compute readiness from processes.
+        // For task-first dataset, we can't reliably, but we can approximate via inferred mapping.
+        const procIdSet = new Set(STATE.model.processes.map(p=>p.id));
+        const procByName = new Map(STATE.model.processes.map(p=>[p.name,p.id]));
+
+        taskNodes.forEach(n=>{
+          // Attempt mapping to process id
+          let pid = n.id;
+          if(!procIdSet.has(pid)){
+            // maybe it is T# mapped to P#
+            const maybe = n.id.replace(/^T/,"P");
+            if(procIdSet.has(maybe)) pid = maybe;
+          }
+          const p = STATE.model.processes.find(x=>x.id===pid);
+          if(p){
+            n.done = STATE.sim.done.has(pid);
+            n.ready = isProcessReady(p, STATE.sim);
+          }
+        });
+
+        renderGraph(taskSVG, taskNodes, STATE.plan.edges, { showLabels:false });
+
+        // Gantt
+        const schedRes = autoSchedule(STATE.plan.tasks, STATE.plan.edges);
+        renderGantt(STATE.plan, STATE.sim, schedRes);
+      } else {
+        clearSVG(taskSVG);
+        renderGantt(null, STATE.sim, null);
+      }
+
+      // Inspector text
+      document.getElementById('inspectorText').textContent = formatInspectorForProcess(STATE.model, STATE.plan, STATE.sim, STATE.selected);
+
+      // Highlight selected node in both SVGs (re-rendering already handles selected class)
+    }
+
+    // -------------------------
+    // Buttons / UI events
+    // -------------------------
+
+    document.getElementById('datasetSelect').addEventListener('change', (e)=>{
+      loadDataset(e.target.value);
+    });
+
+    document.getElementById('btnReset').addEventListener('click', ()=>{
+      loadDataset(STATE.datasetKey);
+    });
+
+    document.getElementById('btnDerive').addEventListener('click', ()=>{
+      STATE.plan = buildPlanFromProcessModel(STATE.model);
+      updateAll();
+    });
+
+    document.getElementById('btnInfer').addEventListener('click', ()=>{
+      if(!STATE.plan){
+        alert('No plan available to infer from. Load task-first dataset or derive a plan first.');
+        return;
+      }
+      STATE.model = inferProcessModelFromPlan(STATE.plan);
+      STATE.sim = initSimulation(STATE.model);
+      updateAll();
+    });
+
+    document.getElementById('btnAutoSchedule').addEventListener('click', ()=>{
+      if(!STATE.plan){
+        alert('No plan yet. Click Process → Plan (F) first, or load the task-first dataset.');
+        return;
+      }
+      const res = autoSchedule(STATE.plan.tasks, STATE.plan.edges);
+      if(!res.ok){
+        alert('Schedule failed: ' + res.reason);
+      } else {
+        alert('Earliest-start schedule computed. Makespan: ' + res.makespan.toFixed(1) + ' days. (Rendered below as Gantt.)');
+      }
+      updateAll();
+    });
+
+    document.getElementById('btnStep').addEventListener('click', ()=>{
+      // If we are task-first with no processes, nudge the user.
+      if(!STATE.model.processes.length){
+        alert('No processes to simulate in this dataset. If you started from tasks, click Plan → Process (G, lax) first.');
+        return;
+      }
+      const res = simulateStep(STATE.model, STATE.sim);
+      if(!res.ok){
+        alert(res.reason);
+      } else {
+        STATE.selected = res.executed;
+      }
+      updateAll();
+    });
+
+    // About tabs
+    Array.from(document.querySelectorAll('.tab')).forEach(tab=>{
+      tab.addEventListener('click', ()=>{
+        Array.from(document.querySelectorAll('.tab')).forEach(t=>t.classList.remove('active'));
+        tab.classList.add('active');
+        const id = tab.getAttribute('data-tab');
+        Array.from(document.querySelectorAll('.tabpane')).forEach(p=>p.style.display='none');
+        document.getElementById(id).style.display = 'block';
+      });
+    });
+
+    // Start
+    loadDataset('processFirst');
+  </script>
+</body>
+</html>
