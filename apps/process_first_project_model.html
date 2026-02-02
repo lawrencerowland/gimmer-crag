@@ -1,0 +1,1921 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Process‑First Project Model — Cliff‑Shed Demo</title>
+<style>
+  :root{
+    --bg:#0b0f19;
+    --panel:#121a2a;
+    --panel2:#0f1625;
+    --text:#e8eefc;
+    --muted:#b5c0df;
+    --faint:#7c8bb8;
+    --accent:#67d3ff;
+    --good:#5cf2a6;
+    --warn:#ffd166;
+    --bad:#ff5c7a;
+    --line:#2a375a;
+    --chip:#1c2740;
+    --shadow: 0 12px 28px rgba(0,0,0,.35);
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; font-family:var(--sans); background:linear-gradient(160deg,#0a0f18 0%, #070a12 100%);
+    color:var(--text);
+  }
+  header{
+    padding:18px 22px;
+    border-bottom:1px solid rgba(255,255,255,.06);
+    background:rgba(10,15,24,.6);
+    backdrop-filter: blur(10px);
+    position: sticky; top:0; z-index:10;
+  }
+  header h1{
+    margin:0; font-size:18px; font-weight:700; letter-spacing:.2px;
+  }
+  header .sub{
+    margin-top:6px; color:var(--muted); font-size:13px; line-height:1.35;
+    max-width: 1200px;
+  }
+  .wrap{
+    display:grid;
+    grid-template-columns: 320px 1fr 360px;
+    gap:14px;
+    padding:14px;
+    align-items: stretch;
+  }
+  .card{
+    background: rgba(18,26,42,.75);
+    border:1px solid rgba(255,255,255,.06);
+    box-shadow: var(--shadow);
+    border-radius:14px;
+    overflow:hidden;
+    min-height: 140px;
+  }
+  .card .hd{
+    padding:12px 14px;
+    border-bottom:1px solid rgba(255,255,255,.06);
+    display:flex; align-items:center; justify-content:space-between;
+    background: rgba(15,22,37,.7);
+  }
+  .card .hd .title{
+    font-size:13px; letter-spacing:.15px; font-weight:700; color:var(--text);
+  }
+  .card .bd{
+    padding:12px 14px;
+    color:var(--muted);
+    font-size:13px;
+  }
+  .tabs{
+    display:flex; gap:8px; flex-wrap:wrap;
+  }
+  .tabbtn{
+    border:1px solid rgba(255,255,255,.12);
+    color:var(--muted);
+    background: rgba(28,39,64,.55);
+    padding:7px 10px;
+    border-radius:999px;
+    cursor:pointer;
+    font-size:12px;
+    user-select:none;
+  }
+  .tabbtn.active{
+    border-color: rgba(103,211,255,.55);
+    color:var(--text);
+    background: rgba(103,211,255,.16);
+  }
+  .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .btn{
+    border:1px solid rgba(255,255,255,.12);
+    color:var(--text);
+    background: rgba(28,39,64,.75);
+    padding:8px 10px;
+    border-radius:10px;
+    cursor:pointer;
+    font-size:12px;
+    user-select:none;
+  }
+  .btn:hover{ filter:brightness(1.08); }
+  .btn.primary{
+    border-color: rgba(103,211,255,.65);
+    background: rgba(103,211,255,.16);
+  }
+  .btn.danger{
+    border-color: rgba(255,92,122,.55);
+    background: rgba(255,92,122,.12);
+  }
+  .btn.small{ padding:6px 8px; border-radius:9px; }
+  .btn:disabled{ opacity:.45; cursor:not-allowed; }
+  .chip{
+    display:inline-flex; gap:6px; align-items:center;
+    padding:4px 8px;
+    border-radius:999px;
+    background: rgba(28,39,64,.72);
+    border:1px solid rgba(255,255,255,.08);
+    color:var(--muted);
+    font-size:11px;
+  }
+  .chip b{ color:var(--text); font-weight:700; }
+  .sep{ height:1px; background: rgba(255,255,255,.06); margin:12px 0; }
+  label{ font-size:12px; color:var(--muted); }
+  input[type="checkbox"]{ transform: translateY(1px); }
+  select, input[type="text"], input[type="number"]{
+    width:100%;
+    background: rgba(8,12,21,.55);
+    border:1px solid rgba(255,255,255,.10);
+    color: var(--text);
+    border-radius: 10px;
+    padding:8px 10px;
+    outline:none;
+    font-size: 12px;
+  }
+  textarea{
+    width:100%;
+    min-height: 72px;
+    background: rgba(8,12,21,.55);
+    border:1px solid rgba(255,255,255,.10);
+    color: var(--text);
+    border-radius: 10px;
+    padding:8px 10px;
+    outline:none;
+    font-size: 12px;
+    resize: vertical;
+    font-family: var(--sans);
+  }
+  .hint{ color:var(--faint); font-size:12px; line-height:1.35; }
+  .mono{ font-family: var(--mono); font-size: 11px; color: #cfe1ff; }
+  .kpi{
+    display:grid; grid-template-columns: 1fr 1fr;
+    gap:10px; margin-top:10px;
+  }
+  .kpi .box{
+    padding:10px 10px;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,.08);
+    background: rgba(12,18,31,.6);
+  }
+  .kpi .box .n{ font-size:20px; font-weight:800; color:var(--text); }
+  .kpi .box .l{ font-size:11px; color:var(--muted); margin-top:2px; }
+  .canvasCard{
+    position: relative;
+    padding:0;
+    overflow:hidden;
+  }
+  .canvasTopbar{
+    position:absolute; left:0; right:0; top:0;
+    display:flex; gap:8px; flex-wrap:wrap;
+    padding:10px 12px;
+    background: linear-gradient(180deg, rgba(10,15,24,.85), rgba(10,15,24,.0));
+    z-index:5;
+  }
+  .canvasTopbar .btn{ padding:6px 8px; }
+  svg{
+    width:100%;
+    height: 680px;
+    display:block;
+  }
+  .legend{
+    display:flex; gap:8px; flex-wrap:wrap; align-items:center;
+    margin-top: 8px;
+  }
+  .swatch{
+    width:10px; height:10px; border-radius:3px; display:inline-block;
+    margin-right:6px;
+  }
+  .swatch.task{ background: rgba(103,211,255,.85); }
+  .swatch.state{ background: rgba(92,242,166,.85); }
+  .swatch.risk{ background: rgba(255,92,122,.85); }
+  .swatch.spec{ background: rgba(255,209,102,.9); }
+
+  /* Graph styling */
+  .link{
+    stroke: rgba(231,238,252,.25);
+    stroke-width: 1.4;
+    fill: none;
+    marker-end: url(#arrow);
+  }
+  .link.stateflow{ stroke: rgba(92,242,166,.35); }
+  .link.dep{ stroke: rgba(103,211,255,.45); stroke-width: 1.6; }
+  .link.spec{ stroke: rgba(255,209,102,.50); stroke-dasharray: 4 4; }
+  .link.risk{ stroke: rgba(255,92,122,.50); stroke-dasharray: 3 4; }
+  .link.highlight{ stroke-opacity: 1 !important; stroke-width: 2.8; }
+
+  .node{ cursor: grab; }
+  .node:active{ cursor: grabbing; }
+
+  .nshape{
+    stroke: rgba(255,255,255,.20);
+    stroke-width:1.2;
+  }
+  .nshape.task{ fill: rgba(103,211,255,.18); stroke: rgba(103,211,255,.65); }
+  .nshape.state{ fill: rgba(92,242,166,.12); stroke: rgba(92,242,166,.55); }
+  .nshape.risk{ fill: rgba(255,92,122,.12); stroke: rgba(255,92,122,.60); stroke-dasharray: 4 3; }
+  .nshape.specnode{ fill: rgba(255,209,102,.10); stroke: rgba(255,209,102,.70); stroke-dasharray: 4 3; }
+
+  .nlabel{
+    pointer-events:none;
+    fill: rgba(231,238,252,.92);
+    font-size: 11px;
+  }
+  .nlabel.small{ font-size: 10px; fill: rgba(231,238,252,.82); }
+  .edgelabel{
+    fill: rgba(231,238,252,.70);
+    font-size: 10px;
+    pointer-events:none;
+  }
+
+  /* Matrix */
+  .matrixWrap{
+    overflow:auto;
+    border-radius: 12px;
+    border:1px solid rgba(255,255,255,.08);
+    background: rgba(10,15,24,.35);
+  }
+  table.matrix{
+    border-collapse: collapse;
+    width: max-content;
+    min-width: 100%;
+    font-size: 11px;
+  }
+  table.matrix th, table.matrix td{
+    border:1px solid rgba(255,255,255,.06);
+    padding: 6px 6px;
+    text-align:center;
+    min-width: 28px;
+    color: var(--muted);
+    background: rgba(18,26,42,.35);
+    position:relative;
+  }
+  table.matrix th.sticky{
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: rgba(15,22,37,.9);
+    color: var(--text);
+  }
+  table.matrix th.stickyCol{
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    background: rgba(15,22,37,.9);
+    color: var(--text);
+    text-align:left;
+    padding-left:10px;
+    min-width: 190px;
+    max-width: 190px;
+  }
+  table.matrix th.corner{
+    z-index: 4;
+    left:0;
+  }
+  td.mark{
+    cursor:pointer;
+    background: rgba(103,211,255,.12);
+    color: var(--text);
+  }
+  td.mark.spec{
+    background: rgba(255,209,102,.10);
+    color: var(--text);
+  }
+  td.mark.risk{
+    background: rgba(255,92,122,.10);
+    color: var(--text);
+  }
+  td.mark:hover{ filter:brightness(1.1); }
+  .pill{
+    display:inline-flex; align-items:center; gap:6px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border:1px solid rgba(255,255,255,.12);
+    background: rgba(18,26,42,.4);
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .pill.good{ border-color: rgba(92,242,166,.35); }
+  .pill.warn{ border-color: rgba(255,209,102,.35); }
+  .pill.bad{ border-color: rgba(255,92,122,.35); }
+  .codeblock{
+    padding: 10px 12px;
+    border-radius: 12px;
+    border:1px solid rgba(255,255,255,.10);
+    background: rgba(8,12,21,.55);
+    overflow:auto;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: #cfe1ff;
+    max-height: 320px;
+  }
+  details summary{
+    cursor:pointer;
+    color: var(--text);
+    font-weight: 700;
+    font-size: 12px;
+    list-style: none;
+  }
+  details summary::-webkit-details-marker{ display:none; }
+  details{
+    border:1px solid rgba(255,255,255,.08);
+    background: rgba(10,15,24,.35);
+    padding: 10px 12px;
+    border-radius: 12px;
+  }
+  details + details{ margin-top:10px; }
+  footer{
+    padding: 10px 14px;
+    color: var(--faint);
+    font-size: 11px;
+    border-top: 1px solid rgba(255,255,255,.06);
+    background: rgba(10,15,24,.55);
+  }
+  a{ color: var(--accent); text-decoration:none; }
+  a:hover{ text-decoration:underline; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Process‑First Project Model — Cliff‑Shed Demo</h1>
+  <div class="sub">
+    Two complementary views are rendered from one <span class="mono">graph data structure (GDS)</span>: (i) a <b>State/Process</b> view (systems as objects; tasks & risks as arrows, with parallel composition), and (ii) a <b>Task/Schedule</b> view (precedence constraints as a thin category / DSM). The transform <span class="mono">Process → Schedule</span> is computed; the reverse is intentionally under‑determined unless you add missing interface objects (states/resources).
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- LEFT PANEL -->
+  <div class="card">
+    <div class="hd">
+      <div class="title">Views & Controls</div>
+      <span class="chip"><b id="modeChip">State/Process</b></span>
+    </div>
+    <div class="bd">
+      <div class="tabs" id="tabs"></div>
+
+      <div class="sep"></div>
+
+      <div id="controlsCommon"></div>
+
+      <div class="sep"></div>
+
+      <div id="controlsMode"></div>
+
+      <div class="sep"></div>
+
+      <div class="hint">
+        <b>Tip:</b> click nodes/edges for explanations; drag nodes to rearrange. Use <span class="mono">Derive schedule</span> to recompute the dependency relation from state‑flows.
+      </div>
+
+      <div class="kpi">
+        <div class="box">
+          <div class="n" id="kpiTasks">—</div>
+          <div class="l">tasks</div>
+        </div>
+        <div class="box">
+          <div class="n" id="kpiStates">—</div>
+          <div class="l">states</div>
+        </div>
+      </div>
+      <div class="kpi">
+        <div class="box">
+          <div class="n" id="kpiDeps">—</div>
+          <div class="l">derived deps</div>
+        </div>
+        <div class="box">
+          <div class="n" id="kpiSpec">—</div>
+          <div class="l">spec (unlifted)</div>
+        </div>
+      </div>
+    </div>
+    <footer>
+      Data lives in‑page. Export/import the GDS in the Notes tab.
+    </footer>
+  </div>
+
+  <!-- CENTER CANVAS -->
+  <div class="card canvasCard">
+    <div class="canvasTopbar" id="canvasBar"></div>
+    <svg id="viz" viewBox="0 0 1100 680" preserveAspectRatio="xMidYMid meet" aria-label="interactive graph"></svg>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="card">
+    <div class="hd">
+      <div class="title">Inspector</div>
+      <span class="chip"><b id="selKind">none</b></span>
+    </div>
+    <div class="bd" id="inspector">
+      <div class="hint">Select a node or edge.</div>
+    </div>
+    <footer id="footnote">
+      Built as a “cognitive artifact” in the spirit of representational states & transitions.
+    </footer>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   Data: a minimal graph data structure (GDS)
+   ------------------------------------------------------------
+   Nodes are either "state" (objects) or "task"/"risk" (arrows).
+   Edges encode typed incidence (state -> task for inputs; task -> state for outputs).
+   ============================================================ */
+
+const GDS = {
+  meta: {
+    project: "Shed halfway up a cliff",
+    version: "0.1",
+    created: new Date().toISOString()
+  },
+  resources: [
+    {id:"res_rope", label:"Rope team", capacity:1},
+    {id:"res_winch", label:"Portable winch", capacity:1},
+    {id:"res_conc", label:"Concrete kit", capacity:1},
+    {id:"res_carp", label:"Carpentry crew", capacity:1},
+    {id:"res_heli", label:"Helicopter lift (optional)", capacity:1}
+  ],
+  states: [
+    {id:"s_brief", label:"Brief & constraints captured", domain:"info", note:"Safety constraints, size, purpose, access limits."},
+    {id:"s_survey", label:"Cliff surveyed & micro‑sited", domain:"info", note:"Topography, anchors, drainage, rock quality."},
+    {id:"s_design", label:"Design + load path resolved", domain:"info", note:"Structure, anchoring strategy, materials list."},
+    {id:"s_permit", label:"Permits / approvals obtained", domain:"info", note:"Local approvals, engineering sign‑off."},
+    {id:"s_access", label:"Access + hauling plan validated", domain:"info", note:"Rope haul, temporary path, or air‑lift alternative."},
+    {id:"s_safety", label:"Safety anchors & lines installed", domain:"physical", note:"Working at height is now feasible."},
+    {id:"s_staged", label:"Materials staged at base", domain:"physical", note:"Inventory ready for transport."},
+    {id:"s_onSite", label:"Materials at cliff site", domain:"physical", note:"Stockpile at workface."},
+    {id:"s_found", label:"Foundation anchors set", domain:"physical", note:"Drilled/epoxied anchors or micro‑piers."},
+    {id:"s_cured", label:"Foundation cured", domain:"physical", note:"Cure time passed; load‑bearing."},
+    {id:"s_frame", label:"Frame erected", domain:"physical", note:"Primary structure in place."},
+    {id:"s_roof", label:"Roof installed", domain:"physical", note:"Sheathing + waterproof membrane."},
+    {id:"s_walls", label:"Walls / siding installed", domain:"physical", note:"Envelope mostly closed."},
+    {id:"s_openings", label:"Door/windows installed", domain:"physical", note:"Openings set and shimmed."},
+    {id:"s_weather", label:"Weatherproofed & flashed", domain:"physical", note:"Flashing, sealants, drainage plane complete."},
+    {id:"s_inspected", label:"Inspection passed", domain:"info", note:"Final approval / checklist complete."},
+    {id:"s_handover", label:"Handover complete", domain:"info", note:"Docs, maintenance notes, punchlist closed."},
+
+    /* risk / unintended state */
+    {id:"s_damage", label:"(Risk) Worksite damaged", domain:"risk", note:"Rockfall/storm causes damage; triggers remediation."}
+  ],
+  tasks: [
+    {id:"t0", kind:"task", label:"Elicit scope & constraints", type:"analysis", duration:1, uncertainty:0.2,
+      inputs:[], outputs:["s_brief"], resources:["res_carp"]},
+
+    {id:"t1", kind:"task", label:"Survey cliff & micro‑siting", type:"analysis", duration:2, uncertainty:0.25,
+      inputs:["s_brief"], outputs:["s_survey"], resources:["res_rope"]},
+
+    {id:"t2", kind:"task", label:"Structural design & load path", type:"synthesis", duration:3, uncertainty:0.35,
+      inputs:["s_survey"], outputs:["s_design"], resources:["res_carp"]},
+
+    {id:"t3", kind:"task", label:"Permits + engineering sign‑off", type:"evaluation", duration:5, uncertainty:0.3,
+      inputs:["s_design"], outputs:["s_permit"], resources:["res_carp"]},
+
+    {id:"t4", kind:"task", label:"Plan access & hauling method", type:"analysis", duration:2, uncertainty:0.3,
+      inputs:["s_survey","s_design"], outputs:["s_access"], resources:["res_rope","res_winch"]},
+
+    {id:"t5", kind:"task", label:"Install safety anchors & lines", type:"build", duration:2, uncertainty:0.25,
+      inputs:["s_access"], outputs:["s_safety"], resources:["res_rope"]},
+
+    {id:"t6", kind:"task", label:"Procure materials & tools", type:"build", duration:4, uncertainty:0.25,
+      inputs:["s_design"], outputs:["s_staged"], resources:["res_carp"]},
+
+    {id:"t7", kind:"task", label:"Haul materials by rope/winch", type:"build", duration:3, uncertainty:0.35,
+      inputs:["s_safety","s_staged"], outputs:["s_onSite"], resources:["res_rope","res_winch"]},
+
+    {id:"t7b", kind:"task", label:"(Alt) Air‑lift critical loads", type:"build", duration:1, uncertainty:0.55,
+      inputs:["s_access","s_staged"], outputs:["s_onSite"], resources:["res_heli"]},
+
+    {id:"t8", kind:"task", label:"Drill/set foundation anchors", type:"build", duration:2, uncertainty:0.3,
+      inputs:["s_safety","s_onSite"], outputs:["s_found"], resources:["res_rope","res_conc"]},
+
+    {id:"t9", kind:"task", label:"Pour/cure foundation", type:"build", duration:3, uncertainty:0.35,
+      inputs:["s_found"], outputs:["s_cured"], resources:["res_conc"]},
+
+    {id:"t10", kind:"task", label:"Erect frame", type:"build", duration:2, uncertainty:0.25,
+      inputs:["s_safety","s_onSite","s_cured"], outputs:["s_frame"], resources:["res_carp","res_rope"]},
+
+    {id:"t11", kind:"task", label:"Install roof", type:"build", duration:2, uncertainty:0.25,
+      inputs:["s_frame","s_onSite"], outputs:["s_roof"], resources:["res_carp","res_rope"]},
+
+    {id:"t12", kind:"task", label:"Install walls/siding", type:"build", duration:2, uncertainty:0.3,
+      inputs:["s_frame","s_onSite"], outputs:["s_walls"], resources:["res_carp"]},
+
+    {id:"t13", kind:"task", label:"Install door/windows", type:"build", duration:1, uncertainty:0.25,
+      inputs:["s_walls","s_onSite"], outputs:["s_openings"], resources:["res_carp"]},
+
+    {id:"t14", kind:"task", label:"Weatherproofing + flashing", type:"evaluation", duration:1, uncertainty:0.25,
+      inputs:["s_roof","s_walls","s_openings"], outputs:["s_weather"], resources:["res_carp"]},
+
+    {id:"t15", kind:"task", label:"Final inspection", type:"evaluation", duration:1, uncertainty:0.2,
+      inputs:["s_weather","s_permit"], outputs:["s_inspected"], resources:["res_carp"]},
+
+    {id:"t16", kind:"task", label:"Handover + documentation", type:"evaluation", duration:1, uncertainty:0.15,
+      inputs:["s_inspected"], outputs:["s_handover"], resources:["res_carp"]},
+
+    /* risk processes are modeled as arrows too */
+    {id:"x1", kind:"risk", label:"(Risk) Rockfall / storm hit", type:"risk", duration:0, uncertainty:0.9,
+      inputs:["s_safety"], outputs:["s_damage"], resources:[]},
+
+    {id:"tR", kind:"task", label:"Remediate damage", type:"build", duration:2, uncertainty:0.6,
+      inputs:["s_damage","s_onSite"], outputs:["s_safety"], resources:["res_rope","res_carp"]}
+  ],
+  /* optional “schedule-only” constraints (spec edges) that are not yet justified by a state-flow.
+     These demonstrate why Schedule→Process needs extra interface objects. */
+  specEdges: [
+    // Example: "install roof" must precede "weatherproofing" is already implied by state-flow.
+    // Keep one intentionally under‑specified:
+    {from:"t4", to:"t6", label:"(unspecified interface)", kind:"spec"}
+  ]
+};
+
+/* ============================================================
+   Helpers
+   ============================================================ */
+const byId = (arr)=>Object.fromEntries(arr.map(o=>[o.id,o]));
+
+function uniq(arr){ return Array.from(new Set(arr)); }
+function intersect(a,b){
+  const bs=new Set(b);
+  return a.filter(x=>bs.has(x));
+}
+function fmtPct(x){ return (Math.round(x*100))+"%"; }
+
+function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
+
+/* ============================================================
+   Derived structures: links for process view, deps for schedule view
+   ============================================================ */
+let model = deepClone(GDS);
+let derived = {
+  processNodes: [],
+  processLinks: [],
+  taskNodes: [],
+  depLinks: [],
+  depMatrix: null,
+  warnings: []
+};
+
+/* Build the bipartite incidence graph (state<->task) */
+function buildProcessGraph(){
+  const states = model.states.map(s=>({id:s.id, label:s.label, kind:"state", domain:s.domain}));
+  const tasks = model.tasks.map(t=>({id:t.id, label:t.label, kind:t.kind, type:t.type}));
+  const nodes = [...states, ...tasks];
+
+  const links = [];
+  for(const t of model.tasks){
+    for(const sIn of t.inputs){
+      links.push({source:sIn, target:t.id, kind:"input"});
+    }
+    for(const sOut of t.outputs){
+      links.push({source:t.id, target:sOut, kind:"output"});
+    }
+  }
+  derived.processNodes = nodes;
+  derived.processLinks = links;
+}
+
+/* Derive precedence dependencies (Task DSM edges) from state-flows */
+function deriveDependencies(){
+  const taskBy = byId(model.tasks);
+  const stateBy = byId(model.states);
+  const edges = [];
+  const reasons = {}; // key "a|b" -> array of state ids or notes
+
+  for(const a of model.tasks){
+    for(const b of model.tasks){
+      if(a.id===b.id) continue;
+      const shared = intersect(a.outputs, b.inputs);
+      if(shared.length){
+        const key = a.id+"|"+b.id;
+        reasons[key] = (reasons[key]||[]).concat(shared);
+      }
+    }
+  }
+
+  // Convert reasons to unique edges.
+  for(const key of Object.keys(reasons)){
+    const [from,to]=key.split("|");
+    edges.push({
+      source: from,
+      target: to,
+      kind: "dep",
+      label: uniq(reasons[key]).map(sid=>stateBy[sid]?.label || sid).join(" • ")
+    });
+  }
+
+  // Add explicit spec edges (schedule-only constraints)
+  for(const se of (model.specEdges||[])){
+    edges.push({
+      source: se.from,
+      target: se.to,
+      kind: "spec",
+      label: se.label || "(spec)"
+    });
+  }
+
+  derived.taskNodes = model.tasks.map(t=>({id:t.id, label:t.label, kind:t.kind, type:t.type}));
+  derived.depLinks = edges;
+
+  // quick warnings: spec edges that cannot be “lifted” by an existing interface state
+  derived.warnings = [];
+  for(const e of edges.filter(x=>x.kind==="spec")){
+    const a = taskBy[e.source], b=taskBy[e.target];
+    if(!a || !b) continue;
+    const shared = intersect(a.outputs, b.inputs);
+    if(shared.length===0){
+      derived.warnings.push({edge:e, msg:`Spec edge ${a.label} → ${b.label} has no shared state (needs an explicit interface object).`});
+    } else {
+      derived.warnings.push({edge:e, msg:`Spec edge ${a.label} → ${b.label} could be justified by: ${shared.map(s=>stateBy[s]?.label||s).join(", ")} (choose one to lift).`});
+    }
+  }
+}
+
+/* Build Task DSM matrix */
+function buildDSM(){
+  const tasks = derived.taskNodes;
+  const idx = Object.fromEntries(tasks.map((t,i)=>[t.id,i]));
+  const n = tasks.length;
+  const M = Array.from({length:n}, ()=>Array.from({length:n}, ()=>null));
+
+  for(const e of derived.depLinks){
+    const i = idx[e.target], j = idx[e.source];
+    if(i==null || j==null) continue;
+    M[i][j] = e;
+  }
+  derived.depMatrix = {tasks, idx, M};
+}
+
+/* ============================================================
+   UI: tabs, rendering, inspector
+   ============================================================ */
+const TABs = [
+  {id:"process", label:"State/Process"},
+  {id:"schedule", label:"Task/Schedule"},
+  {id:"transform", label:"Transform"},
+  {id:"notes", label:"Notes"}
+];
+let activeTab = "process";
+
+const uiState = {
+  showStates: true,
+  showTasks: true,
+  showRisks: true,
+  showEdgeLabels: true,
+  showAltLift: false,
+  showSpecEdges: true,
+  showRiskEdges: true,
+  transitiveEdges: false,
+  dragEnabled: true,
+  selected: null, // {type:"node"/"edge", obj}
+  addSpecMode: false,
+  addSpecFrom: null,
+  sim: {
+    running:false,
+    completed: new Set(),
+    started: new Set(),
+    // info-flow status inspired by ASM2.0: Unavailable / Available / Updated
+    stateStatus: {}, // sid -> "Updated"|"Available"|"Unavailable"
+    tick:0
+  }
+};
+
+function initSim(){
+  uiState.sim.running=false;
+  uiState.sim.completed = new Set();
+  uiState.sim.started = new Set();
+  uiState.sim.tick = 0;
+  uiState.sim.stateStatus = {};
+  for(const s of model.states){
+    uiState.sim.stateStatus[s.id] = "Unavailable";
+  }
+  // seed: states with no upstream producer are Updated
+  const produced = new Set();
+  for(const t of model.tasks){
+    for(const o of t.outputs) produced.add(o);
+  }
+  for(const s of model.states){
+    if(!produced.has(s.id)) uiState.sim.stateStatus[s.id] = "Updated";
+  }
+  // (also seed brief if you want a more “project-y” start)
+  uiState.sim.stateStatus["s_brief"] = "Updated";
+}
+
+function taskReady(t){
+  // A simplified ASM-like readiness rule:
+  // ready if none of its inputs are Unavailable, and at least one input is Updated
+  if(t.inputs.length===0) return true;
+  let anyUpdated=false;
+  for(const sid of t.inputs){
+    const st = uiState.sim.stateStatus[sid] || "Unavailable";
+    if(st==="Unavailable") return false;
+    if(st==="Updated") anyUpdated=true;
+  }
+  return anyUpdated;
+}
+
+function runTask(tid){
+  const t = byId(model.tasks)[tid];
+  if(!t) return;
+  if(!taskReady(t)) return;
+  uiState.sim.started.add(tid);
+  // consume Updated inputs => Available
+  for(const sid of t.inputs){
+    if(uiState.sim.stateStatus[sid]==="Updated"){
+      uiState.sim.stateStatus[sid]="Available";
+    }
+  }
+  // produce outputs => Updated
+  for(const sid of t.outputs){
+    uiState.sim.stateStatus[sid]="Updated";
+  }
+  uiState.sim.completed.add(tid);
+  uiState.sim.tick += 1;
+}
+
+function autoStep(){
+  // start any ready tasks not completed, prioritising non-risk tasks
+  const done = uiState.sim.completed;
+  const tasks = model.tasks.filter(t=>!done.has(t.id));
+  const ready = tasks.filter(taskReady);
+  if(ready.length===0) return false;
+  // prefer tasks over risks, and prefer lower uncertainty
+  ready.sort((a,b)=>{
+    if(a.kind!==b.kind) return a.kind==="task" ? -1 : 1;
+    return (a.uncertainty||0)-(b.uncertainty||0);
+  });
+  runTask(ready[0].id);
+  return true;
+}
+
+function buildTabs(){
+  const el = document.getElementById("tabs");
+  el.innerHTML="";
+  for(const t of TABs){
+    const b=document.createElement("div");
+    b.className="tabbtn"+(t.id===activeTab?" active":"");
+    b.textContent=t.label;
+    b.onclick=()=>{ activeTab=t.id; uiState.selected=null; uiState.addSpecMode=false; uiState.addSpecFrom=null; renderAll(); };
+    el.appendChild(b);
+  }
+  document.getElementById("modeChip").textContent = TABs.find(x=>x.id===activeTab).label;
+}
+
+function setInspector(html, kind="none"){
+  document.getElementById("inspector").innerHTML = html;
+  document.getElementById("selKind").textContent = kind;
+}
+
+function summarizeTask(t){
+  const stBy = byId(model.states);
+  const resBy = byId(model.resources);
+  const inLabels = t.inputs.map(id=>stBy[id]?.label||id);
+  const outLabels = t.outputs.map(id=>stBy[id]?.label||id);
+  const resLabels = (t.resources||[]).map(id=>resBy[id]?.label||id);
+
+  const simState = uiState.sim.completed.has(t.id) ? "done" : (taskReady(t) ? "ready" : "blocked");
+  const pillClass = simState==="done" ? "good" : (simState==="ready" ? "warn" : "");
+  const pillText = simState==="done" ? "completed" : (simState==="ready" ? "ready" : "blocked");
+
+  return `
+    <div class="row" style="justify-content:space-between; align-items:flex-start;">
+      <div>
+        <div style="font-size:14px; font-weight:800; color: var(--text); line-height:1.15;">${t.label}</div>
+        <div class="hint" style="margin-top:4px;">kind: <span class="mono">${t.kind}</span> · type: <span class="mono">${t.type||"—"}</span></div>
+      </div>
+      <span class="pill ${pillClass}">${pillText}</span>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="hint"><b>Inputs</b></div>
+    <div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:6px;">
+      ${inLabels.length? inLabels.map(x=>`<span class="chip">${x}</span>`).join("") : `<span class="hint">none</span>`}
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="hint"><b>Outputs</b></div>
+    <div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:6px;">
+      ${outLabels.length? outLabels.map(x=>`<span class="chip"><b>+</b>${x}</span>`).join("") : `<span class="hint">none</span>`}
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="hint"><b>Resources</b></div>
+    <div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:6px;">
+      ${resLabels.length? resLabels.map(x=>`<span class="chip">${x}</span>`).join("") : `<span class="hint">none</span>`}
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="hint"><b>Execution parameters (toy)</b></div>
+    <div style="display:flex; gap:10px; margin-top:8px;">
+      <div class="chip">duration <b>${t.duration ?? "—"}</b></div>
+      <div class="chip">uncertainty <b>${fmtPct(t.uncertainty ?? 0)}</b></div>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="row">
+      <button class="btn primary" ${taskReady(t) && !uiState.sim.completed.has(t.id) ? "" : "disabled"} onclick="runTask('${t.id}'); renderAll();">Run task</button>
+      <button class="btn" onclick="focusNode('${t.id}');">Focus in view</button>
+    </div>
+  `;
+}
+
+function summarizeState(s){
+  const st = uiState.sim.stateStatus[s.id] || "Unavailable";
+  const pillClass = st==="Updated" ? "good" : (st==="Available" ? "warn" : "");
+  return `
+    <div class="row" style="justify-content:space-between; align-items:flex-start;">
+      <div>
+        <div style="font-size:14px; font-weight:800; color: var(--text); line-height:1.15;">${s.label}</div>
+        <div class="hint" style="margin-top:4px;">domain: <span class="mono">${s.domain}</span></div>
+      </div>
+      <span class="pill ${pillClass}">${st}</span>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="hint"><b>Note</b></div>
+    <div style="margin-top:6px;">${s.note || "<span class='hint'>—</span>"}</div>
+
+    <div class="sep"></div>
+
+    <div class="hint"><b>Producers / Consumers</b></div>
+    <div style="margin-top:6px;">
+      ${(() => {
+        const producers = model.tasks.filter(t=>t.outputs.includes(s.id)).map(t=>t.label);
+        const consumers = model.tasks.filter(t=>t.inputs.includes(s.id)).map(t=>t.label);
+        return `
+          <div class="hint"><b>Produced by</b></div>
+          <div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:6px;">
+            ${producers.length ? producers.map(x=>`<span class="chip">${x}</span>`).join("") : `<span class="hint">none</span>`}
+          </div>
+          <div class="sep"></div>
+          <div class="hint"><b>Consumed by</b></div>
+          <div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:6px;">
+            ${consumers.length ? consumers.map(x=>`<span class="chip">${x}</span>`).join("") : `<span class="hint">none</span>`}
+          </div>
+        `;
+      })()}
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="row">
+      <button class="btn" onclick="focusNode('${s.id}');">Focus in view</button>
+    </div>
+  `;
+}
+
+function summarizeEdge(e){
+  const taskBy = byId(model.tasks);
+  const stBy = byId(model.states);
+  if(e.kind==="input" || e.kind==="output"){
+    const isIn = e.kind==="input";
+    const s = stBy[isIn ? e.source : e.target];
+    const t = taskBy[isIn ? e.target : e.source];
+    if(!s || !t) return `<div class="hint">Edge not found.</div>`;
+    return `
+      <div style="font-size:13px; font-weight:800; color: var(--text);">${isIn ? "Input" : "Output"} edge</div>
+      <div class="sep"></div>
+      <div class="hint">${isIn ? "State required by task." : "State produced by task."}</div>
+      <div style="margin-top:10px;" class="chip">${s.label}</div>
+      <div style="margin-top:6px;" class="chip"><b>→</b>${t.label}</div>
+      <div class="sep"></div>
+      <div class="hint">In categorical terms: this is the wiring (interface) that makes composition possible.</div>
+    `;
+  }
+
+  // schedule edge
+  const a = taskBy[e.source], b = taskBy[e.target];
+  return `
+    <div style="font-size:13px; font-weight:800; color: var(--text);">${e.kind==="dep" ? "Derived dependency" : (e.kind==="spec" ? "Specification constraint" : "Edge")}</div>
+    <div class="sep"></div>
+    <div class="hint"><b>From</b></div>
+    <div style="margin-top:6px;" class="chip">${a?.label || e.source}</div>
+    <div class="hint" style="margin-top:10px;"><b>To</b></div>
+    <div style="margin-top:6px;" class="chip">${b?.label || e.target}</div>
+    <div class="sep"></div>
+    <div class="hint"><b>Interface / reason</b></div>
+    <div style="margin-top:6px;">${e.label || "<span class='hint'>—</span>"}</div>
+
+    ${e.kind==="spec" ? `
+      <div class="sep"></div>
+      <div class="hint">
+        This edge is a <b>constraint</b> that may lack a concrete state/object mediating it. To “lift” it back into the process view, choose or create an explicit interface object.
+      </div>
+      <div style="margin-top:10px;">
+        ${renderLiftUI(e)}
+      </div>
+    ` : `
+      <div class="sep"></div>
+      <div class="hint">This edge was computed by matching outputs→inputs (an “implied Task DSM”).</div>
+    `}
+  `;
+}
+
+function renderLiftUI(e){
+  const taskBy = byId(model.tasks);
+  const stateBy = byId(model.states);
+  const a = taskBy[e.source], b = taskBy[e.target];
+  const shared = intersect(a.outputs, b.inputs);
+  const options = shared.map(sid=>`<option value="${sid}">${stateBy[sid]?.label || sid}</option>`).join("");
+  const noShared = shared.length===0;
+
+  return `
+    <div class="hint" style="margin-bottom:6px;">Lift by selecting an interface state (or create one).</div>
+    ${noShared ? `<div class="pill bad">no shared state found</div>` : `<div class="pill warn">${shared.length} candidate(s)</div>`}
+
+    <div style="margin-top:10px; display:grid; grid-template-columns: 1fr; gap:8px;">
+      <select id="liftSelect">
+        ${options || `<option value="">(none)</option>`}
+      </select>
+      <button class="btn primary" ${noShared ? "disabled" : ""} onclick="liftSpecEdge('${e.source}','${e.target}', document.getElementById('liftSelect').value);">Lift using selected state</button>
+
+      <details>
+        <summary>Create a new interface state</summary>
+        <div style="margin-top:10px;">
+          <input id="newStateLabel" type="text" placeholder="e.g., Procurement plan agreed"/>
+          <div style="margin-top:8px;">
+            <select id="newStateDomain">
+              <option value="info">info</option>
+              <option value="physical">physical</option>
+              <option value="risk">risk</option>
+            </select>
+          </div>
+          <div style="margin-top:8px;">
+            <textarea id="newStateNote" placeholder="Why does this state mediate the constraint?"></textarea>
+          </div>
+          <div class="row" style="margin-top:10px;">
+            <button class="btn primary" onclick="createInterfaceState('${e.source}','${e.target}');">Create & wire</button>
+          </div>
+        </div>
+      </details>
+    </div>
+  `;
+}
+
+function liftSpecEdge(from,to,stateId){
+  if(!stateId) return;
+  // implement by wiring the state as output of 'from' and input of 'to' (if not already),
+  // and removing the spec edge.
+  const taskBy = byId(model.tasks);
+  const a = taskBy[from], b = taskBy[to];
+  if(!a || !b) return;
+
+  if(!a.outputs.includes(stateId)) a.outputs.push(stateId);
+  if(!b.inputs.includes(stateId)) b.inputs.push(stateId);
+
+  model.specEdges = (model.specEdges||[]).filter(e=>!(e.from===from && e.to===to));
+  rebuildDerived();
+  setInspector(`<div class="pill good">Lifted: added explicit interface “${byId(model.states)[stateId]?.label || stateId}”</div>`, "lift");
+  renderAll();
+}
+
+function createInterfaceState(from,to){
+  const label = (document.getElementById("newStateLabel")?.value || "").trim();
+  const domain = document.getElementById("newStateDomain")?.value || "info";
+  const note = (document.getElementById("newStateNote")?.value || "").trim();
+
+  if(!label) return;
+  const newId = "s_" + label.toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"").slice(0,22) + "_" + Math.floor(Math.random()*1000);
+  model.states.push({id:newId, label: label, domain: domain, note: note});
+  // wire it
+  const taskBy = byId(model.tasks);
+  taskBy[from].outputs.push(newId);
+  taskBy[to].inputs.push(newId);
+  model.specEdges = (model.specEdges||[]).filter(e=>!(e.from===from && e.to===to));
+
+  rebuildDerived();
+  setInspector(`<div class="pill good">Created interface state and lifted constraint.</div>`, "lift");
+  renderAll();
+}
+
+/* ============================================================
+   Rendering: graph drawing with a tiny force layout
+   ============================================================ */
+const svg = document.getElementById("viz");
+const NS = "http://www.w3.org/2000/svg";
+
+function clearSVG(){
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+}
+
+function addDefs(){
+  const defs = document.createElementNS(NS,"defs");
+  defs.innerHTML = `
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M2,2 L10,6 L2,10 Z" fill="rgba(231,238,252,.35)"></path>
+    </marker>
+  `;
+  svg.appendChild(defs);
+}
+
+function renderProcessView(){
+  const nodes = derived.processNodes
+    .filter(n=>{
+      if(n.kind==="state") return uiState.showStates && (uiState.showRisks || n.domain!=="risk");
+      if(n.kind==="task") return uiState.showTasks;
+      if(n.kind==="risk") return uiState.showRisks;
+      return true;
+    })
+    .map(n=>({...n}));
+
+  const links = derived.processLinks
+    .filter(l=>{
+      // hide risk edges if risks hidden
+      if(!uiState.showRisks){
+        if(l.source.startsWith("x") || l.target.startsWith("x")) return false;
+        if(l.source==="s_damage" || l.target==="s_damage") return false;
+      }
+      return true;
+    })
+    .map(l=>({...l}));
+
+  const nodeIndex = new Map(nodes.map((n,i)=>[n.id,i]));
+  const filteredLinks = links.filter(l=>nodeIndex.has(l.source) && nodeIndex.has(l.target));
+
+  // Initial positions: states left-ish, tasks right-ish
+  for(const n of nodes){
+    if(n._x==null){
+      const isState = n.kind==="state";
+      n._x = isState ? 260 + Math.random()*120 : 620 + Math.random()*220;
+      n._y = 80 + Math.random()*520;
+    }
+  }
+
+  // force layout (few iterations)
+  forceLayout(nodes, filteredLinks, {iters: 220, linkDist: 90, charge: -700, center:[550,340]});
+
+  // draw
+  drawGraph(nodes, filteredLinks, {mode:"process"});
+}
+
+function renderScheduleView(){
+  const nodes = derived.taskNodes
+    .filter(n=>{
+      if(n.kind==="task") return uiState.showTasks;
+      if(n.kind==="risk") return uiState.showRisks;
+      return true;
+    })
+    .map(n=>({...n}));
+
+  let links = derived.depLinks
+    .filter(e=>{
+      if(e.kind==="spec" && !uiState.showSpecEdges) return false;
+      if(e.kind==="dep") return true;
+      if(e.kind==="spec") return true;
+      return true;
+    })
+    .map(e=>({...e}));
+
+  const nodeIndex = new Map(nodes.map((n,i)=>[n.id,i]));
+  links = links.filter(l=>nodeIndex.has(l.source) && nodeIndex.has(l.target));
+
+  // layout: DAG layering if acyclic (ignoring spec edges for layering)
+  const depLinksOnly = links.filter(e=>e.kind==="dep");
+  const topo = topoLevels(nodes.map(n=>n.id), depLinksOnly.map(e=>[e.source,e.target]));
+  if(topo.hasCycle){
+    // fall back to force
+    for(const n of nodes){
+      if(n._x==null){
+        n._x = 200 + Math.random()*700;
+        n._y = 80 + Math.random()*520;
+      }
+    }
+    forceLayout(nodes, links, {iters: 240, linkDist: 110, charge: -800, center:[550,340]});
+  } else {
+    // place by level
+    const levels = topo.level;
+    const maxL = Math.max(...Object.values(levels));
+    const cols = maxL+1;
+    const colX = (i)=> 140 + (820*(i/(Math.max(1,cols-1))));
+    const buckets = {};
+    for(const id of Object.keys(levels)){
+      const l = levels[id];
+      buckets[l] = buckets[l] || [];
+      buckets[l].push(id);
+    }
+    for(const k of Object.keys(buckets)){
+      buckets[k].sort();
+    }
+    for(const n of nodes){
+      const l = levels[n.id] ?? 0;
+      const arr = buckets[l] || [];
+      const idx = arr.indexOf(n.id);
+      const y = 100 + ( (idx+1) * (520/(arr.length+1)) );
+      n._x = colX(l) + (Math.random()*20-10);
+      n._y = y + (Math.random()*16-8);
+    }
+  }
+
+  drawGraph(nodes, links, {mode:"schedule"});
+  if(activeTab==="schedule"){
+    renderDSMMatrix();
+  }
+}
+
+function renderTransformView(){
+  // show a small side-by-side summary and the warnings list
+  const warn = derived.warnings;
+  const html = `
+    <div style="font-size:14px; font-weight:800; color: var(--text);">Transform status</div>
+    <div class="sep"></div>
+    <div class="hint">
+      <b>Process → Schedule</b> is computed by matching each task's <span class="mono">outputs</span> against downstream <span class="mono">inputs</span>, yielding an implied Task DSM (a thin category). The reverse requires choosing explicit interface objects.
+    </div>
+    <div class="sep"></div>
+    <div class="hint"><b>Spec edges needing lift</b></div>
+    <div style="margin-top:8px; display:flex; flex-direction:column; gap:8px;">
+      ${warn.length ? warn.map(w=>`<div class="pill ${w.msg.includes("no shared")?"bad":"warn"}">${w.msg}</div>`).join("") : `<div class="pill good">No under‑specified constraints.</div>`}
+    </div>
+  `;
+  setInspector(html, "transform");
+}
+
+function renderNotesView(){
+  const gdsText = JSON.stringify(model, null, 2);
+  const html = `
+    <div style="font-size:14px; font-weight:800; color: var(--text);">Definitions & Export</div>
+    <div class="sep"></div>
+
+    <details open>
+      <summary>1) Category‑theoretic reading (minimal but well‑defined)</summary>
+      <div style="margin-top:10px;" class="hint">
+        <b>Process category</b> <span class="mono">Proc</span> (a free strict symmetric monoidal category) is generated by:
+        <ul>
+          <li><b>Objects</b>: basic state types (the green nodes), closed under tensor <span class="mono">⊗</span> with unit <span class="mono">I</span>.</li>
+          <li><b>Morphisms</b>: task/risk generators (the blue/red nodes) with specified input object <span class="mono">dom(f)</span> and output object <span class="mono">cod(f)</span>.</li>
+          <li><b>Composition</b>: sequential wiring of outputs to inputs (path composition).</li>
+          <li><b>Monoidal product</b>: parallel composition of independent sub‑processes.</li>
+        </ul>
+        This is the “systems are objects; processes are arrows” stance familiar from string‑diagrammatic process theories.
+      </div>
+      <div class="hint" style="margin-top:10px;">
+        <b>Schedule category</b> <span class="mono">Sched</span> is the thin category (preorder) on the set of tasks: <span class="mono">a ≤ b</span> iff some interface state produced by <span class="mono">a</span> is required (directly or via a chain) by <span class="mono">b</span>.
+      </div>
+      <div class="hint" style="margin-top:10px;">
+        The computed transform is a <b>decategorifying projection</b>: it forgets what flows, retaining only that something must flow (precedence).
+        A reverse map is necessarily <b>lax / choice‑laden</b> unless you enrich the schedule with explicit interfaces (states/resources).
+      </div>
+    </details>
+
+    <details>
+      <summary>2) Why an intermediate GDS?</summary>
+      <div style="margin-top:10px;" class="hint">
+        Treat the JSON below as a generic graph representation from which multiple stakeholder views can be rendered (graph → views), avoiding bespoke direct transforms between each pair of views.
+      </div>
+    </details>
+
+    <details>
+      <summary>3) Export / import</summary>
+      <div style="margin-top:10px;" class="row">
+        <button class="btn primary" onclick="downloadJSON()">Download GDS JSON</button>
+        <button class="btn" onclick="copyJSON()">Copy JSON</button>
+      </div>
+      <div style="margin-top:10px;">
+        <textarea id="importBox" placeholder="Paste JSON here to import…"></textarea>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn" onclick="importJSON()">Import</button>
+          <button class="btn danger" onclick="resetModel()">Reset to demo</button>
+        </div>
+      </div>
+    </details>
+
+    <div class="sep"></div>
+    <div class="hint"><b>Current GDS</b></div>
+    <div class="codeblock" id="gdsDump"></div>
+  `;
+  setInspector(html, "notes");
+  document.getElementById("gdsDump").textContent = gdsText;
+}
+
+/* Force layout */
+function forceLayout(nodes, links, opts){
+  const iters = opts.iters ?? 200;
+  const linkDist = opts.linkDist ?? 90;
+  const charge = opts.charge ?? -700;
+  const [cx,cy] = opts.center ?? [550,340];
+
+  const by = Object.fromEntries(nodes.map(n=>[n.id,n]));
+  for(let k=0;k<iters;k++){
+    // repulsion
+    for(let i=0;i<nodes.length;i++){
+      for(let j=i+1;j<nodes.length;j++){
+        const a=nodes[i], b=nodes[j];
+        let dx=a._x-b._x, dy=a._y-b._y;
+        let d2=dx*dx+dy*dy + 0.01;
+        let f=charge/d2;
+        a._x += dx*f; a._y += dy*f;
+        b._x -= dx*f; b._y -= dy*f;
+      }
+    }
+    // spring links
+    for(const l of links){
+      const s=by[l.source], t=by[l.target];
+      if(!s || !t) continue;
+      let dx=t._x-s._x, dy=t._y-s._y;
+      let d=Math.sqrt(dx*dx+dy*dy)+0.01;
+      let diff = (d-linkDist)/d;
+      const strength = 0.08;
+      s._x += dx*diff*strength;
+      s._y += dy*diff*strength;
+      t._x -= dx*diff*strength;
+      t._y -= dy*diff*strength;
+    }
+    // mild centering
+    for(const n of nodes){
+      n._x += (cx-n._x)*0.002;
+      n._y += (cy-n._y)*0.002;
+      // bounds
+      n._x = Math.max(70, Math.min(1030, n._x));
+      n._y = Math.max(50, Math.min(630, n._y));
+    }
+  }
+}
+
+/* topological levels */
+function topoLevels(nodeIds, edgePairs){
+  const indeg = Object.fromEntries(nodeIds.map(id=>[id,0]));
+  const out = Object.fromEntries(nodeIds.map(id=>[id,[]]));
+  for(const [u,v] of edgePairs){
+    out[u].push(v);
+    indeg[v] = (indeg[v]||0)+1;
+  }
+  const q = [];
+  for(const id of nodeIds){
+    if((indeg[id]||0)===0) q.push(id);
+  }
+  const level = Object.fromEntries(nodeIds.map(id=>[id,0]));
+  const order = [];
+  while(q.length){
+    const u=q.shift();
+    order.push(u);
+    for(const v of out[u]){
+      indeg[v] -= 1;
+      level[v] = Math.max(level[v], level[u]+1);
+      if(indeg[v]===0) q.push(v);
+    }
+  }
+  const hasCycle = order.length !== nodeIds.length;
+  return {hasCycle, level, order};
+}
+
+/* Draw nodes + links into SVG */
+let currentDraw = {nodes:[], links:[]};
+
+function drawGraph(nodes, links, opts){
+  clearSVG();
+  addDefs();
+
+  // group
+  const gLinks = document.createElementNS(NS,"g");
+  const gNodes = document.createElementNS(NS,"g");
+  svg.appendChild(gLinks);
+  svg.appendChild(gNodes);
+
+  const idToNode = Object.fromEntries(nodes.map(n=>[n.id,n]));
+
+  // draw links
+  for(const e of links){
+    const s=idToNode[e.source], t=idToNode[e.target];
+    if(!s || !t) continue;
+    const path = document.createElementNS(NS,"path");
+    path.setAttribute("class", "link "+(opts.mode==="process" ? (e.kind==="input"||e.kind==="output" ? "stateflow":"") : (e.kind==="dep" ? "dep" : (e.kind==="spec" ? "spec" : ""))));
+    const d = `M ${s._x} ${s._y} L ${t._x} ${t._y}`;
+    path.setAttribute("d", d);
+    path.dataset.kind = "edge";
+    path.dataset.source = e.source;
+    path.dataset.target = e.target;
+    path.dataset.ekind = e.kind;
+    path.__data__ = e;
+
+    path.addEventListener("click",(ev)=>{
+      ev.stopPropagation();
+      uiState.selected = {type:"edge", obj:e};
+      setInspector(summarizeEdge(e), "edge");
+      renderAll(true);
+    });
+
+    gLinks.appendChild(path);
+
+    if(uiState.showEdgeLabels && opts.mode!=="process"){
+      const midx = (s._x+t._x)/2, midy=(s._y+t._y)/2;
+      const txt = document.createElementNS(NS,"text");
+      txt.setAttribute("class","edgelabel");
+      txt.setAttribute("x", midx+6);
+      txt.setAttribute("y", midy-6);
+      txt.textContent = (e.kind==="dep" ? "via " : "") + (e.label ? e.label.split(" • ")[0] : "");
+      gLinks.appendChild(txt);
+    }
+  }
+
+  // draw nodes
+  for(const n of nodes){
+    const grp = document.createElementNS(NS,"g");
+    grp.setAttribute("class","node");
+    grp.setAttribute("transform",`translate(${n._x},${n._y})`);
+    grp.dataset.kind = "node";
+    grp.dataset.id = n.id;
+    grp.__data__ = n;
+
+    // shape
+    let shape;
+    const r = (opts.mode==="process" && n.kind==="state") ? 22 : 18;
+    if(n.kind==="state"){
+      shape = document.createElementNS(NS,"circle");
+      shape.setAttribute("r", r);
+      shape.setAttribute("class","nshape state");
+    } else if(n.kind==="risk"){
+      shape = document.createElementNS(NS,"rect");
+      shape.setAttribute("x",-r-6);
+      shape.setAttribute("y",-r+2);
+      shape.setAttribute("width",(r+6)*2);
+      shape.setAttribute("height",(r-2)*2);
+      shape.setAttribute("rx","10");
+      shape.setAttribute("class","nshape risk");
+    } else {
+      shape = document.createElementNS(NS,"rect");
+      shape.setAttribute("x",-r-8);
+      shape.setAttribute("y",-r);
+      shape.setAttribute("width",(r+8)*2);
+      shape.setAttribute("height",r*2);
+      shape.setAttribute("rx","10");
+      shape.setAttribute("class","nshape task");
+    }
+    grp.appendChild(shape);
+
+    // label
+    const txt = document.createElementNS(NS,"text");
+    txt.setAttribute("class","nlabel"+(n.label.length>26?" small":""));
+    txt.setAttribute("text-anchor","middle");
+    txt.setAttribute("y", 4);
+    txt.textContent = shorten(n.label, 28);
+    grp.appendChild(txt);
+
+    grp.addEventListener("click",(ev)=>{
+      ev.stopPropagation();
+      uiState.selected = {type:"node", obj:n};
+      if(n.kind==="state"){
+        const s = byId(model.states)[n.id];
+        setInspector(summarizeState(s), "state");
+      } else {
+        const t = byId(model.tasks)[n.id];
+        setInspector(summarizeTask(t), "task");
+      }
+      renderAll(true);
+    });
+
+    // drag
+    if(uiState.dragEnabled){
+      enableDrag(grp, n, ()=>renderAll(true));
+    }
+
+    gNodes.appendChild(grp);
+  }
+
+  svg.addEventListener("click",()=>{
+    uiState.selected=null;
+    setInspector(`<div class="hint">Select a node or edge.</div>`, "none");
+    renderAll(true);
+  }, {once:true});
+
+  // highlighting
+  currentDraw = {nodes, links};
+  applyHighlights(opts.mode);
+
+  // add legend for current view into canvas bar
+  renderCanvasBar(opts.mode);
+}
+
+function shorten(s, n){
+  if(s.length<=n) return s;
+  return s.slice(0,n-1)+"…";
+}
+
+function enableDrag(grp, node, onMove){
+  let dragging=false;
+  let start=null;
+  grp.addEventListener("mousedown",(ev)=>{
+    dragging=true;
+    start={x:ev.clientX, y:ev.clientY, nx:node._x, ny:node._y};
+    ev.preventDefault();
+  });
+  window.addEventListener("mousemove",(ev)=>{
+    if(!dragging) return;
+    const dx=ev.clientX-start.x, dy=ev.clientY-start.y;
+    node._x = Math.max(70, Math.min(1030, start.nx + dx));
+    node._y = Math.max(50, Math.min(630, start.ny + dy));
+    grp.setAttribute("transform",`translate(${node._x},${node._y})`);
+    // update incident links quickly (re-render whole is ok for small graphs)
+    onMove();
+  });
+  window.addEventListener("mouseup",()=>{ dragging=false; });
+}
+
+function applyHighlights(mode){
+  // highlight selected item and its neighborhood
+  const sel = uiState.selected;
+  const paths = Array.from(svg.querySelectorAll("path.link"));
+  const nodeEls = Array.from(svg.querySelectorAll("g.node"));
+
+  for(const p of paths){ p.classList.remove("highlight"); p.style.strokeOpacity = "0.22"; }
+  for(const g of nodeEls){ g.style.opacity = "0.55"; }
+
+  if(!sel){
+    for(const p of paths){ p.style.strokeOpacity="0.35"; }
+    for(const g of nodeEls){ g.style.opacity="0.95"; }
+    return;
+  }
+
+  const highlightNodes = new Set();
+  const highlightEdges = new Set();
+
+  if(sel.type==="node"){
+    const id = sel.obj.id;
+    highlightNodes.add(id);
+
+    if(mode==="process"){
+      for(const e of derived.processLinks){
+        if(e.source===id || e.target===id){
+          highlightEdges.add(edgeKey(e));
+          highlightNodes.add(e.source);
+          highlightNodes.add(e.target);
+        }
+      }
+    } else {
+      for(const e of derived.depLinks){
+        if(e.source===id || e.target===id){
+          highlightEdges.add(edgeKey(e));
+          highlightNodes.add(e.source);
+          highlightNodes.add(e.target);
+        }
+      }
+    }
+  } else if(sel.type==="edge"){
+    highlightEdges.add(edgeKey(sel.obj));
+    highlightNodes.add(sel.obj.source);
+    highlightNodes.add(sel.obj.target);
+  }
+
+  // apply
+  for(const p of paths){
+    const e = p.__data__;
+    if(highlightEdges.has(edgeKey(e))){
+      p.classList.add("highlight");
+      p.style.strokeOpacity = "1";
+    } else {
+      p.style.strokeOpacity = "0.12";
+    }
+  }
+  for(const g of nodeEls){
+    const id = g.dataset.id;
+    g.style.opacity = highlightNodes.has(id) ? "1" : "0.38";
+  }
+}
+
+function edgeKey(e){
+  return `${e.source}->${e.target}|${e.kind||""}|${e.label||""}`;
+}
+
+/* Canvas bar content depends on mode */
+function renderCanvasBar(mode){
+  const bar = document.getElementById("canvasBar");
+  bar.innerHTML = "";
+
+  if(mode==="process"){
+    bar.appendChild(btn("Derive schedule", ()=>{ rebuildDerived(); activeTab="schedule"; renderAll(); }, true));
+    bar.appendChild(btn("Reset simulation", ()=>{ initSim(); renderAll(); }));
+    bar.appendChild(btn("Step", ()=>{ autoStep(); renderAll(); }, false, uiState.sim.running));
+    bar.appendChild(btn("Auto‑run (10)", ()=>{ for(let i=0;i<10;i++){ if(!autoStep()) break; } renderAll(); }));
+    bar.appendChild(btn("Toggle alt lift", ()=>{ uiState.showAltLift = !uiState.showAltLift; toggleAltLift(); rebuildDerived(); renderAll(); }));
+
+    const lg = document.createElement("div");
+    lg.className="legend";
+    lg.innerHTML = `
+      <span class="chip"><span class="swatch state"></span>state (object)</span>
+      <span class="chip"><span class="swatch task"></span>task (arrow)</span>
+      <span class="chip"><span class="swatch risk"></span>risk (arrow)</span>
+    `;
+    bar.appendChild(lg);
+  }
+  if(mode==="schedule"){
+    bar.appendChild(btn("Derive schedule", ()=>{ rebuildDerived(); renderAll(); }, true));
+    bar.appendChild(btn(uiState.addSpecMode ? "Cancel add‑dep" : "Add spec dep", ()=>{ uiState.addSpecMode = !uiState.addSpecMode; uiState.addSpecFrom=null; renderAll(true); }));
+    bar.appendChild(btn("Reset spec deps", ()=>{ model.specEdges = deepClone(GDS.specEdges); rebuildDerived(); renderAll(); }));
+    bar.appendChild(btn("Go to process", ()=>{ activeTab="process"; renderAll(); }));
+
+    const lg = document.createElement("div");
+    lg.className="legend";
+    lg.innerHTML = `
+      <span class="chip"><span class="swatch task"></span>task</span>
+      <span class="chip"><span class="swatch spec"></span>spec dep (unlifted)</span>
+    `;
+    bar.appendChild(lg);
+  }
+  if(mode==="transform"){
+    bar.appendChild(btn("Derive schedule", ()=>{ rebuildDerived(); renderAll(); }, true));
+    bar.appendChild(btn("Go to process", ()=>{ activeTab="process"; renderAll(); }));
+    bar.appendChild(btn("Go to schedule", ()=>{ activeTab="schedule"; renderAll(); }));
+  }
+  if(mode==="notes"){
+    bar.appendChild(btn("Copy JSON", ()=>copyJSON()));
+    bar.appendChild(btn("Download JSON", ()=>downloadJSON()));
+    bar.appendChild(btn("Go to process", ()=>{ activeTab="process"; renderAll(); }));
+  }
+}
+
+function btn(label, onClick, primary=false, disabled=false){
+  const b = document.createElement("button");
+  b.className = "btn" + (primary ? " primary" : "");
+  b.textContent = label;
+  b.onclick = onClick;
+  b.disabled = !!disabled;
+  return b;
+}
+
+/* ============================================================
+   DSM matrix rendering
+   ============================================================ */
+function renderDSMMatrix(){
+  const panel = document.getElementById("controlsMode");
+  // show matrix in left panel for schedule tab
+  const dsm = derived.depMatrix;
+  if(!dsm) return;
+  const tasks = dsm.tasks;
+  const M = dsm.M;
+
+  // build table
+  let html = `
+    <div style="font-weight:800; color: var(--text); font-size:12px;">Task DSM (dependencies)</div>
+    <div class="hint" style="margin-top:6px;">
+      Mark at row <b>i</b>, col <b>j</b> means “task i depends on task j”.
+      Click a mark to highlight the edge.
+    </div>
+    <div class="sep"></div>
+    <div class="matrixWrap">
+      <table class="matrix">
+        <thead>
+          <tr>
+            <th class="sticky stickyCol corner">depends on →</th>
+            ${tasks.map(t=>`<th class="sticky">${shorten(t.label,12)}</th>`).join("")}
+          </tr>
+        </thead>
+        <tbody>
+          ${tasks.map((ti,i)=>`
+            <tr>
+              <th class="stickyCol">${ti.label}</th>
+              ${tasks.map((tj,j)=>{
+                const e = M[i][j];
+                if(!e) return `<td></td>`;
+                const cls = e.kind==="spec" ? "mark spec" : (e.kind==="risk" ? "mark risk":"mark");
+                const title = (e.kind==="spec" ? "spec constraint: " : "derived: ")+ (e.label||"");
+                return `<td class="${cls}" title="${escapeHtml(title)}" onclick="selectEdge('${e.source}','${e.target}','${e.kind}')">×</td>`;
+              }).join("")}
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+  panel.innerHTML = html;
+}
+
+function escapeHtml(s){
+  return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function selectEdge(source,target,kind){
+  const e = derived.depLinks.find(x=>x.source===source && x.target===target && x.kind===kind);
+  if(!e) return;
+  uiState.selected = {type:"edge", obj:e};
+  setInspector(summarizeEdge(e), "edge");
+  renderAll(true);
+}
+
+/* ============================================================
+   Add spec dependency (schedule view)
+   ============================================================ */
+function scheduleNodeClickedForSpec(id){
+  if(!uiState.addSpecMode) return false;
+  if(!uiState.addSpecFrom){
+    uiState.addSpecFrom = id;
+    setInspector(`<div class="pill warn">Pick target task for spec edge from: <b>${byId(model.tasks)[id].label}</b></div>`, "spec");
+    return true;
+  } else {
+    const from = uiState.addSpecFrom;
+    const to = id;
+    if(from===to){
+      uiState.addSpecFrom=null;
+      return true;
+    }
+    model.specEdges = model.specEdges || [];
+    model.specEdges.push({from,to,label:"(unspecified interface)", kind:"spec"});
+    uiState.addSpecFrom=null;
+    uiState.addSpecMode=false;
+    rebuildDerived();
+    setInspector(`<div class="pill good">Added spec edge. Now lift it by choosing/creating an interface state.</div>`, "spec");
+    renderAll();
+    return true;
+  }
+}
+
+/* We hook into node click by intercepting selection in schedule mode.
+   Simpler: in drawGraph, node click sets selection — so we add a small shim.
+*/
+const _origSetInspector = setInspector;
+
+/* ============================================================
+   Controls per tab
+   ============================================================ */
+function renderControls(){
+  const common = document.getElementById("controlsCommon");
+  const mode = document.getElementById("controlsMode");
+  common.innerHTML="";
+  mode.innerHTML="";
+
+  // common toggles
+  common.innerHTML = `
+    <div class="row" style="justify-content:space-between;">
+      <label><input type="checkbox" ${uiState.showStates?"checked":""} onchange="uiState.showStates=this.checked; renderAll();"> states</label>
+      <label><input type="checkbox" ${uiState.showTasks?"checked":""} onchange="uiState.showTasks=this.checked; renderAll();"> tasks</label>
+      <label><input type="checkbox" ${uiState.showRisks?"checked":""} onchange="uiState.showRisks=this.checked; renderAll();"> risks</label>
+    </div>
+    <div class="row" style="margin-top:8px; justify-content:space-between;">
+      <label><input type="checkbox" ${uiState.showEdgeLabels?"checked":""} onchange="uiState.showEdgeLabels=this.checked; renderAll();"> edge labels</label>
+      <label><input type="checkbox" ${uiState.dragEnabled?"checked":""} onchange="uiState.dragEnabled=this.checked; renderAll();"> drag</label>
+    </div>
+  `;
+
+  // tab-specific
+  if(activeTab==="process"){
+    mode.innerHTML = `
+      <div style="font-weight:800; color: var(--text); font-size:12px;">Simulation (toy ASM‑style)</div>
+      <div class="hint" style="margin-top:6px;">
+        States have status <span class="mono">Unavailable / Available / Updated</span>.
+        A task becomes startable when no inputs are Unavailable and at least one input is Updated.
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="row">
+        <button class="btn" onclick="initSim(); renderAll();">Reset</button>
+        <button class="btn primary" onclick="autoStep(); renderAll();">Step</button>
+        <button class="btn" onclick="for(let i=0;i<10;i++){ if(!autoStep()) break; } renderAll();">Auto (10)</button>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="hint"><b>Ready tasks</b> (click to run)</div>
+      <div style="margin-top:8px; display:flex; flex-direction:column; gap:6px;">
+        ${model.tasks.filter(t=>t.kind==="task" && !uiState.sim.completed.has(t.id) && taskReady(t))
+          .slice(0,10)
+          .map(t=>`<button class="btn small primary" onclick="runTask('${t.id}'); renderAll();">${t.label}</button>`)
+          .join("") || `<div class="hint">none</div>`}
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="hint"><b>State statuses</b> (subset)</div>
+      <div style="margin-top:8px; display:flex; flex-direction:column; gap:6px; max-height: 220px; overflow:auto;">
+        ${model.states.filter(s=>s.domain!=="risk").slice(0,14).map(s=>{
+          const st = uiState.sim.stateStatus[s.id] || "Unavailable";
+          const cls = st==="Updated" ? "good" : (st==="Available" ? "warn" : "");
+          return `<div class="row" style="justify-content:space-between;">
+            <span class="hint">${shorten(s.label,26)}</span>
+            <span class="pill ${cls}">${st}</span>
+          </div>`;
+        }).join("")}
+      </div>
+    `;
+  }
+
+  if(activeTab==="schedule"){
+    mode.innerHTML = `
+      <div style="font-weight:800; color: var(--text); font-size:12px;">Schedule options</div>
+      <div class="row" style="margin-top:10px; justify-content:space-between;">
+        <label><input type="checkbox" ${uiState.showSpecEdges?"checked":""} onchange="uiState.showSpecEdges=this.checked; rebuildDerived(); renderAll();"> show spec edges</label>
+      </div>
+      <div class="sep"></div>
+      <div class="hint">
+        Use <b>Add spec dep</b> to insert a precedence constraint without an explicit interface state; then lift it back in the Inspector.
+      </div>
+      <div class="sep"></div>
+      <div class="hint"><b>Warnings</b></div>
+      <div style="margin-top:8px; display:flex; flex-direction:column; gap:8px;">
+        ${derived.warnings.length ? derived.warnings.map(w=>`<div class="pill ${w.msg.includes("no shared")?"bad":"warn"}">${w.msg}</div>`).join("") : `<div class="pill good">No warnings.</div>`}
+      </div>
+      <div class="sep"></div>
+      <div class="hint"><b>Matrix</b> is rendered below the graph.</div>
+    `;
+  }
+
+  if(activeTab==="transform"){
+    mode.innerHTML = `
+      <div style="font-weight:800; color: var(--text); font-size:12px;">Transform sketch</div>
+      <div class="hint" style="margin-top:6px;">
+        Think of schedule extraction as a <b>projection</b> from a richer process semantics to a thin precedence relation (a decategorification). Lifting back requires a choice of interface objects (states/resources), i.e., extra structure.
+      </div>
+      <div class="sep"></div>
+      <div class="row">
+        <button class="btn primary" onclick="activeTab='process'; renderAll();">Open process view</button>
+        <button class="btn" onclick="activeTab='schedule'; renderAll();">Open schedule view</button>
+      </div>
+      <div class="sep"></div>
+      <div class="hint"><b>Under‑specified constraints</b> live in schedule view as dashed edges.</div>
+    `;
+  }
+
+  if(activeTab==="notes"){
+    mode.innerHTML = `
+      <div style="font-weight:800; color: var(--text); font-size:12px;">Notes</div>
+      <div class="hint" style="margin-top:6px;">
+        This prototype is intentionally small: it demonstrates a single intermediate representation yielding multiple views.
+      </div>
+    `;
+  }
+}
+
+/* ============================================================
+   Export/import
+   ============================================================ */
+function downloadJSON(){
+  const blob = new Blob([JSON.stringify(model, null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "cliff_shed_gds.json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function copyJSON(){
+  try{
+    await navigator.clipboard.writeText(JSON.stringify(model, null, 2));
+    setInspector(`<div class="pill good">Copied JSON to clipboard.</div>`, "notes");
+  }catch(err){
+    setInspector(`<div class="pill bad">Clipboard failed (browser permission). Use Download instead.</div>`, "notes");
+  }
+}
+
+function importJSON(){
+  const txt = document.getElementById("importBox")?.value || "";
+  try{
+    const obj = JSON.parse(txt);
+    model = obj;
+    initSim();
+    rebuildDerived();
+    setInspector(`<div class="pill good">Imported.</div>`, "notes");
+    renderAll();
+  }catch(e){
+    setInspector(`<div class="pill bad">Import failed: ${escapeHtml(e.message)}</div>`, "notes");
+  }
+}
+
+function resetModel(){
+  model = deepClone(GDS);
+  initSim();
+  rebuildDerived();
+  setInspector(`<div class="pill good">Reset to demo.</div>`, "notes");
+  renderAll();
+}
+
+/* ============================================================
+   Misc: alt lift toggling
+   ============================================================ */
+function toggleAltLift(){
+  // show/hide the helicopter alternative by moving it into/out of the model
+  const has = model.tasks.some(t=>t.id==="t7b");
+  if(uiState.showAltLift){
+    if(!has){
+      model.tasks.push(deepClone(GDS.tasks.find(t=>t.id==="t7b")));
+    }
+  } else {
+    if(has){
+      model.tasks = model.tasks.filter(t=>t.id!=="t7b");
+      // also remove spec edges referencing it
+      model.specEdges = (model.specEdges||[]).filter(e=>e.from!=="t7b" && e.to!=="t7b");
+    }
+  }
+}
+
+/* ============================================================
+   Focus helper
+   ============================================================ */
+function focusNode(id){
+  // select it in current view
+  const n = (activeTab==="process" ? derived.processNodes : derived.taskNodes).find(x=>x.id===id);
+  if(!n) return;
+  uiState.selected = {type:"node", obj:n};
+  if(n.kind==="state"){
+    setInspector(summarizeState(byId(model.states)[id]), "state");
+  } else {
+    setInspector(summarizeTask(byId(model.tasks)[id]), "task");
+  }
+  renderAll(true);
+}
+
+/* ============================================================
+   Rebuild derived data
+   ============================================================ */
+function rebuildDerived(){
+  buildProcessGraph();
+  deriveDependencies();
+  buildDSM();
+}
+
+function updateKPIs(){
+  document.getElementById("kpiTasks").textContent = model.tasks.filter(t=>t.kind==="task").length;
+  document.getElementById("kpiStates").textContent = model.states.filter(s=>s.domain!=="risk").length;
+  document.getElementById("kpiDeps").textContent = derived.depLinks.filter(e=>e.kind==="dep").length;
+  document.getElementById("kpiSpec").textContent = derived.depLinks.filter(e=>e.kind==="spec").length;
+}
+
+/* ============================================================
+   Main render
+   ============================================================ */
+function renderAll(skipRebuild=false){
+  buildTabs();
+  renderControls();
+  updateKPIs();
+
+  if(activeTab==="process"){
+    renderProcessView();
+  } else if(activeTab==="schedule"){
+    renderScheduleView();
+  } else if(activeTab==="transform"){
+    // show schedule graph but keep inspector in transform mode
+    renderScheduleView();
+    renderTransformView();
+  } else if(activeTab==="notes"){
+    // blank graph; show notes in inspector
+    clearSVG(); addDefs();
+    renderCanvasBar("notes");
+    renderNotesView();
+  }
+
+  // if selection exists, maintain highlights
+  if(skipRebuild){
+    applyHighlights(activeTab==="process" ? "process" : "schedule");
+  }
+
+  // small behaviour: in schedule mode, allow add-spec edge by intercepting node selection
+  if(activeTab==="schedule" && uiState.addSpecMode){
+    // annotate inspector
+    if(!uiState.addSpecFrom){
+      setInspector(`<div class="pill warn">Add‑dep mode: click a source task.</div>`, "spec");
+    } else {
+      setInspector(`<div class="pill warn">Add‑dep mode: click a target task (from already chosen source).</div>`, "spec");
+    }
+  }
+
+  // attach node click interceptor for schedule spec mode (quick and dirty)
+  if(activeTab==="schedule"){
+    for(const g of svg.querySelectorAll("g.node")){
+      g.addEventListener("click",(ev)=>{
+        const id = g.dataset.id;
+        if(uiState.addSpecMode){
+          ev.stopPropagation();
+          scheduleNodeClickedForSpec(id);
+          renderAll(true);
+        }
+      }, {capture:true});
+    }
+  }
+
+  // keep GDS dump updated if open
+  if(activeTab==="notes"){
+    const dump = document.getElementById("gdsDump");
+    if(dump) dump.textContent = JSON.stringify(model, null, 2);
+  }
+}
+
+/* ============================================================
+   Boot
+   ============================================================ */
+toggleAltLift();
+initSim();
+rebuildDerived();
+renderAll();
+
+/* initial inspector */
+setInspector(`
+  <div style="font-size:14px; font-weight:800; color: var(--text);">What you’re seeing</div>
+  <div class="sep"></div>
+  <div class="hint">
+    This demo treats project work as <b>processes</b> that transform explicit <b>states</b> (physical + informational), plus unintended <b>risks</b>.
+    The schedule view is computed as a dependency relation between tasks by observing how states flow.
+  </div>
+  <div class="sep"></div>
+  <div class="hint">
+    Try: run a few ready tasks in the process view; then derive the schedule and inspect dashed “spec” edges.
+  </div>
+`, "intro");
+
+</script>
+</body>
+</html>
