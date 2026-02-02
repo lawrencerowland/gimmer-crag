@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Project Process ↔ Task Explorer</title>
+  <link rel="stylesheet" href="../../common.css" />
+  <style>
+    :root {
+      color-scheme: light;
+    }
+
+    .container {
+      max-width: 1040px;
+      margin: 0 auto 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .intro {
+      font-size: 0.95rem;
+      color: #334155;
+      line-height: 1.5;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1rem;
+      align-items: center;
+    }
+
+    .btn.primary {
+      background: #10b981;
+      border-color: #059669;
+      color: #fff;
+    }
+
+    .btn.secondary {
+      background: #e2e8f0;
+      border-color: #cbd5e1;
+      color: #0f172a;
+    }
+
+    .toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      color: #334155;
+    }
+
+    .view-panel {
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 1rem;
+      background: #f8fafc;
+    }
+
+    .svg-wrapper {
+      background: #fff;
+      border-radius: 10px;
+      border: 1px solid #d1fae5;
+      overflow-x: auto;
+      padding: 0.5rem;
+    }
+
+    .task-list {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .card {
+      width: 18rem;
+      border-radius: 12px;
+      border: 1px solid #bae6fd;
+      background: #f0f9ff;
+      padding: 0.9rem 1rem;
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+    }
+
+    .card-title {
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+    }
+
+    .card-sub {
+      font-size: 0.75rem;
+      color: #475569;
+    }
+
+    .callout {
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      background: #f9fafb;
+      padding: 1rem;
+    }
+
+    .callout h2 {
+      font-size: 1rem;
+      margin: 0 0 0.75rem;
+    }
+
+    .callout ul {
+      margin: 0;
+      padding-left: 1.2rem;
+      color: #475569;
+      font-size: 0.9rem;
+    }
+
+    .legend {
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+
+    code {
+      background: #f1f5f9;
+      padding: 0 0.2em;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body>
+  <p><a href="../../index.html">Back to app index</a></p>
+  <main class="container">
+    <header>
+      <h1>Project Process ↔ Task Explorer</h1>
+      <p class="intro">
+        Coda implemented: operations now carry <em>typed input/output ports</em> (lists of state IDs), so precedence is induced by
+        port-wiring (outputs feeding inputs) rather than a single <code>from → to</code> arrow. Parallel branches are just multiple
+        operations sharing an input state; joins are operations whose <code>in</code> lists mention multiple prerequisite states.
+      </p>
+    </header>
+
+    <section class="controls" aria-label="View toggles">
+      <div class="controls">
+        <button class="btn" id="stateViewButton" type="button">State View</button>
+        <button class="btn" id="taskViewButton" type="button">Task View</button>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="transitiveToggle" checked />
+        Show transitive dependencies
+      </label>
+      <label class="toggle">
+        <input type="checkbox" id="reduceToggle" />
+        Reduce dependency edges
+      </label>
+    </section>
+
+    <section class="view-panel">
+      <div id="stateView" class="svg-wrapper" aria-live="polite"></div>
+      <div id="taskView" class="task-list" hidden></div>
+      <p class="legend">Diagram uses the first input/output port for drawing, but dependency logic supports all ports.</p>
+    </section>
+
+    <section class="callout">
+      <h2>Next Milestones</h2>
+      <ul>
+        <li>Let operations have multiple inputs/outputs and render ports explicitly (little sockets on boxes) while keeping the same DOM scaffold.</li>
+        <li>Enrich ops with duration/cost/risk; compute CPM/DSM views from the same operad-algebra source of truth.</li>
+        <li>Add a lax reverse mapping (tasks → plausible processes) as constraint synthesis rather than a strict functor.</li>
+      </ul>
+    </section>
+  </main>
+
+  <script>
+    class WiringOperad {
+      constructor(objects, ops) {
+        this.objects = objects;
+        this.ops = ops;
+      }
+
+      objectIds() {
+        return new Set(this.objects.map((o) => o.id));
+      }
+
+      producersIndex() {
+        const idx = new Map();
+        for (const op of this.ops) {
+          for (const stateId of op.out || []) {
+            if (!idx.has(stateId)) idx.set(stateId, []);
+            idx.get(stateId).push(op);
+          }
+        }
+        return idx;
+      }
+    }
+
+    function normalizeOps(rawOps) {
+      return rawOps.map((o) => {
+        const ins = Array.isArray(o.in) ? o.in : o.from ? [o.from] : [];
+        const outs = Array.isArray(o.out) ? o.out : o.to ? [o.to] : [];
+        return {
+          id: o.id,
+          label: o.label,
+          in: ins,
+          out: outs,
+        };
+      });
+    }
+
+    function directPredecessors(op, producersIdx) {
+      const preds = new Map();
+      for (const stateId of op.in || []) {
+        const producers = producersIdx.get(stateId) || [];
+        for (const p of producers) preds.set(p.id, p);
+      }
+      return Array.from(preds.values());
+    }
+
+    function transitivePredecessors(op, producersIdx, visited = new Set()) {
+      const preds = directPredecessors(op, producersIdx);
+      for (const p of preds) {
+        if (!visited.has(p.id)) {
+          visited.add(p.id);
+          transitivePredecessors(p, producersIdx, visited);
+        }
+      }
+      return visited;
+    }
+
+    function transitiveReduction(ops, depsMap) {
+      const reduced = new Map();
+      const succ = new Map();
+      for (const op of ops) succ.set(op.id, new Set());
+      for (const [opId, preds] of depsMap.entries()) {
+        for (const p of preds) {
+          if (!succ.has(p)) succ.set(p, new Set());
+          succ.get(p).add(opId);
+        }
+      }
+
+      function reachable(from, target, bannedEdge) {
+        const queue = [from];
+        const seen = new Set([from]);
+        while (queue.length) {
+          const current = queue.shift();
+          const nexts = succ.get(current) || new Set();
+          for (const next of nexts) {
+            if (bannedEdge && bannedEdge[0] === current && bannedEdge[1] === next) continue;
+            if (next === target) return true;
+            if (!seen.has(next)) {
+              seen.add(next);
+              queue.push(next);
+            }
+          }
+        }
+        return false;
+      }
+
+      for (const op of ops) {
+        const preds = new Set(depsMap.get(op.id) || []);
+        const keep = new Set(preds);
+        for (const p of preds) {
+          if (reachable(p, op.id, [p, op.id])) keep.delete(p);
+        }
+        reduced.set(op.id, keep);
+      }
+
+      return reduced;
+    }
+
+    function operadToTasks(operad, { transitive = true, reduce = false } = {}) {
+      const producersIdx = operad.producersIndex();
+      const deps = new Map();
+
+      for (const op of operad.ops) {
+        if (transitive) {
+          deps.set(op.id, transitivePredecessors(op, producersIdx, new Set()));
+        } else {
+          deps.set(op.id, new Set(directPredecessors(op, producersIdx).map((x) => x.id)));
+        }
+      }
+
+      const finalDeps = reduce ? transitiveReduction(operad.ops, deps) : deps;
+
+      return operad.ops.map((op) => ({
+        id: `T_${op.id}`,
+        label: op.label,
+        deps: Array.from(finalDeps.get(op.id) || []).map((id) => `T_${id}`),
+      }));
+    }
+
+    const statesData = [
+      { id: "S0", label: "Planning" },
+      { id: "S1", label: "Material Ready" },
+      { id: "S2", label: "Platform Built" },
+      { id: "S2b", label: "Lumber Hoisted" },
+      { id: "S3", label: "Shed Complete" },
+    ];
+
+    const processesRaw = [
+      { id: "P0", in: ["S0"], out: ["S1"], label: "Procure Materials" },
+      { id: "P1", in: ["S1"], out: ["S2"], label: "Assemble Cliff Platform" },
+      { id: "P1b", in: ["S1"], out: ["S2b"], label: "Hoist Lumber Up Cliff" },
+      { id: "P2", in: ["S2"], out: ["S3"], label: "Construct Shed" },
+      { id: "P2b", in: ["S2b"], out: ["S3"], label: "Bolt Shed Walls" },
+    ];
+
+    const processesData = normalizeOps(processesRaw);
+    const operad = new WiringOperad(statesData, processesData);
+
+    const stateViewButton = document.getElementById("stateViewButton");
+    const taskViewButton = document.getElementById("taskViewButton");
+    const transitiveToggle = document.getElementById("transitiveToggle");
+    const reduceToggle = document.getElementById("reduceToggle");
+    const stateView = document.getElementById("stateView");
+    const taskView = document.getElementById("taskView");
+
+    let currentView = "state";
+
+    function svgMarkup(states, processes) {
+      const width = Math.max(600, 140 + states.length * 120);
+      const height = 220;
+      const pos = new Map();
+      states.forEach((s, i) => {
+        pos.set(s.id, { x: 80 + i * 120, y: 110 });
+      });
+
+      const safeEdges = processes.filter((p) => {
+        const from = (p.in && p.in[0]) || "";
+        const to = (p.out && p.out[0]) || "";
+        return pos.has(from) && pos.has(to);
+      });
+
+      const stateNodes = states
+        .map((s) => {
+          const { x, y } = pos.get(s.id);
+          return `
+            <g transform="translate(${x},${y})">
+              <rect x="-48" y="-22" width="96" height="44" rx="8" fill="#a7f3d0" />
+              <text text-anchor="middle" dy="4" style="font-size:12px;font-weight:600;">${s.label}</text>
+              <text text-anchor="middle" dy="20" style="font-size:10px;fill:#475569;">${s.id}</text>
+            </g>
+          `;
+        })
+        .join("");
+
+      const edgeNodes = safeEdges
+        .map((p) => {
+          const from = p.in[0];
+          const to = p.out[0];
+          const a = pos.get(from);
+          const b = pos.get(to);
+          const x1 = a.x + 48;
+          const y1 = a.y;
+          const x2 = b.x - 48;
+          const y2 = b.y;
+          const mid = (x1 + x2) / 2;
+          const tweak = p.id.endsWith("b") ? 10 : 0;
+
+          return `
+            <g>
+              <path
+                d="M ${x1} ${y1 + tweak} C ${mid} ${y1 + tweak} ${mid} ${y2 + tweak} ${x2} ${y2 + tweak}"
+                stroke="#10b981"
+                stroke-width="2"
+                fill="none"
+                marker-end="url(#arrow)"
+              />
+              <text x="${mid}" y="${y1 - 18 + tweak}" text-anchor="middle" style="font-size:11px;">${p.label}</text>
+            </g>
+          `;
+        })
+        .join("");
+
+      return `
+        <svg width="100%" height="260" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+          ${stateNodes}
+          ${edgeNodes}
+          <defs>
+            <marker id="arrow" markerWidth="10" markerHeight="10" refX="10" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L9,3 z" fill="#10b981" />
+            </marker>
+          </defs>
+        </svg>
+      `;
+    }
+
+    function renderTasks() {
+      const tasks = operadToTasks(operad, {
+        transitive: transitiveToggle.checked,
+        reduce: reduceToggle.checked,
+      });
+
+      taskView.innerHTML = tasks
+        .map((task) => {
+          const depText = task.deps.length ? `Depends on: ${task.deps.join(", ")}` : "No dependencies";
+          return `
+            <article class="card">
+              <div class="card-title">${task.label}</div>
+              <div class="card-sub">${depText}</div>
+            </article>
+          `;
+        })
+        .join("");
+    }
+
+    function updateViewButtons() {
+      if (currentView === "state") {
+        stateViewButton.classList.add("primary");
+        stateViewButton.classList.remove("secondary");
+        taskViewButton.classList.remove("primary");
+        taskViewButton.classList.add("secondary");
+        stateView.hidden = false;
+        taskView.hidden = true;
+      } else {
+        taskViewButton.classList.add("primary");
+        taskViewButton.classList.remove("secondary");
+        stateViewButton.classList.remove("primary");
+        stateViewButton.classList.add("secondary");
+        stateView.hidden = true;
+        taskView.hidden = false;
+      }
+    }
+
+    function render() {
+      stateView.innerHTML = svgMarkup(statesData, processesData);
+      renderTasks();
+      updateViewButtons();
+    }
+
+    stateViewButton.addEventListener("click", () => {
+      currentView = "state";
+      updateViewButtons();
+    });
+
+    taskViewButton.addEventListener("click", () => {
+      currentView = "task";
+      renderTasks();
+      updateViewButtons();
+    });
+
+    transitiveToggle.addEventListener("change", () => {
+      if (currentView === "task") {
+        renderTasks();
+      }
+    });
+
+    reduceToggle.addEventListener("change", () => {
+      if (currentView === "task") {
+        renderTasks();
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>
