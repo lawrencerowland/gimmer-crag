@@ -1,4 +1,5 @@
 #,name,description,origin,model,tags,explainer post,notes
+1,project-process-task-explorer,Project process ↔ task explorer with typed port wiring,Assistant,HTML/JS,"processes, tasks, operad",,
 2,wbs-via-pddl,PDDL-driven explainable WBS workbench for Gimmer Crag,Assistant,HTML/JS,"pddl, planning, wbs",,
 3,half-cliff-shed-ops-console,Mountain shed ops console prototype,Assistant,HTML/JS,"ops, console, timeline",,
 4,temporal-binding-approach,Temporal binding approach dashboard,Assistant,HTML/JS,"temporal, binding, dashboard",,
@@ -9,5 +10,4 @@
 9,build-a-shed-mini-generator,Build-a-Shed Petri net reachability generator (Julia stdlib),Assistant,Julia,"petri net, reachability, shed",,
 10,petri-net-to-wbs-to-schedule-current-working-concept,Petri net to WBS to schedule current working concept,Assistant,HTML/JS,"petri net, wbs, schedule",,
 11,processes-plans-shed-halfway-up-a-cliff,Processes to plans prototype for a shed halfway up a cliff,Assistant,HTML/JS,"processes, plans, cliff-shed, prototype",,
-12,project-process-task-explorer,Project process ↔ task explorer with typed port wiring,Assistant,HTML/JS,"processes, tasks, operad",,
 12,cliff-shed-event-structure-dual-view,Cliff shed conflict-aware event structure dual view,Assistant,HTML/JS,"event structure, conflict, configurations",,
