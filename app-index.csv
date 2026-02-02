@@ -9,3 +9,4 @@
 9,build-a-shed-mini-generator,Build-a-Shed Petri net reachability generator (Julia stdlib),Assistant,Julia,"petri net, reachability, shed",,
 10,petri-net-to-wbs-to-schedule-current-working-concept,Petri net to WBS to schedule current working concept,Assistant,HTML/JS,"petri net, wbs, schedule",,
 11,processes-plans-shed-halfway-up-a-cliff,Processes to plans prototype for a shed halfway up a cliff,Assistant,HTML/JS,"processes, plans, cliff-shed, prototype",,
+12,cliff-shed-event-structure-dual-view,Cliff shed conflict-aware event structure dual view,Assistant,HTML/JS,"event structure, conflict, configurations",,
