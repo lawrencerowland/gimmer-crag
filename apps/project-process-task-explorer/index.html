@@ -314,25 +314,105 @@
     let currentView = "state";
 
     function svgMarkup(states, processes) {
-      const width = Math.max(600, 140 + states.length * 120);
-      const height = 220;
-      const pos = new Map();
-      states.forEach((s, i) => {
-        pos.set(s.id, { x: 80 + i * 120, y: 110 });
-      });
+      const stateIds = states.map((s) => s.id);
+      const exists = new Set(stateIds);
 
-      const safeEdges = processes.filter((p) => {
-        const from = (p.in && p.in[0]) || "";
-        const to = (p.out && p.out[0]) || "";
-        return pos.has(from) && pos.has(to);
-      });
+      const edges = processes
+        .map((p) => ({
+          id: p.id,
+          label: p.label,
+          from: (p.in && p.in[0]) || null,
+          to: (p.out && p.out[0]) || null,
+        }))
+        .filter((e) => e.from && e.to && exists.has(e.from) && exists.has(e.to));
+
+      const inDeg = new Map(stateIds.map((id) => [id, 0]));
+      const succ = new Map(stateIds.map((id) => [id, []]));
+      const preds = new Map(stateIds.map((id) => [id, []]));
+
+      for (const e of edges) {
+        succ.get(e.from).push(e.to);
+        preds.get(e.to).push(e.from);
+        inDeg.set(e.to, (inDeg.get(e.to) || 0) + 1);
+      }
+
+      const queue = [];
+      for (const [id, degree] of inDeg.entries()) if (degree === 0) queue.push(id);
+      queue.sort();
+
+      const topo = [];
+      while (queue.length) {
+        const id = queue.shift();
+        topo.push(id);
+        for (const t of succ.get(id) || []) {
+          inDeg.set(t, inDeg.get(t) - 1);
+          if (inDeg.get(t) === 0) {
+            queue.push(t);
+            queue.sort();
+          }
+        }
+      }
+
+      for (const id of stateIds) if (!topo.includes(id)) topo.push(id);
+
+      const level = new Map(stateIds.map((id) => [id, 0]));
+      for (const id of topo) {
+        let best = 0;
+        for (const pr of preds.get(id) || []) best = Math.max(best, (level.get(pr) || 0) + 1);
+        level.set(id, best);
+      }
+
+      const byLevel = new Map();
+      for (const s of states) {
+        const L = level.get(s.id) || 0;
+        if (!byLevel.has(L)) byLevel.set(L, []);
+        byLevel.get(L).push(s);
+      }
+
+      const levelKeys = Array.from(byLevel.keys()).sort((a, b) => a - b);
+      for (const L of levelKeys) {
+        byLevel.get(L).sort((a, b) => a.id.localeCompare(b.id));
+      }
+
+      const marginX = 70;
+      const marginY = 50;
+      const xStep = 190;
+      const yStep = 86;
+      const boxW = 110;
+      const boxH = 46;
+
+      const pos = new Map();
+      let maxRowCount = 1;
+      for (const L of levelKeys) maxRowCount = Math.max(maxRowCount, byLevel.get(L).length);
+
+      for (const L of levelKeys) {
+        const col = byLevel.get(L);
+        const x = marginX + L * xStep;
+        const colHeight = (col.length - 1) * yStep;
+        const fullHeight = (maxRowCount - 1) * yStep;
+        const y0 = marginY + (fullHeight - colHeight) / 2;
+
+        col.forEach((s, i) => {
+          pos.set(s.id, { x, y: y0 + i * yStep });
+        });
+      }
+
+      const svgW = Math.max(700, marginX + (levelKeys.length - 1) * xStep + 260);
+      const svgH = Math.max(260, marginY + (maxRowCount - 1) * yStep + 180);
+
+      const edgeKeyCount = new Map();
+      for (const e of edges) {
+        const key = `${e.from}→${e.to}`;
+        edgeKeyCount.set(key, (edgeKeyCount.get(key) || 0) + 1);
+      }
 
       const stateNodes = states
         .map((s) => {
-          const { x, y } = pos.get(s.id);
+          const p = pos.get(s.id);
+          if (!p) return "";
           return `
-            <g transform="translate(${x},${y})">
-              <rect x="-48" y="-22" width="96" height="44" rx="8" fill="#a7f3d0" />
+            <g transform="translate(${p.x},${p.y})">
+              <rect x="${-boxW / 2}" y="${-boxH / 2}" width="${boxW}" height="${boxH}" rx="10" fill="#a7f3d0" />
               <text text-anchor="middle" dy="4" style="font-size:12px;font-weight:600;">${s.label}</text>
               <text text-anchor="middle" dy="20" style="font-size:10px;fill:#475569;">${s.id}</text>
             </g>
@@ -340,36 +420,49 @@
         })
         .join("");
 
-      const edgeNodes = safeEdges
-        .map((p) => {
-          const from = p.in[0];
-          const to = p.out[0];
-          const a = pos.get(from);
-          const b = pos.get(to);
-          const x1 = a.x + 48;
+      const edgeNodes = edges
+        .map((e) => {
+          const a = pos.get(e.from);
+          const b = pos.get(e.to);
+          if (!a || !b) return "";
+
+          const x1 = a.x + boxW / 2;
           const y1 = a.y;
-          const x2 = b.x - 48;
+          const x2 = b.x - boxW / 2;
           const y2 = b.y;
-          const mid = (x1 + x2) / 2;
-          const tweak = p.id.endsWith("b") ? 10 : 0;
+
+          const same = edges.filter((x) => x.from === e.from && x.to === e.to).sort((u, v) => u.id.localeCompare(v.id));
+          const idx = same.findIndex((x) => x.id === e.id);
+          const total = edgeKeyCount.get(`${e.from}→${e.to}`) || 1;
+          const fan = total === 1 ? 0 : (idx - (total - 1) / 2) * 14;
+
+          const midX = (x1 + x2) / 2;
+          const c1x = midX;
+          const c2x = midX;
+          const c1y = y1 + fan;
+          const c2y = y2 + fan;
+
+          const labelX = midX;
+          const labelY = (y1 + y2) / 2 - 16 + fan;
 
           return `
             <g>
               <path
-                d="M ${x1} ${y1 + tweak} C ${mid} ${y1 + tweak} ${mid} ${y2 + tweak} ${x2} ${y2 + tweak}"
+                d="M ${x1} ${y1} C ${c1x} ${c1y} ${c2x} ${c2y} ${x2} ${y2}"
                 stroke="#10b981"
                 stroke-width="2"
                 fill="none"
                 marker-end="url(#arrow)"
               />
-              <text x="${mid}" y="${y1 - 18 + tweak}" text-anchor="middle" style="font-size:11px;">${p.label}</text>
+              <rect x="${labelX - 70}" y="${labelY - 12}" width="140" height="18" rx="8" fill="white" opacity="0.85" />
+              <text x="${labelX}" y="${labelY}" text-anchor="middle" style="font-size:11px;">${e.label}</text>
             </g>
           `;
         })
         .join("");
 
       return `
-        <svg width="100%" height="260" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+        <svg width="100%" height="260" viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg">
           ${stateNodes}
           ${edgeNodes}
           <defs>
