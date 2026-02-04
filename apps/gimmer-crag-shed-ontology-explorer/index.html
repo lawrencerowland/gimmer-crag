@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gimmer Crag Shed – Ontology Explorer</title>
+<link rel="stylesheet" href="../../common.css">
+<style>
+:root{--bg:#f5f7fa;--primary:#1976d2;--edge:#888;--card:#fff;--muted:#6b7280}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:#111;line-height:1.5}
+#container{padding:1rem;min-height:16rem;position:relative}
+button{background:var(--primary);color:#fff;border:none;padding:.55rem 1rem;margin:.25rem;border-radius:.6rem;font-size:1rem;cursor:pointer}
+button.secondary{background:#374151}
+button.ghost{background:transparent;color:#111;border:1px solid #ccc}
+button:active{transform:scale(.98)}
+button:focus-visible{outline:2px solid #000}
+h1{font-size:clamp(1.5rem,3vw,2.5rem);margin:.5rem 0}
+.small{color:var(--muted);font-size:.95rem}
+.toolbar{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center}
+.layout{display:grid;grid-template-columns:1fr;gap:1rem}
+@media (min-width: 900px){.layout{grid-template-columns: 1.3fr .7fr}}
+#graph{border:1px solid #ccc;border-radius:.75rem;width:100%;height:78vh;touch-action:pinch-zoom;display:none;background:#fff}
+#panel{display:none;background:var(--card);border:1px solid #ddd;border-radius:.75rem;padding:1rem;max-height:78vh;overflow:auto}
+#panel h2{margin:.25rem 0 0.5rem 0;font-size:1.15rem}
+#panel .kv{display:grid;grid-template-columns: 1fr;gap:.45rem}
+#panel .kv .k{font-weight:700}
+#panel .pill{display:inline-block;padding:.15rem .5rem;border-radius:999px;border:1px solid #ddd;background:#f8fafc;margin:.15rem .15rem 0 0;font-size:.85rem}
+#panel pre{margin:0;background:#0b1020;color:#d7e0ff;border-radius:.5rem;padding:.75rem;overflow:auto;font-size:.85rem;border:1px solid rgba(255,255,255,.08)}
+pre#ttl{background:#fff;border:1px solid #ccc;border-radius:.75rem;padding:1rem;overflow:auto;font-size:.9rem;display:none;max-height:78vh}
+.toast{position:absolute;bottom:1rem;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:.75rem 1rem;border-radius:.5rem;opacity:0;transition:opacity .3s}
+.toast.show{opacity:1}
+.tooltip{position:absolute;pointer-events:none;background:#222;color:#fff;padding:.4rem .6rem;border-radius:.4rem;font-size:.82rem;opacity:0;transition:opacity .2s;max-width:60vw;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<div id="container" class="min-h-64" data-timeout="3000">
+  <p><a href="../../index.html">Back to app index</a></p>
+  <noscript>Interactive visualisation</noscript>
+  <h1>Gimmer Crag Shed – Ontology Explorer</h1>
+  <p class="small">Graph is auto-generated from the embedded Turtle. Tap nodes for details; drag to reposition.</p>
+  <div class="toolbar">
+    <button id="viewGraph">Graph view</button>
+    <button id="viewTTL" class="secondary">Turtle view</button>
+    <button id="fit" class="ghost">Fit</button>
+    <button id="reheat" class="ghost">Re-layout</button>
+    <span id="stats" class="small"></span>
+  </div>
+
+  <div class="layout">
+    <canvas id="graph"></canvas>
+    <aside id="panel">
+      <h2 id="panelTitle">Node</h2>
+      <div id="panelBody" class="kv"></div>
+      <div style="margin-top:1rem">
+        <div class="small" style="margin-bottom:.35rem">TTL snippet</div>
+        <pre id="panelTTL"></pre>
+      </div>
+    </aside>
+  </div>
+
+  <pre id="ttl"></pre>
+  <div id="toast" class="toast"></div>
+  <div id="tip" class="tooltip"></div>
+</div>
+
+<!-- TTL data (expanded) -->
+<script id="ttl-data" type="text/turtle">@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix dc-ents: <https://w3id.org/digitalconstruction/Entities#> .
+@prefix dc-proc: <https://w3id.org/digitalconstruction/Processes#> .
+@prefix dc-life: <https://w3id.org/digitalconstruction/Lifecycle#> .
+@prefix dc-ag: <https://w3id.org/digitalconstruction/Agents#> .
+@prefix schema: <http://schema.org/> .
+@prefix geo: <http://www.w3.org/2003/01/geo/wgs84_pos#> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix sosa: <http://www.w3.org/ns/sosa/> .
+@prefix time: <http://www.w3.org/2006/time#> .
+
+### PROJECT CONTEXT
+
+<#Project_GimmerCragShed> a dc-ents:Project ;
+  dcterms:title "Gimmer Crag Shelter-Shed (Langdale)" ;
+  schema:description "A tiny emergency shelter-shed built on ledge terrain near Gimmer Crag, intended for benighted climbers and winter parties." ;
+  dc-life:hasPhase dc-life:Design , dc-life:Construction , dc-life:Operation ;
+  dc-ents:hasSite <#Site_GimmerCrag> ;
+  dc-ag:hasAgentRole <#Client_Role> , <#Contractor_Role> , <#SafetyOfficer_Role> ;
+  dc-ents:hasRequirement <#Req_Safety> , <#Req_LeaveNoTrace> , <#Req_OffGrid> , <#Req_MinimalVisualImpact> ;
+  dc-ents:hasRisk <#Risk_FallHazard> , <#Risk_Fire> , <#Risk_Weather> , <#Risk_Vandalism> , <#Risk_Waste> ;
+  dc-proc:hasTopActivity <#Construction_Activity> ;
+  dc-proc:hasTopActivity <#Ops_OperatingModel> .
+
+<#Site_GimmerCrag> a dc-ents:Site ;
+  dcterms:title "Gimmer Crag (Langdale Pikes, Lake District)" ;
+  schema:description "High crag above Great Langdale; access via Stickle Ghyll / Stickle Tarn approaches." ;
+  geo:lat "54.447"^^qudt:Scalar ;
+  geo:long "-3.1077"^^qudt:Scalar ;
+  schema:geoMidpoint "NY277069" ;
+  schema:elevation "520"^^qudt:Scalar ;
+  schema:containedInPlace "Lake District National Park" .
+
+<#AccessRoute_StickleGhyll> a dc-ents:Route ;
+  dcterms:title "Approach via Stickle Ghyll" ;
+  schema:description "Start: National Trust Stickle Barn / Dungeon Ghyll. Follow Stickle Ghyll path to Stickle Tarn then traverse to Gimmer." ;
+  schema:distance "7"^^qudt:Scalar ;
+  schema:timeRequired "PT4H" ;
+  schema:potentialAction "Turn back if conditions worsen" .
+
+<#AccessRoute_Mickleden> a dc-ents:Route ;
+  dcterms:title "Approach via Mickleden" ;
+  schema:description "Alternate access from Old Dungeon Ghyll car park along Mickleden bridleway then up towards Loft Crag." ;
+  schema:startDate "NY286061" .
+
+<#LandscapeSensitivity> a dc-ents:EnvironmentalContext ;
+  dcterms:title "High-visibility upland landscape" ;
+  schema:description "Design aims to minimize visual intrusion and avoid disturbance; construction constrained by weather windows." .
+
+### BUILDING USE & OCCUPANCY
+
+<#Use_EmergencyShelter> a dc-ents:BuildingUse ;
+  dcterms:title "Emergency mountain shelter" ;
+  schema:occupancyType "Benighted climbers" ;
+  schema:description "Short-duration refuge: warmth, windbreak, basic first aid & comms support; not a staffed facility." .
+
+<#OccupantProfile_BenightedClimbers> a dc-ents:OccupantProfile ;
+  dcterms:title "Benighted climbers" ;
+  schema:description "Cold, wet, exhausted; priorities: shelter, warmth, triage, route re-plan, call-out threshold." ;
+  schema:additionalProperty "Typically arrives after dusk / in poor visibility" .
+
+<#OccupantBehavior_EmergencyProtocol> a dc-ents:Procedure ;
+  dcterms:title "Emergency protocol" ;
+  schema:description "Keep warm, assess injuries, send 999/112 for Police→Mountain Rescue if needed; use six whistle/torch blasts if no signal." .
+
+### EQUIPMENT & AMENITIES
+
+<#Amenity_BenchBunks> a dc-ents:Amenity ;
+  dcterms:title "Bench-bunks" ;
+  schema:description "Two narrow bench-bunks for four people (tight)." .
+
+<#Amenity_LogBook> a dc-ents:Amenity ;
+  dcterms:title "Shelter log-book" ;
+  schema:description "Record visits, defects, incidents and weather." .
+
+<#Amenity_FirstAid> a dc-ents:Amenity ;
+  dcterms:title "First aid kit (basic)" ;
+  schema:description "Bleed control, triangular bandage, foil blankets, blister care." .
+
+<#Amenity_FireSafety> a dc-ents:Amenity ;
+  dcterms:title "Fire safety" ;
+  schema:description "No open fire; CO alarm; fire blanket; signage." .
+
+<#Amenity_WasteKit> a dc-ents:Amenity ;
+  dcterms:title "Human-waste guidance" ;
+  schema:description "No toilet; guidance to pack out waste or bury away from water; spare bags." .
+
+<#Amenity_Comms> a dc-ents:Amenity ;
+  dcterms:title "Emergency comms" ;
+  schema:description "Signal guide; QR to advice; whistle on lanyard; reflective marker for torch." .
+
+### ENERGY, WATER, ENVIRONMENTAL SERVICES
+
+<#EnergySystem_SolarLight> a dc-ents:EnergySystem ;
+  dcterms:title "Off-grid solar + LED" ;
+  qudt:powerRating "10"^^qudt:Scalar ;
+  schema:description "Small PV panel charging battery for interior LED and USB emergency charge (low duty cycle)." .
+
+<#Sensor_TempHum> a sosa:Sensor ;
+  dcterms:title "Temperature & humidity sensor" ;
+  schema:manufacturer "DHT22-class" ;
+  schema:description "Records internal temperature/humidity; helps spot condensation/mould risks." .
+
+<#Sensor_CO> a sosa:Sensor ;
+  dcterms:title "Carbon monoxide alarm" ;
+  schema:description "Battery-powered CO alarm; triggers if users bring stoves inside." .
+
+<#WaterPolicy> a dc-ents:Policy ;
+  dcterms:title "Water handling" ;
+  schema:description "No plumbed water; signage to treat stream water; avoid contaminating catchments." .
+
+### STRUCTURE & MATERIALS
+
+<#Building_Shed> a dc-ents:Building ;
+  dcterms:title "Gimmer Emergency Shelter" ;
+  schema:description "Emergency shelter-shed for benighted climbers caught out on Gimmer Crag. Minimal form; robust envelope; off-grid light." ;
+  dc-ents:isLocatedAt <#Site_GimmerCrag> ;
+  dc-ents:hasUse <#Use_EmergencyShelter> ;
+  schema:capacity "4"^^qudt:Scalar ;
+  dc-ents:hasAmenity <#Amenity_BenchBunks> , <#Amenity_LogBook> , <#Amenity_FirstAid> , <#Amenity_FireSafety> , <#Amenity_WasteKit> , <#Amenity_Comms> ;
+  dc-ents:hasEnergySystem <#EnergySystem_SolarLight> ;
+  dc-ents:hasSensor <#Sensor_TempHum> , <#Sensor_CO> ;
+  dc-ents:hasMaterial <#Mat_TimberStud> , <#Mat_CorrSteelRoof> , <#Mat_PlywoodSheathing> , <#Mat_BreathableMembrane> , <#Mat_MarinePaint> , <#Mat_GroundScrews> ;
+  dc-ents:hasComponent <#Component_Foundation> , <#Component_Frame> , <#Component_Roof> , <#Component_Door> , <#Component_Ventilation> ;
+  dc-ents:hasSignage <#Sign_BothyCodeLite> , <#Sign_EmergencyProtocol> , <#Sign_FireNoStove> , <#Sign_Waste> .
+
+<#Component_Foundation> a dc-ents:BuildingElement ; dcterms:title "Foundation" ; schema:description "Ground screws into stable ground/rock pockets with bracket to sole plate." .
+<#Component_Frame> a dc-ents:BuildingElement ; dcterms:title "Timber frame" ; schema:description "Stud wall + bracing; designed for high wind." .
+<#Component_Roof> a dc-ents:BuildingElement ; dcterms:title "Roof" ; schema:description "Simple mono-pitch; corrugated steel; drip edge; snow load considered." .
+<#Component_Door> a dc-ents:BuildingElement ; dcterms:title "Door" ; schema:description "Outward opening; strong hinges; latch usable with gloves." .
+<#Component_Ventilation> a dc-ents:BuildingElement ; dcterms:title "Ventilation" ; schema:description "Trickle vents + high vent; reduces condensation." .
+
+<#Mat_TimberStud> a dc-ents:BuildingMaterial ; dcterms:title "Pressure-treated timber stud" ; schema:description "Structural studs and plates." .
+<#Mat_PlywoodSheathing> a dc-ents:BuildingMaterial ; dcterms:title "Plywood sheathing" ; schema:description "Shear panel + interior lining." .
+<#Mat_BreathableMembrane> a dc-ents:BuildingMaterial ; dcterms:title "Breathable membrane" ; schema:description "Wind tightness + moisture management." .
+<#Mat_CorrSteelRoof> a dc-ents:BuildingMaterial ; dcterms:title "Corrugated steel roofing sheet" ; schema:description "Durable outer skin." .
+<#Mat_MarinePaint> a dc-ents:BuildingMaterial ; dcterms:title "Low-gloss marine paint" ; schema:description "Muted tone to reduce visual impact." .
+<#Mat_GroundScrews> a dc-ents:BuildingMaterial ; dcterms:title "Ground screws" ; schema:description "Low excavation foundation option." .
+
+### SIGNAGE & COMMUNICATION
+
+<#Sign_BothyCodeLite> a dc-ents:InformationItem ;
+  dcterms:title "Shelter Code" ;
+  schema:description "Respect others; pack out rubbish; no graffiti; leave tidy; close doors; do not rely on rescue." .
+
+<#Sign_EmergencyProtocol> a dc-ents:InformationItem ;
+  dcterms:title "Emergency protocol" ;
+  schema:description "999/112 ask for Police then Mountain Rescue; keep warm; six blasts/flash per minute if no signal." .
+
+<#Sign_FireNoStove> a dc-ents:InformationItem ;
+  dcterms:title "Fire policy" ;
+  schema:description "No open fire; avoid stoves inside; CO alarm present." .
+
+<#Sign_Waste> a dc-ents:InformationItem ;
+  dcterms:title "Waste & sanitation" ;
+  schema:description "No toilet; pack out waste; keep away from water; leave no trace." .
+
+### RISKS & CONTROLS
+
+<#Risk_FallHazard> a dc-ents:Risk ; dcterms:title "Fall hazard" ; schema:description "Cliff-side work + access; risk to builders and occupants" ; dc-ents:hasControl <#Control_Ropes> , <#Control_Anchors> , <#Control_EdgeProtection> .
+<#Risk_Fire> a dc-ents:Risk ; dcterms:title "Fire / CO" ; schema:description "Stoves, ignition, CO in small enclosure" ; dc-ents:hasControl <#Control_NoFire> , <#Control_COAlarm> .
+<#Risk_Weather> a dc-ents:Risk ; dcterms:title "Weather" ; schema:description "Wind, rain, snow; sudden visibility loss" ; dc-ents:hasControl <#Control_WeatherWindows> , <#Control_ShelterEnvelope> .
+<#Risk_Vandalism> a dc-ents:Risk ; dcterms:title "Vandalism" ; schema:description "Graffiti, damage, theft" ; dc-ents:hasControl <#Control_RobustDoor> , <#Control_LogBook> .
+<#Risk_Waste> a dc-ents:Risk ; dcterms:title "Waste contamination" ; schema:description "Human waste and rubbish pollute environment" ; dc-ents:hasControl <#Control_WastePolicy> .
+
+<#Control_Ropes> a dc-ents:Control ; dcterms:title "Rope access" ; schema:description "Roped access + trained personnel for cliff-side works." .
+<#Control_Anchors> a dc-ents:Control ; dcterms:title "Anchors" ; schema:description "Temporary anchors / bolts during build." .
+<#Control_EdgeProtection> a dc-ents:Control ; dcterms:title "Edge protection" ; schema:description "Barrier lines and exclusion zones where possible." .
+<#Control_NoFire> a dc-ents:Control ; dcterms:title "No open fire" ; schema:description "Design excludes hearth; signage." .
+<#Control_COAlarm> a dc-ents:Control ; dcterms:title "CO alarm" ; schema:description "Battery CO alarm; replacement schedule." .
+<#Control_WeatherWindows> a dc-ents:Control ; dcterms:title "Weather windows" ; schema:description "Work only in stable forecast; stop-work triggers." .
+<#Control_ShelterEnvelope> a dc-ents:Control ; dcterms:title "Robust envelope" ; schema:description "Wind-tight membrane; roof fixings; ventilation" .
+<#Control_RobustDoor> a dc-ents:Control ; dcterms:title "Robust door" ; schema:description "Latch, hinges, resistant to wind and tampering." .
+<#Control_LogBook> a dc-ents:Control ; dcterms:title "Log-book" ; schema:description "Crowd-sourced defect reporting." .
+<#Control_WastePolicy> a dc-ents:Control ; dcterms:title "Waste guidance" ; schema:description "Signage + bags; education." .
+
+### REQUIREMENTS
+
+<#Req_Safety> a dc-ents:Requirement ; dcterms:title "Safety case" ; schema:description "Do no harm: safe access and safe occupancy." .
+<#Req_LeaveNoTrace> a dc-ents:Requirement ; dcterms:title "Leave no trace" ; schema:description "Minimize waste, disturbance, visual impact." .
+<#Req_OffGrid> a dc-ents:Requirement ; dcterms:title "Off-grid" ; schema:description "No mains; limited energy; maintainable." .
+<#Req_MinimalVisualImpact> a dc-ents:Requirement ; dcterms:title "Minimal visual impact" ; schema:description "Muted colours; small footprint." .
+
+### ACTIVITIES: CONSTRUCTION & OPS
+
+<#Construction_Activity> a dc-proc:Activity ;
+  dcterms:title "Construct shelter" ;
+  dc-proc:hasSubActivity <#A_SiteSurvey> , <#A_Design> , <#A_Permitting> , <#A_Logistics> , <#A_RopeAccessSetup> , <#A_Foundation> , <#A_Frame> , <#A_Envelope> , <#A_Interior> , <#A_EnergyInstall> , <#A_SignageInstall> , <#A_Commissioning> ;
+  dc-proc:hasTarget <#Building_Shed> ;
+  dc-proc:followedBy <#Ops_OperatingModel> .
+
+<#A_SiteSurvey> a dc-proc:Activity ; dcterms:title "Site survey" ; schema:description "Assess ledge stability, drainage, anchor points, line-of-sight for solar." .
+<#A_Design> a dc-proc:Activity ; dcterms:title "Design" ; schema:description "Small envelope; wind load; condensation; door orientation; minimal impact." .
+<#A_Permitting> a dc-proc:Activity ; dcterms:title "Permitting" ; schema:description "Landowner permissions; National Park constraints; method statements." .
+<#A_Logistics> a dc-proc:Activity ; dcterms:title "Logistics" ; schema:description "Packable components; carry-in constraints; staging at Stickle Tarn area." .
+<#A_RopeAccessSetup> a dc-proc:Activity ; dcterms:title "Rope access setup" ; schema:description "Install temporary anchors and exclusion zones." .
+<#A_Foundation> a dc-proc:Activity ; dcterms:title "Foundations" ; schema:description "Ground screws and brackets; minimal excavation." .
+<#A_Frame> a dc-proc:Activity ; dcterms:title "Frame" ; schema:description "Studs, bracing, sheathing." .
+<#A_Envelope> a dc-proc:Activity ; dcterms:title "Envelope" ; schema:description "Membrane, roof sheets, flashing, ventilation." .
+<#A_Interior> a dc-proc:Activity ; dcterms:title "Interior" ; schema:description "Bench-bunks; hooks; floor; logbook." .
+<#A_EnergyInstall> a dc-proc:Activity ; dcterms:title "Energy + sensors" ; schema:description "PV, LED, USB, temp/hum, CO alarm." .
+<#A_SignageInstall> a dc-proc:Activity ; dcterms:title "Signage" ; schema:description "Code, emergency protocol, waste guidance." .
+<#A_Commissioning> a dc-proc:Activity ; dcterms:title "Commissioning" ; schema:description "Inspect fixings; water ingress test; record as-built notes." .
+
+<#Ops_OperatingModel> a dc-proc:Activity ;
+  dcterms:title "Operate shelter" ;
+  schema:description "Unstaffed operation with periodic inspections and community defect reporting." ;
+  dc-proc:hasSubActivity <#Ops_MonthlyCheck> , <#Ops_AnnualMaintenance> , <#Ops_PostStormInspection> , <#Ops_SupplyRestock> , <#Ops_DataReview> .
+
+<#Ops_MonthlyCheck> a dc-proc:Activity ; dcterms:title "Monthly check" ; schema:description "Quick visit when possible: door, roof, litter." .
+<#Ops_AnnualMaintenance> a dc-proc:Activity ; dcterms:title "Annual maintenance" ; schema:description "Full inspection: fixings, paint, ventilation, battery health." .
+<#Ops_PostStormInspection> a dc-proc:Activity ; dcterms:title "Post-storm inspection" ; schema:description "After severe wind/snow events." .
+<#Ops_SupplyRestock> a dc-proc:Activity ; dcterms:title "Supply restock" ; schema:description "Replace logbook, bags, first aid consumables." .
+<#Ops_DataReview> a dc-proc:Activity ; dcterms:title "Data review" ; schema:description "Review sensor data for condensation or misuse signals." .
+
+### AGENTS & ROLES
+
+<#Client_Role> a dc-ag:ClientRole ; schema:name "Landowner / steward" ; schema:description "E.g., National Trust (Langdales) or other owner." .
+<#Contractor_Role> a dc-ag:ContractorRole ; schema:name "Mountain construction contractor" ; schema:description "Rope access + timber build." .
+<#SafetyOfficer_Role> a dc-ag:Role ; schema:name "Safety officer" ; schema:description "Defines stop-work triggers and rescue plan." .
+
+</script>
+
+<script defer>(function(){
+const toast=(m)=>{const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);} ;
+const fallback=(e)=>{console.error(e);toast('⚠️ '+String(e));document.getElementById('graph').style.display='none';document.getElementById('ttl').style.display='block';window.__canvasStatus='fallback';};
+try{
+  const ttl=document.getElementById('ttl-data').textContent.trim();
+  const ttlEl=document.getElementById('ttl');ttlEl.textContent=ttl;
+  const graphCanvas=document.getElementById('graph');
+  const ctx=graphCanvas.getContext('2d');
+  const tip=document.getElementById('tip');
+  const panel=document.getElementById('panel');
+  const panelTitle=document.getElementById('panelTitle');
+  const panelBody=document.getElementById('panelBody');
+  const panelTTL=document.getElementById('panelTTL');
+  const stats=document.getElementById('stats');
+
+  let nodes=[],edges=[];
+
+  function normId(x){return String(x||'').trim();}
+  function shortLabel(title){
+    if(!title) return '';
+    return title
+      .replace(/^Project_/, 'Proj_')
+      .replace(/^Building_/, 'Bld_')
+      .replace(/^Component_/, 'Cmp_')
+      .replace(/^Amenity_/, 'Amn_')
+      .replace(/^AccessRoute_/, 'Route_')
+      .replace(/^OccupantBehavior_/, 'Beh_')
+      .replace(/^OccupantProfile_/, 'Occ_')
+      .slice(0,12);
+  }
+
+  // Extract compact TTL snippet for a node (best-effort: find block starting at <#id> and include next ~14 lines)
+  function ttlSnippet(nodeId){
+    const id=nodeId.replace(/[<>]/g,'');
+    const lines=ttl.split(/\n/);
+    const idx=lines.findIndex(l=>l.trim().startsWith(id));
+    if(idx<0) return '';
+    const out=[];
+    for(let i=idx;i<Math.min(lines.length,idx+16);i++){
+      out.push(lines[i]);
+      if(lines[i].trim().endsWith('.')) break;
+    }
+    return out.join('\n').trim();
+  }
+
+  // --- Lightweight TTL parser: nodes, edges, select literals ---
+  (function parse(){
+    const lines=ttl.split(/\n/);
+    let current=null;
+    const lit={}; // id -> {title,desc,other[]}
+
+    function ensure(id){
+      id=normId(id);
+      if(!id) return null;
+      let n=nodes.find(x=>x.id===id);
+      if(!n){
+        const title=(id.startsWith('<#')&&id.endsWith('>'))?id.slice(2,-1):id;
+        n={id, title};
+        nodes.push(n);
+      }
+      return n;
+    }
+
+    for(const raw of lines){
+      const l=raw.trim();
+      if(!l||l.startsWith('@')||l.startsWith('#')) continue;
+      if(l.startsWith('<#')){
+        const m=l.match(/<#[^>]+>/);
+        if(m){ current=m[0]; ensure(current); }
+      }
+
+      const ids=[...l.matchAll(/<#[^>]+>/g)].map(m=>m[0]);
+      for(const obj of ids){
+        if(obj!==current){ ensure(obj); if(current) edges.push({s:current,t:obj}); }
+      }
+
+      // extract literals for a few predicates
+      const titleM=l.match(/dcterms:title\s+"([^"]+)"/);
+      if(titleM && current){ (lit[current]??=( {} )).dcterms_title=titleM[1]; }
+
+      const descM=l.match(/schema:description\s+"([^"]+)"/);
+      if(descM && current){ (lit[current]??=( {} )).schema_description=descM[1]; }
+
+      const occM=l.match(/schema:occupancyType\s+"([^"]+)"/);
+      if(occM && current){ (lit[current]??=( {} )).schema_occupancyType=occM[1]; }
+
+      const capM=l.match(/schema:capacity\s+"([^"]+)"/);
+      if(capM && current){ (lit[current]??=( {} )).schema_capacity=capM[1]; }
+
+      const geoM=l.match(/schema:geoMidpoint\s+"([^"]+)"/);
+      if(geoM && current){ (lit[current]??=( {} )).schema_geoMidpoint=geoM[1]; }
+
+      const elevM=l.match(/schema:elevation\s+"([^"]+)"/);
+      if(elevM && current){ (lit[current]??=( {} )).schema_elevation=elevM[1]; }
+
+      const manufM=l.match(/schema:manufacturer\s+"([^"]+)"/);
+      if(manufM && current){ (lit[current]??=( {} )).schema_manufacturer=manufM[1]; }
+
+      const powerM=l.match(/qudt:powerRating\s+"([^"]+)"/);
+      if(powerM && current){ (lit[current]??=( {} )).qudt_powerRating=powerM[1]; }
+    }
+
+    // apply literals to nodes
+    for(const n of nodes){
+      const L=lit[n.id];
+      if(!L) continue;
+      if(L.dcterms_title) n.label=L.dcterms_title;
+      if(L.schema_description) n.desc=L.schema_description;
+      // keep other attrs
+      n.meta=L;
+    }
+
+    // dedupe edges and prune null
+    edges = edges.filter(e=>e.s && e.t);
+    edges = Array.from(new Map(edges.map(e=>[`${e.s}→${e.t}`, e])).values());
+
+  })();
+
+  // --- Layout / rendering ---
+  const primary=getComputedStyle(document.documentElement).getPropertyValue('--primary').trim()||'#1976d2';
+
+  let view={
+    scale:1,
+    ox:0,
+    oy:0,
+  };
+
+  function fit(){
+    if(!nodes.length) return;
+    const w=graphCanvas.width,h=graphCanvas.height;
+    const xs=nodes.map(n=>n.x), ys=nodes.map(n=>n.y);
+    const minX=Math.min(...xs), maxX=Math.max(...xs);
+    const minY=Math.min(...ys), maxY=Math.max(...ys);
+    const pad=60;
+    const bw=Math.max(1, (maxX-minX)+pad*2);
+    const bh=Math.max(1, (maxY-minY)+pad*2);
+    const s=Math.min(w/bw, h/bh);
+    view.scale=Math.max(0.4, Math.min(2.5, s));
+    view.ox = (w/2) - ((minX+maxX)/2)*view.scale;
+    view.oy = (h/2) - ((minY+maxY)/2)*view.scale;
+    render();
+  }
+
+  function worldToScreen(x,y){
+    return {x:x*view.scale+view.ox, y:y*view.scale+view.oy};
+  }
+  function screenToWorld(x,y){
+    return {x:(x-view.ox)/view.scale, y:(y-view.oy)/view.scale};
+  }
+
+  function simulate(iter=500){
+    const w=graphCanvas.width, h=graphCanvas.height;
+    nodes.forEach(n=>{ n.x=Math.random()*w; n.y=Math.random()*h; n.vx=0; n.vy=0; });
+    const k=0.09, rep=9000;
+    for(let it=0; it<iter; it++){
+      for(let i=0;i<nodes.length;i++){
+        for(let j=i+1;j<nodes.length;j++){
+          const a=nodes[i], b=nodes[j];
+          const dx=b.x-a.x, dy=b.y-a.y;
+          const dist=Math.hypot(dx,dy) || 0.01;
+          const force=rep/(dist*dist);
+          const fx=force*dx/dist, fy=force*dy/dist;
+          a.vx -= fx; a.vy -= fy;
+          b.vx += fx; b.vy += fy;
+        }
+      }
+      for(const e of edges){
+        const a=nodes.find(n=>n.id===e.s); const b=nodes.find(n=>n.id===e.t);
+        if(!a||!b) continue;
+        const dx=b.x-a.x, dy=b.y-a.y;
+        const dist=Math.hypot(dx,dy) || 0.01;
+        const force=k*(dist-150);
+        const fx=force*dx/dist, fy=force*dy/dist;
+        a.vx += fx; a.vy += fy;
+        b.vx -= fx; b.vy -= fy;
+      }
+      for(const n of nodes){
+        n.x += n.vx*0.018;
+        n.y += n.vy*0.018;
+        n.vx *= 0.62;
+        n.vy *= 0.62;
+        n.x = Math.max(30, Math.min(w-30, n.x));
+        n.y = Math.max(30, Math.min(h-30, n.y));
+      }
+    }
+  }
+
+  function drawRoundedLabel(text,x,y){
+    if(!text) return;
+    ctx.font='11px sans-serif';
+    const padX=6,padY=3;
+    const w=ctx.measureText(text).width + padX*2;
+    const h=14;
+    const rx=8;
+    ctx.fillStyle='rgba(255,255,255,0.85)';
+    ctx.strokeStyle='rgba(0,0,0,0.06)';
+    ctx.beginPath();
+    ctx.moveTo(x-w/2+rx,y+20);
+    ctx.arcTo(x+w/2,y+20,x+w/2,y+20+h,rx);
+    ctx.arcTo(x+w/2,y+20+h,x-w/2,y+20+h,rx);
+    ctx.arcTo(x-w/2,y+20+h,x-w/2,y+20,rx);
+    ctx.arcTo(x-w/2,y+20,x+w/2,y+20,rx);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle='#111';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.fillText(text,x,y+20+h/2);
+  }
+
+  function render(){
+    ctx.clearRect(0,0,graphCanvas.width,graphCanvas.height);
+    ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--edge').trim()||'#888';
+    ctx.lineWidth=1.1;
+
+    // edges
+    for(const e of edges){
+      const a=nodes.find(n=>n.id===e.s); const b=nodes.find(n=>n.id===e.t);
+      if(!a||!b) continue;
+      const as=worldToScreen(a.x,a.y), bs=worldToScreen(b.x,b.y);
+      ctx.beginPath();
+      ctx.moveTo(as.x,as.y);
+      ctx.lineTo(bs.x,bs.y);
+      ctx.stroke();
+    }
+
+    // nodes
+    for(const n of nodes){
+      const p=worldToScreen(n.x,n.y);
+      ctx.fillStyle=primary;
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,19,0,Math.PI*2);
+      ctx.fill();
+      ctx.strokeStyle='#fff';
+      ctx.lineWidth=2;
+      ctx.stroke();
+
+      // inner glyph
+      ctx.fillStyle='#fff';
+      ctx.font='11px sans-serif';
+      ctx.textAlign='center';
+      ctx.textBaseline='middle';
+      const txt=shortLabel(n.label||n.title);
+      ctx.fillText(txt,p.x,p.y);
+
+      // optional label
+      drawRoundedLabel((n.label||'').slice(0,32), p.x, p.y);
+    }
+  }
+
+  function resize(){
+    const r=graphCanvas.getBoundingClientRect();
+    graphCanvas.width=Math.max(320, Math.floor(r.width));
+    graphCanvas.height=Math.max(240, Math.floor(r.height));
+    render();
+  }
+  window.addEventListener('resize', resize);
+
+  function showPanel(n){
+    panel.style.display='block';
+    panelTitle.textContent = n.label || n.title;
+    panelBody.innerHTML='';
+
+    const rows=[];
+    if(n.desc) rows.push(['Description', n.desc]);
+
+    const meta=n.meta||{};
+    const pushMeta=(k, label)=>{ if(meta[k]) rows.push([label, meta[k]]); };
+    pushMeta('schema_occupancyType', 'Occupancy');
+    pushMeta('schema_capacity', 'Capacity');
+    pushMeta('schema_geoMidpoint', 'Grid ref');
+    pushMeta('schema_elevation', 'Elevation (m)');
+    pushMeta('schema_manufacturer', 'Manufacturer');
+    pushMeta('qudt_powerRating', 'Power rating');
+
+    // edges
+    const out = edges.filter(e=>e.s===n.id).map(e=>nodes.find(x=>x.id===e.t)).filter(Boolean);
+    const inn = edges.filter(e=>e.t===n.id).map(e=>nodes.find(x=>x.id===e.s)).filter(Boolean);
+
+    const mkList=(arr)=>arr.length?arr.map(x=>`<span class="pill">${(x.label||x.title)}</span>`).join(' '):'<span class="small">None</span>';
+
+    rows.push(['Outgoing', mkList(out)]);
+    rows.push(['Incoming', mkList(inn)]);
+
+    for(const [k,v] of rows){
+      const wrap=document.createElement('div');
+      wrap.innerHTML = `<div class="k">${k}</div><div>${v}</div>`;
+      panelBody.appendChild(wrap);
+    }
+
+    const sn=ttlSnippet(n.id);
+    panelTTL.textContent = sn || '(snippet not found)';
+  }
+
+  // hit testing
+  function hitNode(sx,sy){
+    const w=screenToWorld(sx,sy);
+    // search closest
+    let best=null, bestD=1e9;
+    for(const n of nodes){
+      const dx=n.x-w.x, dy=n.y-w.y;
+      const d=Math.hypot(dx,dy);
+      if(d< (22/view.scale) && d<bestD){ best=n; bestD=d; }
+    }
+    return best;
+  }
+
+  // interactions
+  let dragNode=null, dragPan=false, panStart=null, nodeOff=null;
+
+  graphCanvas.addEventListener('mousedown',(e)=>{
+    const r=graphCanvas.getBoundingClientRect();
+    const x=e.clientX-r.left, y=e.clientY-r.top;
+    const n=hitNode(x,y);
+    if(n){
+      dragNode=n;
+      const w=screenToWorld(x,y);
+      nodeOff={dx:n.x-w.x, dy:n.y-w.y};
+      showPanel(n);
+    }else{
+      dragPan=true;
+      panStart={x, y, ox:view.ox, oy:view.oy};
+    }
+  });
+
+  window.addEventListener('mousemove',(e)=>{
+    const r=graphCanvas.getBoundingClientRect();
+    const x=e.clientX-r.left, y=e.clientY-r.top;
+    if(dragNode){
+      const w=screenToWorld(x,y);
+      dragNode.x=w.x + nodeOff.dx;
+      dragNode.y=w.y + nodeOff.dy;
+      render();
+      return;
+    }
+    if(dragPan && panStart){
+      view.ox = panStart.ox + (x-panStart.x);
+      view.oy = panStart.oy + (y-panStart.y);
+      render();
+      return;
+    }
+
+    const n=hitNode(x,y);
+    if(n){
+      tip.style.left=`${e.clientX+12}px`;
+      tip.style.top=`${e.clientY+12}px`;
+      tip.textContent = (n.desc?`${n.label||n.title}\n${n.desc}`:(n.label||n.title));
+      tip.style.opacity=1;
+    }else{
+      tip.style.opacity=0;
+    }
+  });
+
+  window.addEventListener('mouseup',()=>{ dragNode=null; dragPan=false; panStart=null; nodeOff=null; });
+
+  graphCanvas.addEventListener('wheel',(e)=>{
+    e.preventDefault();
+    const r=graphCanvas.getBoundingClientRect();
+    const x=e.clientX-r.left, y=e.clientY-r.top;
+    const before=screenToWorld(x,y);
+    const dir = Math.sign(e.deltaY);
+    const factor = dir>0 ? 0.92 : 1.08;
+    const next = Math.max(0.35, Math.min(3.2, view.scale*factor));
+    view.scale = next;
+    const after=screenToWorld(x,y);
+    // adjust pan so the point under cursor stays fixed
+    view.ox += (after.x-before.x)*view.scale;
+    view.oy += (after.y-before.y)*view.scale;
+    render();
+  }, {passive:false});
+
+  // view buttons
+  function showGraph(){
+    ttlEl.style.display='none';
+    graphCanvas.style.display='block';
+    panel.style.display='block';
+    resize();
+    simulate();
+    view.scale=1; view.ox=0; view.oy=0;
+    fit();
+    render();
+    stats.textContent=`${nodes.length} nodes · ${edges.length} edges`;
+  }
+  function showTTL(){
+    graphCanvas.style.display='none';
+    panel.style.display='none';
+    ttlEl.style.display='block';
+    stats.textContent='';
+  }
+
+  document.getElementById('viewGraph').addEventListener('click', showGraph);
+  document.getElementById('viewTTL').addEventListener('click', showTTL);
+  document.getElementById('fit').addEventListener('click', ()=>{fit();});
+  document.getElementById('reheat').addEventListener('click', ()=>{simulate();fit();});
+
+  // --- TESTS (basic) ---
+  (function tests(){
+    const must=(cond,msg)=>{ if(!cond) throw new Error('TEST FAIL: '+msg); };
+    const has=(id)=>nodes.some(n=>n.id===id);
+    must(has('<#Project_GimmerCragShed>'),'Project node exists');
+    must(has('<#Building_Shed>'),'Building node exists');
+    must(has('<#Use_EmergencyShelter>'),'Use node exists');
+    must(edges.some(e=>e.s==='<#Building_Shed>' && e.t==='<#Use_EmergencyShelter>'),'Building → Use edge exists');
+    const b=nodes.find(n=>n.id==='<#Building_Shed>');
+    must(!!(b && (b.desc||b.label)),'Building has description/label');
+  })();
+
+  // readiness + watchdog
+  window.__canvasStatus='ready';
+  document.getElementById('container').dataset.smoke='ok';
+  let waited=0;
+  const watchdog=setInterval(()=>{
+    waited+=500;
+    if(document.querySelector('#container[data-smoke="ok"]')){ clearInterval(watchdog); }
+    else if(waited>=Number(document.getElementById('container').dataset.timeout||3000)){
+      clearInterval(watchdog);
+      fallback('timeout');
+    }
+  },500);
+
+}catch(e){fallback(e);}
+})();</script>
+</body>
+</html>
