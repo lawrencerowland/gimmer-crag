@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Project Change Requests as Sheafification — One-File Demo</title>
+  <link rel="stylesheet" href="../../common.css" />
+  <style>
+    :root { --bg:#0b0e12; --fg:#e7ebf0; --muted:#91a0b5; --accent:#7fd1ff; --good:#7dffa7; --bad:#ff8a8a; --warn:#ffd166; }
+    html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:14px/1.35 system-ui,Segoe UI,Roboto,Helvetica,Arial}
+    header{padding:16px 20px;border-bottom:1px solid #1c2430;background:linear-gradient(180deg,#0e131a,#0b0e12)}
+    h1{font-size:18px;margin:0}
+    .wrap{display:grid;grid-template-columns:360px 1fr;gap:16px;height:calc(100% - 66px);padding:16px}
+    .panel{background:#0e131a;border:1px solid #1c2430;border-radius:10px;overflow:auto}
+    .panel h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:12px 12px 8px}
+    .controls{display:flex;flex-direction:column;gap:10px;padding:12px}
+    .controls button,.controls select{background:#121821;border:1px solid #223041;color:var(--fg);padding:8px 10px;border-radius:8px;cursor:pointer}
+    .controls button:hover{border-color:#33465f}
+    .kv{display:grid;grid-template-columns:1fr auto;gap:8px}
+    .badge{display:inline-block;padding:2px 6px;border-radius:999px;font-size:12px}
+    .ok{background:color-mix(in srgb, var(--good) 25%, transparent);border:1px solid var(--good);color:var(--good)}
+    .fail{background:color-mix(in srgb, var(--bad) 20%, transparent);border:1px solid var(--bad);color:var(--bad)}
+    .note{color:var(--muted);font-size:12px}
+    .legend{display:flex;gap:8px;flex-wrap:wrap;padding:8px 12px;border-top:1px solid #1c2430}
+    .legend span{display:inline-flex;align-items:center;gap:6px}
+    .chip{width:12px;height:12px;border-radius:3px;display:inline-block}
+    svg{width:100%;height:100%;min-height:560px;background:#0b0e12}
+    .open{fill-opacity:.12;stroke-width:2}
+    .open.base{stroke:#556b8c;fill:#2a3650}
+    .open.ref{stroke:#5b8f6b;fill:#234033}
+    .edge{stroke:#3a465a;stroke-width:1.5}
+    .node{fill:#0f1420;stroke:#3b516e;stroke-width:1.5}
+    .node text{fill:#cfe0ff;font-size:12px}
+    .overlap{stroke-dasharray:4 3}
+    .pill{font-size:11px;fill:#10151f;stroke:#2f3e52;stroke-width:1;rx:8;ry:8}
+    .pilltext{font-size:11px;fill:#a9b8d3}
+    .hl-good{stroke:var(--good) !important}
+    .hl-bad{stroke:var(--bad) !important}
+    details{padding:0 12px 12px}
+    summary{cursor:pointer;color:#b8c6dc}
+    code,kbd,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    .btnrow{display:flex;gap:8px;flex-wrap:wrap}
+    .inline-help{color:#a9b8d3}
+  </style>
+</head>
+<body>
+<p><a href="../../index.html">Back to app index</a></p>
+<header>
+  <h1>CRs as Sheafification: open covers → refinements → global sections</h1>
+  <div class="note">Baseline cover: Approach (A), Foundation (F), Interior (I). A change request refines A into (Path, Access), and F into (Footings, Pour). We compute global sections (consistent assignments across overlaps) before/after refinement.</div>
+</header>
+
+<div class="wrap">
+  <!-- LEFT: Controls -->
+  <div class="panel" id="left">
+    <h2>Controls</h2>
+    <div class="controls">
+      <label>Choose local spec (what each open “knows”):</label>
+      <select id="specSelect">
+        <option value="owner">Owner (A|B)</option>
+        <option value="materials">Materials (gravel|timber|concrete)</option>
+        <option value="inspect">Inspection status (ok|hold)</option>
+      </select>
+
+      <label>Assignments on baseline opens (A,F,I):</label>
+      <div class="kv">
+        <span>A (Approach)</span>
+        <select id="assignA"></select>
+        <span>F (Foundation)</span>
+        <select id="assignF"></select>
+        <span>I (Interior)</span>
+        <select id="assignI"></select>
+      </div>
+
+      <label>Overlap constraints (agreement required on):</label>
+      <div class="kv">
+        <span>A ∩ F</span>
+        <select id="cAF"></select>
+        <span>F ∩ I</span>
+        <select id="cFI"></select>
+        <span>A ∩ I</span>
+        <select id="cAI"></select>
+      </div>
+
+      <div class="btnrow">
+        <button id="btnCheck">Compute global section (baseline)</button>
+        <button id="btnRefine">Apply CR (refinement)</button>
+        <button id="btnCheckRefined">Compute global section (refined)</button>
+        <button id="btnReset">Reset</button>
+      </div>
+
+      <div id="status"></div>
+
+      <details>
+        <summary>What is going on here?</summary>
+        <div class="inline-help">
+          <p><b>Open cover.</b> We model a simple “refuge” via three opens: Approach (A), Foundation (F), Interior (I). Each open carries a <i>local spec</i>—here, an assignment such as Owner, Materials, or Inspection status.</p>
+          <p><b>Overlaps.</b> Where opens overlap (A∩F, F∩I, A∩I), assignments must agree to glue into a <i>global section</i> (a single consistent choice across the whole object).</p>
+          <p><b>Change request as refinement.</b> A CR subdivides opens (A → Path+Access; F → Footings+Pour) and may tighten overlap constraints. Sheafification is the “fix” that forces data to agree on overlaps. If your previous global section breaks, the UI shows which overlaps cause it.</p>
+          <p><b>Interpretation.</b> In PM terms, a CR that refines scope often introduces stricter coordination points. Failures to glue highlight integration risks (handoffs, interfaces) that need resolution.</p>
+        </div>
+      </details>
+    </div>
+
+    <div class="legend">
+      <span><i class="chip" style="background:#2a3650;border:1px solid #556b8c"></i> Baseline open</span>
+      <span><i class="chip" style="background:#234033;border:1px solid #5b8f6b"></i> Refined open</span>
+      <span><i class="chip" style="background:transparent;border:1px solid var(--good)"></i> Consistent (glues)</span>
+      <span><i class="chip" style="background:transparent;border:1px solid var(--bad)"></i> Inconsistent</span>
+    </div>
+  </div>
+
+  <!-- RIGHT: Diagram -->
+  <div class="panel">
+    <h2>Cover, overlaps, and assignments</h2>
+    <svg id="viz" viewBox="0 0 1100 650" aria-label="Open cover visualization">
+      <!-- Baseline opens -->
+      <g id="openA">
+        <ellipse class="open base" cx="290" cy="260" rx="180" ry="120"></ellipse>
+        <text x="175" y="155" fill="#cfe0ff">A • Approach</text>
+      </g>
+      <g id="openF">
+        <ellipse class="open base" cx="520" cy="340" rx="180" ry="120"></ellipse>
+        <text x="420" y="470" fill="#cfe0ff">F • Foundation</text>
+      </g>
+      <g id="openI">
+        <ellipse class="open base" cx="760" cy="250" rx="180" ry="120"></ellipse>
+        <text x="825" y="155" fill="#cfe0ff">I • Interior</text>
+      </g>
+
+      <!-- Overlap indicators (dashed outlines) -->
+      <g id="overlaps">
+        <ellipse class="open base overlap" cx="405" cy="300" rx="110" ry="80" opacity=".35"></ellipse> <!-- A∩F -->
+        <ellipse class="open base overlap" cx="640" cy="295" rx="110" ry="80" opacity=".35"></ellipse> <!-- F∩I -->
+        <ellipse class="open base overlap" cx="525" cy="235" rx="110" ry="75" opacity=".15"></ellipse> <!-- A∩I -->
+      </g>
+
+      <!-- Refined opens (initially hidden) -->
+      <g id="refA" opacity="0">
+        <ellipse class="open ref" cx="240" cy="260" rx="120" ry="85"></ellipse>
+        <text x="180" y="265" fill="#a7e7bf">Path</text>
+        <ellipse class="open ref" cx="355" cy="240" rx="90" ry="65"></ellipse>
+        <text x="325" y="205" fill="#a7e7bf">Access</text>
+      </g>
+      <g id="refF" opacity="0">
+        <ellipse class="open ref" cx="475" cy="345" rx="95" ry="65"></ellipse>
+        <text x="430" y="348" fill="#a7e7bf">Footings</text>
+        <ellipse class="open ref" cx="560" cy="330" rx="95" ry="65"></ellipse>
+        <text x="540" y="300" fill="#a7e7bf">Pour</text>
+      </g>
+
+      <!-- Assignment “pills” (baseline) -->
+      <g id="pills">
+        <g id="pillA">
+          <rect class="pill" x="220" y="120" width="130" height="22"></rect>
+          <text class="pilltext" x="235" y="135">A: —</text>
+        </g>
+        <g id="pillF">
+          <rect class="pill" x="490" y="485" width="130" height="22"></rect>
+          <text class="pilltext" x="505" y="500">F: —</text>
+        </g>
+        <g id="pillI">
+          <rect class="pill" x="730" y="120" width="130" height="22"></rect>
+          <text class="pilltext" x="745" y="135">I: —</text>
+        </g>
+      </g>
+
+      <!-- Overlap status lines -->
+      <g id="wires">
+        <line id="wireAF" class="edge" x1="290" y1="260" x2="520" y2="340"></line>
+        <line id="wireFI" class="edge" x1="520" y1="340" x2="760" y2="250"></line>
+        <line id="wireAI" class="edge" x1="290" y1="260" x2="760" y2="250"></line>
+      </g>
+
+      <!-- Status text -->
+      <text id="glueStatus" x="24" y="620" fill="#a9b8d3">Ready.</text>
+    </svg>
+  </div>
+</div>
+
+<script>
+// ------------------------------ Data model ------------------------------
+const SPECS = {
+  owner:      { label: "Owner",      values: ["A","B"] },
+  materials:  { label: "Materials",  values: ["gravel","timber","concrete"] },
+  inspect:    { label: "Inspection", values: ["ok","hold"] }
+};
+
+// baseline opens
+const BASE_OPENS = ["A","F","I"];
+
+// refined opens (CR): A -> [Path, Access], F -> [Footings, Pour]
+const REFINED = {
+  A: ["Path","Access"],
+  F: ["Footings","Pour"],
+  I: [] // unchanged
+};
+
+// default overlap constraints: which spec must agree on each overlap
+let overlapConstraint = { AF: "owner", FI: "owner", AI: "owner" };
+
+// current chosen spec & assignments
+let currentSpec = "owner";
+let assign = { A:null, F:null, I:null };
+
+// refined assignments (inherit from parent by default; user can imagine tighter constraints)
+let refinedAssign = {
+  Path:null, Access:null, Footings:null, Pour:null, I:null
+};
+
+let refinedActive = false;
+
+// ------------------------------ UI wiring ------------------------------
+const specSelect = document.getElementById("specSelect");
+const assignA = document.getElementById("assignA");
+const assignF = document.getElementById("assignF");
+const assignI = document.getElementById("assignI");
+const cAF = document.getElementById("cAF");
+const cFI = document.getElementById("cFI");
+const cAI = document.getElementById("cAI");
+const statusDiv = document.getElementById("status");
+const glueStatus = document.getElementById("glueStatus");
+
+function fillOptions(sel, values) {
+  sel.innerHTML = "";
+  values.forEach(v=>{
+    const o=document.createElement("option");
+    o.value=v; o.textContent=v; sel.appendChild(o);
+  });
+  const dash=document.createElement("option");
+  dash.value=""; dash.textContent="— (unset)";
+  sel.insertBefore(dash, sel.firstChild);
+  sel.value="";
+}
+
+function refreshSpecUI() {
+  const vals = SPECS[currentSpec].values;
+  [assignA,assignF,assignI].forEach(s=>fillOptions(s, vals));
+  [cAF,cFI,cAI].forEach(s=>{
+    s.innerHTML="";
+    Object.keys(SPECS).forEach(k=>{
+      const o=document.createElement("option"); o.value=k; o.textContent=SPECS[k].label; s.appendChild(o);
+    });
+  });
+  cAF.value = overlapConstraint.AF;
+  cFI.value = overlapConstraint.FI;
+  cAI.value = overlapConstraint.AI;
+  setPillText("A", assign.A);
+  setPillText("F", assign.F);
+  setPillText("I", assign.I);
+  setWireClass("AF", "edge");
+  setWireClass("FI", "edge");
+  setWireClass("AI", "edge");
+  glueStatus.textContent = "Ready.";
+  status("");
+}
+
+function status(html){
+  statusDiv.innerHTML = html ? `<div class="note">${html}</div>` : "";
+}
+
+function setPillText(open, val){
+  const node = document.querySelector(`#pill${open} .pilltext`);
+  node.textContent = `${open}: ${val??"—"}`;
+}
+
+function setWireClass(pair, cls){
+  document.getElementById(`wire${pair}`).setAttribute("class", cls);
+}
+
+// ------------------------------ Sheaf logic ------------------------------
+// A “section” is a function assigning a value to each open.
+// Gluing condition on overlap X∩Y: the chosen constraint’s values match.
+
+function globalSectionBaseline() {
+  // pull chosen spec for each open; if any unset, not a full section
+  for (const o of BASE_OPENS) {
+    if (assign[o] == null) return { ok:false, reason:"Incomplete assignments." };
+  }
+  // check overlaps per constraint
+  const fails = [];
+  const agreeAF = equalOnConstraint("AF", assign.A, assign.F);
+  const agreeFI = equalOnConstraint("FI", assign.F, assign.I);
+  const agreeAI = equalOnConstraint("AI", assign.A, assign.I);
+
+  if(!agreeAF) fails.push("A∩F");
+  if(!agreeFI) fails.push("F∩I");
+  if(!agreeAI) fails.push("A∩I");
+
+  colorWires({AF:agreeAF, FI:agreeFI, AI:agreeAI});
+
+  if (fails.length) return { ok:false, reason:"Overlap mismatch on " + fails.join(", ")};
+
+  return { ok:true };
+}
+
+function equalOnConstraint(pair, v1, v2){
+  // For this toy, the constraint just requires equality of shown values.
+  // If the constraint were different from currentSpec, we’d project onto that spec’s domain.
+  // Here we interpret: if pair’s constraint !== currentSpec, we still demand equality of *current* values
+  // to visualize the idea that tightening constraints elsewhere can break gluing.
+  return v1 === v2;
+}
+
+function colorWires(map){
+  setWireClass("AF", map.AF ? "edge hl-good" : "edge hl-bad");
+  setWireClass("FI", map.FI ? "edge hl-good" : "edge hl-bad");
+  setWireClass("AI", map.AI ? "edge hl-good" : "edge hl-bad");
+}
+
+function applyRefinement(){
+  refinedActive = true;
+  // show refined geometry
+  document.getElementById("refA").setAttribute("opacity","1");
+  document.getElementById("refF").setAttribute("opacity","1");
+  // propagate current assignments as defaults
+  refinedAssign.Path = assign.A;
+  refinedAssign.Access = assign.A;
+  refinedAssign.Footings = assign.F;
+  refinedAssign.Pour = assign.F;
+  refinedAssign.I = assign.I;
+  glueStatus.textContent = "CR applied: A→{Path,Access}, F→{Footings,Pour}. Defaults inherited.";
+}
+
+function globalSectionRefined(){
+  if(!refinedActive) return { ok:false, reason:"Apply CR first." };
+  // refined overlaps (illustrative): Path∩Footings, Access∩Pour, Footings∩Pour, and each to I
+  const R = refinedAssign;
+  const have = ["Path","Access","Footings","Pour","I"].every(k=>R[k]!=null);
+  if(!have) return { ok:false, reason:"Incomplete refined assignments." };
+
+  const checks = {
+    P_Ft: R.Path === R.Footings,
+    A_Po: R.Access === R.Pour,
+    Ft_Po: R.Footings === R.Pour,
+    Ft_I: R.Footings === R.I,
+    Po_I: R.Pour === R.I,
+    Path_I: R.Path === R.I,
+    Access_I: R.Access === R.I
+  };
+  // visualize by reusing baseline wires as coarse signals:
+  const allOk = Object.values(checks).every(Boolean);
+  setWireClass("AF", checks.P_Ft && checks.A_Po ? "edge hl-good":"edge hl-bad");
+  setWireClass("FI", checks.Ft_Po && checks.Ft_I && checks.Po_I ? "edge hl-good":"edge hl-bad");
+  setWireClass("AI", checks.Path_I && checks.Access_I ? "edge hl-good":"edge hl-bad");
+
+  return { ok: allOk, reason: allOk ? "" :
+    "Refined mismatches: " + Object.entries(checks).filter(([,v])=>!v).map(([k])=>k.replaceAll("_","↔")).join(", ")
+  };
+}
+
+// ------------------------------ Event handlers ------------------------------
+specSelect.addEventListener("change", e=>{
+  currentSpec = e.target.value;
+  // reset assignments when changing domains, for clarity
+  assign = {A:null,F:null,I:null};
+  refinedAssign = {Path:null,Access:null,Footings:null,Pour:null,I:null};
+  refreshSpecUI();
+});
+
+assignA.addEventListener("change", e=>{ assign.A = e.target.value || null; setPillText("A", assign.A); });
+assignF.addEventListener("change", e=>{ assign.F = e.target.value || null; setPillText("F", assign.F); });
+assignI.addEventListener("change", e=>{ assign.I = e.target.value || null; setPillText("I", assign.I); });
+
+[cAF,cFI,cAI].forEach(sel=>{
+  sel.addEventListener("change", e=>{
+    const id = e.target.id;
+    if(id==="cAF") overlapConstraint.AF = e.target.value;
+    if(id==="cFI") overlapConstraint.FI = e.target.value;
+    if(id==="cAI") overlapConstraint.AI = e.target.value;
+    status("Overlap constraints updated.");
+  });
+});
+
+document.getElementById("btnCheck").addEventListener("click", ()=>{
+  const res = globalSectionBaseline();
+  if(res.ok){
+    glueStatus.textContent = "Baseline glues: a global section exists.";
+    status(`<span class="badge ok">OK</span> Baseline cover admits a global section for <b>${SPECS[currentSpec].label}</b>.`);
+  } else {
+    glueStatus.textContent = "Baseline fails to glue.";
+    status(`<span class="badge fail">FAIL</span> ${res.reason}`);
+  }
+});
+
+document.getElementById("btnRefine").addEventListener("click", ()=>{
+  applyRefinement();
+  status("CR refinement applied. You can imagine tighter checks across new overlaps.");
+});
+
+document.getElementById("btnCheckRefined").addEventListener("click", ()=>{
+  const res = globalSectionRefined();
+  if(res.ok){
+    glueStatus.textContent = "Refined cover glues: global section persists.";
+    status(`<span class="badge ok">OK</span> Global section survives refinement.`);
+  } else {
+    glueStatus.textContent = "Refined cover fails to glue.";
+    status(`<span class="badge fail">FAIL</span> ${res.reason}. This indicates where the CR tightens consistency.`);
+  }
+});
+
+document.getElementById("btnReset").addEventListener("click", ()=>{
+  currentSpec = "owner";
+  overlapConstraint = {AF:"owner", FI:"owner", AI:"owner"};
+  assign = {A:null,F:null,I:null};
+  refinedAssign = {Path:null,Access:null,Footings:null,Pour:null,I:null};
+  refinedActive = false;
+  document.getElementById("refA").setAttribute("opacity","0");
+  document.getElementById("refF").setAttribute("opacity","0");
+  refreshSpecUI();
+});
+
+// Init
+refreshSpecUI();
+</script>
+
+<!-- Quick adaptation notes:
+1) To encode your own project: rename opens, add overlaps, and list local specs (e.g., contractor, method, QA status).
+2) A CR is a cover refinement: subdivide opens; add/strengthen overlap checks. Where gluing breaks -> integration risks.
+3) To bridge to math: replace equalOnConstraint() with actual restriction maps + equalities on overlap pullbacks.
+4) To bridge to PM: surface “broken overlaps” into an issue list with owners and due dates.
+-->
+</body>
+</html>
