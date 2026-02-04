@@ -1,0 +1,1040 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mountain Shed – Candidate WBS Paths Generated from a Petri Net</title>
+<style>
+  :root {
+    --bg: #0b0f14;
+    --panel: #111826;
+    --panel2: #0f1622;
+    --text: #e6edf3;
+    --muted: #9fb0c0;
+    --accent: #4cc9f0;
+    --accent2: #f9c74f;
+    --ok: #90be6d;
+    --bad: #f94144;
+    --line: rgba(255,255,255,0.10);
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+  }
+  body {
+    margin: 0;
+    background: radial-gradient(1200px 600px at 20% 0%, rgba(76,201,240,0.10), transparent 60%),
+                radial-gradient(1200px 600px at 80% 10%, rgba(249,199,79,0.08), transparent 55%),
+                var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.45;
+  }
+  header {
+    padding: 28px 18px 14px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 1.6rem;
+    margin: 0 0 6px;
+  }
+  .subtitle {
+    color: var(--muted);
+    margin: 0;
+    max-width: 900px;
+  }
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 18px 40px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 14px;
+  }
+  @media (max-width: 980px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+  .card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  }
+  .card h2 {
+    font-size: 1.15rem;
+    margin: 0 0 10px;
+  }
+  .card h3 {
+    font-size: 1.0rem;
+    margin: 16px 0 8px;
+    color: var(--accent);
+  }
+  .pill {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    padding: 2px 8px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: rgba(255,255,255,0.03);
+    color: var(--muted);
+  }
+  .note {
+    color: var(--muted);
+    font-size: 0.95rem;
+    margin-top: 6px;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    color: var(--muted);
+    font-size: 0.92rem;
+  }
+  .swatch {
+    width: 16px;
+    height: 10px;
+    border-radius: 2px;
+    display: inline-block;
+    margin-right: 6px;
+    border: 1px solid var(--line);
+    vertical-align: middle;
+  }
+  .swatch.place { background: rgba(255,255,255,0.08); }
+  .swatch.trans { background: rgba(76,201,240,0.18); }
+  .swatch.hl { background: rgba(249,199,79,0.25); }
+  details {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 10px 12px;
+    background: rgba(0,0,0,0.15);
+    margin-top: 10px;
+  }
+  summary {
+    cursor: pointer;
+    color: var(--text);
+    font-weight: 600;
+  }
+  ul {
+    margin: 8px 0 0 18px;
+  }
+  .tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .tabbtn {
+    cursor: pointer;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 8px 10px;
+    background: rgba(255,255,255,0.03);
+    color: var(--text);
+    font-weight: 600;
+  }
+  .tabbtn.active {
+    border-color: rgba(76,201,240,0.6);
+    box-shadow: 0 0 0 3px rgba(76,201,240,0.15);
+  }
+  .tabcontent {
+    display: none;
+  }
+  .tabcontent.active {
+    display: block;
+  }
+  .wbs-seq {
+    font-family: var(--mono);
+    font-size: 0.92rem;
+    white-space: pre-wrap;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+  table.steps th, table.steps td {
+    border-bottom: 1px solid var(--line);
+    padding: 8px 8px;
+    vertical-align: top;
+    font-size: 0.92rem;
+  }
+  table.steps th {
+    text-align: left;
+    color: var(--muted);
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.02em;
+  }
+  td.num {
+    font-family: var(--mono);
+    color: var(--muted);
+    width: 52px;
+  }
+  td.marking {
+    color: var(--muted);
+  }
+  .mono {
+    font-family: var(--mono);
+  }
+  .small {
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  .hr {
+    height: 1px;
+    background: var(--line);
+    margin: 14px 0;
+  }
+  /* SVG styling */
+  .svgwrap {
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: rgba(0,0,0,0.20);
+    padding: 8px;
+  }
+  svg {
+    width: 100%;
+    min-width: 980px;
+    height: auto;
+  }
+  .place {
+    fill: rgba(255,255,255,0.06);
+    stroke: rgba(255,255,255,0.35);
+    stroke-width: 2;
+  }
+  .transition {
+    fill: rgba(76,201,240,0.12);
+    stroke: rgba(76,201,240,0.55);
+    stroke-width: 2;
+    rx: 6;
+    ry: 6;
+  }
+  .transition.optional {
+    fill: rgba(255,255,255,0.04);
+    stroke: rgba(255,255,255,0.25);
+  }
+  .hl {
+    fill: rgba(249,199,79,0.25) !important;
+    stroke: rgba(249,199,79,0.9) !important;
+    stroke-width: 3 !important;
+  }
+  .nodeLabel {
+    fill: var(--text);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .nodeSub {
+    fill: var(--muted);
+    font-size: 11px;
+  }
+  .arc {
+    stroke: rgba(255,255,255,0.30);
+    stroke-width: 2;
+    fill: none;
+    marker-end: url(#arrow);
+  }
+  .arc.dashed {
+    stroke-dasharray: 6 5;
+  }
+  .foot {
+    margin-top: 18px;
+    color: var(--muted);
+    font-size: 0.92rem;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Candidate WBS paths generated from a Petri net (Mountain Shed)</h1>
+  <p class="subtitle">
+    You asked to treat <span class="pill">each distinct marking</span> (state) or <span class="pill">firing sequence</span> as a potential schedule option,
+    and convert those sequences into <span class="pill">elementary WBS paths</span> (tasks + subtasks). Below is a small, explicit Petri net for a
+    mountain-shed build and three distinct schedule/WBS paths derived from it.
+  </p>
+</header>
+
+<div class="container">
+
+  <div class="grid">
+    <section class="card">
+      <h2>1) Petri-net “logic skeleton” for the mountain shed</h2>
+      <div class="legend">
+        <span><span class="swatch place"></span>place = condition / deliverable “is ready”</span>
+        <span><span class="swatch trans"></span>transition = task (work package)</span>
+        <span><span class="swatch hl"></span>highlight = tasks used by selected option</span>
+      </div>
+      <p class="note">
+        This Petri net is deliberately “elementary”: it encodes *physical* precedence and key design choices (foundation type, wall method, interior scope),
+        leaving durations/resources as a second layer.
+        In Petri-net terms, a <b>schedule option</b> is a firing sequence from the initial marking to a completed marking; reachability is exactly “can we get
+        from one marking to another by firing tasks?”. fileciteturn1file14
+      </p>
+
+      <div class="svgwrap" role="img" aria-label="Petri net diagram for mountain shed build">
+        <svg id="pn" viewBox="0 0 2300 520">
+          <defs>
+            <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+              <path d="M0,0 L10,3 L0,6 z" fill="rgba(255,255,255,0.35)"></path>
+            </marker>
+          </defs>
+
+          <!-- Places -->
+          <circle id="p0_start" class="place" cx="60" cy="260" r="18"></circle>
+          <text x="35" y="235" class="nodeLabel">p0</text><text x="26" y="250" class="nodeSub">Start</text>
+
+          <circle id="p1_perm_ready" class="place" cx="220" cy="170" r="18"></circle>
+          <text x="190" y="145" class="nodeLabel">p1a</text><text x="150" y="160" class="nodeSub">Permit-ready</text>
+
+          <circle id="p1_proc_ready" class="place" cx="220" cy="350" r="18"></circle>
+          <text x="190" y="325" class="nodeLabel">p1b</text><text x="140" y="340" class="nodeSub">Procure-ready</text>
+
+          <circle id="p2_permits_done" class="place" cx="400" cy="170" r="18"></circle>
+          <text x="368" y="145" class="nodeLabel">p2</text><text x="340" y="160" class="nodeSub">Permits done</text>
+
+          <circle id="p3_materials_site_ready" class="place" cx="400" cy="300" r="18"></circle>
+          <text x="368" y="275" class="nodeLabel">p3</text><text x="320" y="290" class="nodeSub">Materials ready</text>
+
+          <circle id="p16_panel_option" class="place" cx="400" cy="400" r="18"></circle>
+          <text x="350" y="425" class="nodeSub">prefab option</text>
+
+          <circle id="p4_mobilized" class="place" cx="620" cy="300" r="18"></circle>
+          <text x="588" y="275" class="nodeLabel">p4</text><text x="545" y="290" class="nodeSub">Mobilized</text>
+
+          <circle id="p5_site_ready" class="place" cx="800" cy="235" r="18"></circle>
+          <text x="770" y="210" class="nodeLabel">p5</text><text x="740" y="225" class="nodeSub">Site ready</text>
+
+          <circle id="p6_foundation_ready" class="place" cx="980" cy="235" r="18"></circle>
+          <text x="948" y="210" class="nodeLabel">p6</text><text x="912" y="225" class="nodeSub">Foundation</text>
+
+          <circle id="p7_floor_ready" class="place" cx="1160" cy="235" r="18"></circle>
+          <text x="1128" y="210" class="nodeLabel">p7</text><text x="1102" y="225" class="nodeSub">Floor</text>
+
+          <circle id="p15_panels_fabbed" class="place" cx="1160" cy="400" r="18"></circle>
+          <text x="1105" y="425" class="nodeSub">prefab panels</text>
+
+          <circle id="p8_walls_ready" class="place" cx="1330" cy="235" r="18"></circle>
+          <text x="1298" y="210" class="nodeLabel">p8</text><text x="1280" y="225" class="nodeSub">Walls</text>
+
+          <circle id="p9_roof_dry_in" class="place" cx="1510" cy="235" r="18"></circle>
+          <text x="1478" y="210" class="nodeLabel">p9</text><text x="1460" y="225" class="nodeSub">Roof dry-in</text>
+
+          <circle id="p10i_shell_int_ready" class="place" cx="1690" cy="170" r="18"></circle>
+          <text x="1650" y="145" class="nodeLabel">p10i</text><text x="1620" y="160" class="nodeSub">Interior can start</text>
+
+          <circle id="p10e_shell_ext_ready" class="place" cx="1690" cy="300" r="18"></circle>
+          <text x="1650" y="275" class="nodeLabel">p10e</text><text x="1618" y="290" class="nodeSub">Exterior can finish</text>
+
+          <circle id="p12_interior_done" class="place" cx="1870" cy="170" r="18"></circle>
+          <text x="1835" y="145" class="nodeLabel">p12</text><text x="1820" y="160" class="nodeSub">Interior done</text>
+
+          <circle id="p10b_exterior_done" class="place" cx="1870" cy="300" r="18"></circle>
+          <text x="1835" y="275" class="nodeLabel">p10b</text><text x="1812" y="290" class="nodeSub">Exterior done</text>
+
+          <circle id="p13_ready_closeout" class="place" cx="2050" cy="235" r="18"></circle>
+          <text x="2012" y="210" class="nodeLabel">p13</text><text x="2002" y="225" class="nodeSub">Closeout ready</text>
+
+          <circle id="p14_complete" class="place" cx="2230" cy="235" r="18"></circle>
+          <text x="2190" y="210" class="nodeLabel">p14</text><text x="2188" y="225" class="nodeSub">Complete</text>
+
+          <!-- Transitions (rectangles) -->
+          <rect id="tA_design" class="transition" x="120" y="235" width="30" height="50"></rect>
+          <text x="104" y="310" class="nodeSub">tA Design</text>
+
+          <rect id="tB_permit" class="transition" x="300" y="145" width="30" height="50"></rect>
+          <text x="286" y="130" class="nodeSub">tB Permits</text>
+
+          <rect id="tC_procure" class="transition" x="300" y="325" width="30" height="50"></rect>
+          <text x="272" y="405" class="nodeSub">tC Procure</text>
+
+          <rect id="tH0_panel_fab" class="transition optional" x="520" y="375" width="30" height="50"></rect>
+          <text x="490" y="455" class="nodeSub">tH0 Prefab</text>
+
+          <rect id="tH0_skip_panels" class="transition optional" x="520" y="445" width="30" height="50"></rect>
+          <text x="470" y="510" class="nodeSub">tH0’ Skip prefab</text>
+
+          <rect id="tD_mobilize" class="transition" x="520" y="275" width="30" height="50"></rect>
+          <text x="494" y="265" class="nodeSub">tD Mobilize</text>
+
+          <rect id="tE_siteprep" class="transition" x="710" y="210" width="30" height="50"></rect>
+          <text x="676" y="200" class="nodeSub">tE Site prep</text>
+
+          <rect id="tF1_concrete" class="transition optional" x="890" y="135" width="30" height="50"></rect>
+          <text x="840" y="125" class="nodeSub">tF1 Concrete</text>
+
+          <rect id="tF2_skid" class="transition optional" x="890" y="210" width="30" height="50"></rect>
+          <text x="852" y="200" class="nodeSub">tF2 Skid</text>
+
+          <rect id="tF3_helical" class="transition optional" x="890" y="285" width="30" height="50"></rect>
+          <text x="842" y="360" class="nodeSub">tF3 Helical</text>
+
+          <rect id="tG_floor" class="transition" x="1070" y="210" width="30" height="50"></rect>
+          <text x="1040" y="200" class="nodeSub">tG Floor</text>
+
+          <rect id="tH1_stick_frame" class="transition optional" x="1240" y="155" width="30" height="50"></rect>
+          <text x="1210" y="145" class="nodeSub">tH1 Stick-frame</text>
+
+          <rect id="tH2_install_panels" class="transition optional" x="1240" y="285" width="30" height="50"></rect>
+          <text x="1186" y="360" class="nodeSub">tH2 Install panels</text>
+
+          <rect id="tI_roof" class="transition" x="1420" y="210" width="30" height="50"></rect>
+          <text x="1398" y="200" class="nodeSub">tI Roof</text>
+
+          <rect id="tJ1_shell" class="transition" x="1600" y="210" width="30" height="50"></rect>
+          <text x="1566" y="200" class="nodeSub">tJ1 Wrap shell</text>
+
+          <rect id="tK1_interior_std" class="transition optional" x="1780" y="145" width="30" height="50"></rect>
+          <text x="1736" y="130" class="nodeSub">tK1 Interior std</text>
+
+          <rect id="tK2_interior_min" class="transition optional" x="1780" y="85" width="30" height="50"></rect>
+          <text x="1736" y="70" class="nodeSub">tK2 Interior min</text>
+
+          <rect id="tJ2_exterior" class="transition optional" x="1780" y="275" width="30" height="50"></rect>
+          <text x="1742" y="355" class="nodeSub">tJ2 Exterior final</text>
+
+          <rect id="tJoin_ready" class="transition" x="1960" y="210" width="30" height="50"></rect>
+          <text x="1910" y="200" class="nodeSub">tJoin Ready</text>
+
+          <rect id="tM_close" class="transition" x="2140" y="210" width="30" height="50"></rect>
+          <text x="2100" y="200" class="nodeSub">tM Closeout</text>
+
+          <!-- Arcs -->
+          <path class="arc" d="M78 260 L120 260"></path>
+
+          <!-- tA to p1a/p1b -->
+          <path class="arc" d="M150 260 L202 178"></path>
+          <path class="arc" d="M150 260 L202 342"></path>
+
+          <!-- p1a->tB->p2 -->
+          <path class="arc" d="M238 170 L300 170"></path>
+          <path class="arc" d="M330 170 L382 170"></path>
+
+          <!-- p1b->tC->p3,p16 -->
+          <path class="arc" d="M238 350 L300 350"></path>
+          <path class="arc" d="M330 350 L382 312"></path>
+          <path class="arc" d="M330 350 L382 392"></path>
+
+          <!-- p16 -> prefab options -->
+          <path class="arc dashed" d="M418 400 L520 400"></path>
+          <path class="arc dashed" d="M418 400 L520 470"></path>
+          <path class="arc dashed" d="M550 400 L1142 400"></path>
+
+          <!-- p3->tD->p4 -->
+          <path class="arc" d="M418 300 L520 300"></path>
+          <path class="arc" d="M550 300 L602 300"></path>
+
+          <!-- p2 & p4 -> tE -->
+          <path class="arc" d="M418 170 L710 235"></path>
+          <path class="arc" d="M638 300 L710 235"></path>
+          <path class="arc" d="M740 235 L782 235"></path>
+
+          <!-- p5 -> foundation options -> p6 -->
+          <path class="arc dashed" d="M818 235 L890 160"></path>
+          <path class="arc dashed" d="M818 235 L890 235"></path>
+          <path class="arc dashed" d="M818 235 L890 310"></path>
+          <path class="arc dashed" d="M920 160 L962 235"></path>
+          <path class="arc dashed" d="M920 235 L962 235"></path>
+          <path class="arc dashed" d="M920 310 L962 235"></path>
+
+          <!-- p6 -> tG -> p7 -->
+          <path class="arc" d="M998 235 L1070 235"></path>
+          <path class="arc" d="M1100 235 L1142 235"></path>
+
+          <!-- p7 -> wall options -->
+          <path class="arc dashed" d="M1178 235 L1240 180"></path>
+          <path class="arc dashed" d="M1178 235 L1240 310"></path>
+          <path class="arc dashed" d="M1190 400 L1240 310"></path>
+          <path class="arc dashed" d="M1270 180 L1312 235"></path>
+          <path class="arc dashed" d="M1270 310 L1312 235"></path>
+
+          <!-- p8 -> roof -> p9 -> shell -> p10i/p10e -->
+          <path class="arc" d="M1348 235 L1420 235"></path>
+          <path class="arc" d="M1450 235 L1492 235"></path>
+          <path class="arc" d="M1528 235 L1600 235"></path>
+          <path class="arc" d="M1630 235 L1672 178"></path>
+          <path class="arc" d="M1630 235 L1672 292"></path>
+
+          <!-- p10i -> interior options -> p12 -->
+          <path class="arc dashed" d="M1708 170 L1780 170"></path>
+          <path class="arc dashed" d="M1708 170 L1780 110"></path>
+          <path class="arc dashed" d="M1810 170 L1852 170"></path>
+          <path class="arc dashed" d="M1810 110 L1852 170"></path>
+
+          <!-- p10e -> exterior -> p10b -->
+          <path class="arc" d="M1708 300 L1780 300"></path>
+          <path class="arc" d="M1810 300 L1852 300"></path>
+
+          <!-- p12 & p10b -> tJoin -> p13 -->
+          <path class="arc" d="M1888 170 L1960 235"></path>
+          <path class="arc" d="M1888 300 L1960 235"></path>
+          <path class="arc" d="M1990 235 L2032 235"></path>
+
+          <!-- p13 -> tM -> p14 -->
+          <path class="arc" d="M2068 235 L2140 235"></path>
+          <path class="arc" d="M2170 235 L2212 235"></path>
+
+        </svg>
+      </div>
+
+      <details>
+        <summary>Places (conditions/deliverables) in plain language</summary>
+        <ul>
+          <li><span class="mono">p0_start</span> — project kickoff</li>
+          <li><span class="mono">p1_perm_ready</span>, <span class="mono">p1_proc_ready</span> — design complete, allowing permit + procurement branches to proceed (in parallel)</li>
+          <li><span class="mono">p2_permits_done</span> — permits/approvals obtained</li>
+          <li><span class="mono">p3_materials_site_ready</span> — materials/logistics ready for mobilization</li>
+          <li><span class="mono">p16_panel_option</span> — decision token: prefab panel path vs stick-built path</li>
+          <li><span class="mono">p4_mobilized</span> — crew/tools/materials staged on the mountain site</li>
+          <li><span class="mono">p5_site_ready</span> — site prepped + layout complete</li>
+          <li><span class="mono">p6_foundation_ready</span> — chosen foundation complete</li>
+          <li><span class="mono">p7_floor_ready</span> — floor framing + deck complete</li>
+          <li><span class="mono">p15_panels_fabbed</span> — prefab wall panels fabricated (only for the prefab option)</li>
+          <li><span class="mono">p8_walls_ready</span> — walls erected + braced</li>
+          <li><span class="mono">p9_roof_dry_in</span> — roof on / underlayment installed</li>
+          <li><span class="mono">p10i_shell_int_ready</span>, <span class="mono">p10e_shell_ext_ready</span> — shell weatherproof enough for interior vs exterior work to proceed independently</li>
+          <li><span class="mono">p12_interior_done</span>, <span class="mono">p10b_exterior_done</span> — interior and exterior completed</li>
+          <li><span class="mono">p13_ready_closeout</span> — ready for closeout/inspection</li>
+          <li><span class="mono">p14_complete</span> — finished</li>
+        </ul>
+      </details>
+
+      <details>
+        <summary>Transitions (tasks) in plain language</summary>
+        <ul>
+          <li><span class="mono">tA</span> Design & scope (snow load, access/logistics, materials list)</li>
+          <li><span class="mono">tB</span> Permits/approvals</li>
+          <li><span class="mono">tC</span> Procurement & logistics</li>
+          <li><span class="mono">tH0</span> Offsite prefab wall fabrication <i>or</i> skip prefab (commit to stick framing)</li>
+          <li><span class="mono">tD</span> Mobilize to mountain site</li>
+          <li><span class="mono">tE</span> Site prep & layout</li>
+          <li><span class="mono">tF*</span> Foundation choice: concrete piers vs skid/gravel vs helical piers</li>
+          <li><span class="mono">tG</span> Floor system</li>
+          <li><span class="mono">tH*</span> Wall choice: stick framing vs install prefab panels</li>
+          <li><span class="mono">tI</span> Roof framing + roofing (dry-in)</li>
+          <li><span class="mono">tJ1</span> Wrap shell + temporary close openings</li>
+          <li><span class="mono">tK*</span> Interior choice: standard vs minimal</li>
+          <li><span class="mono">tJ2</span> Final exterior (doors/windows/siding/flashing)</li>
+          <li><span class="mono">tJoin</span> Integrate/punch-list → ready for inspection</li>
+          <li><span class="mono">tM</span> Final inspection & cleanup</li>
+        </ul>
+      </details>
+
+      <p class="foot">
+        Background: Petri nets can be treated compositionally and are closely tied to (strict) symmetric/commutative monoidal categories; places/transitions present generators and morphisms, and reachability is about morphisms between markings. fileciteturn1file14 fileciteturn1file10
+      </p>
+    </section>
+
+    <aside class="card">
+      <h2>2) How we turn firing sequences into WBS paths</h2>
+      <ol class="small">
+        <li><b>Map each transition → one leaf-level activity</b> (an “elementary” work package).</li>
+        <li><b>Group leaf activities into a WBS tree</b> (Preconstruction, Site, Foundation, Structure, Envelope, Interior, Closeout).</li>
+        <li><b>Pick a valid firing sequence</b> (each next task must be enabled by the current marking).</li>
+        <li><b>Read off the WBS codes in that order</b> → that ordered list is the “WBS path” for that schedule option.</li>
+      </ol>
+      <div class="hr"></div>
+      <p class="small">
+        This matches the idea that the same atomic activities participate in both the WBS tree and the schedule network; keeping them coherent is a core modeling goal. fileciteturn1file15
+      </p>
+      <p class="small">
+        If you later want start times/durations, you can treat the dependency graph (or the Petri net’s reachability constraints) like a PERT chart and solve for a schedule that respects all constraints. fileciteturn1file1
+      </p>
+
+      <h3>Transition → WBS code mapping used below</h3>
+      <table>
+        <thead><tr><th class="small">Transition</th><th class="small">WBS leaf</th></tr></thead>
+        <tbody class="small">
+          <tr><td class="mono">tA_design</td><td>1.1 Design & scope</td></tr>
+          <tr><td class="mono">tB_permit</td><td>1.2 Permits/approvals</td></tr>
+          <tr><td class="mono">tC_procure</td><td>1.3 Procurement & logistics</td></tr>
+          <tr><td class="mono">tH0_panel_fab</td><td>1.4 Prefab wall panels (offsite)</td></tr>
+          <tr><td class="mono">tH0_skip_panels</td><td>1.4 Construction method selection (stick-built)</td></tr>
+          <tr><td class="mono">tD_mobilize</td><td>2.1 Mobilize to site</td></tr>
+          <tr><td class="mono">tE_siteprep</td><td>2.2 Site prep & layout</td></tr>
+          <tr><td class="mono">tF1_concrete</td><td>3.1 Foundation – concrete piers</td></tr>
+          <tr><td class="mono">tF2_skid</td><td>3.2 Foundation – skid/gravel pad</td></tr>
+          <tr><td class="mono">tF3_helical</td><td>3.3 Foundation – helical piers</td></tr>
+          <tr><td class="mono">tG_floor</td><td>4.1 Floor system</td></tr>
+          <tr><td class="mono">tH1_stick_frame</td><td>4.2 Walls – stick framing</td></tr>
+          <tr><td class="mono">tH2_install_panels</td><td>4.2 Walls – install prefab panels</td></tr>
+          <tr><td class="mono">tI_roof</td><td>4.3 Roof dry-in</td></tr>
+          <tr><td class="mono">tJ1_shell</td><td>5.1 Wrap shell & temp close</td></tr>
+          <tr><td class="mono">tJ2_exterior</td><td>5.2 Final exterior</td></tr>
+          <tr><td class="mono">tK1_interior_std</td><td>6.1 Interior – standard</td></tr>
+          <tr><td class="mono">tK2_interior_min</td><td>6.2 Interior – minimal</td></tr>
+          <tr><td class="mono">tJoin_ready</td><td>7.1 Integrate & ready for closeout</td></tr>
+          <tr><td class="mono">tM_close</td><td>7.2 Final inspection & cleanup</td></tr>
+        </tbody>
+      </table>
+    </aside>
+  </div>
+
+  <section class="card" style="margin-top:14px;">
+    <h2>3) Three distinct candidate WBS paths (schedule options)</h2>
+    <p class="note">
+      Click a schedule option to (a) highlight the chosen branches in the Petri net, (b) see the firing sequence and markings, and (c) see the derived elementary WBS path.
+      The three options differ by <b>foundation type</b>, <b>wall method</b>, and/or <b>interior scope + ordering</b>.
+    </p>
+
+    <div class="tabs" role="tablist" aria-label="Schedule options">
+      <button class="tabbtn active" data-tab="optA" aria-selected="true">Option A — Concrete piers + stick frame + exterior-first</button>
+      <button class="tabbtn" data-tab="optB" aria-selected="false">Option B — Skid foundation + prefab panels + interior-first</button>
+      <button class="tabbtn" data-tab="optC" aria-selected="false">Option C — Helical piers + minimal interior + staged exterior</button>
+    </div>
+
+    <!-- Option A -->
+    <div id="optA" class="tabcontent active" role="tabpanel">
+      <h3>Option A – Firing sequence → schedule</h3>
+      <div class="wbs-seq">
+tA_design → tB_permit → tC_procure → tH0_skip_panels → tD_mobilize → tE_siteprep → tF1_concrete → tG_floor → tH1_stick_frame → tI_roof → tJ1_shell → tJ2_exterior → tK1_interior_std → tJoin_ready → tM_close
+      </div>
+
+      <h3>Option A – Elementary WBS path (tasks + subtasks)</h3>
+      <div class="wbs-seq"><b>Ordered WBS leaf codes:</b> 1.1 → 1.2 → 1.3 → 1.4 → 2.1 → 2.2 → 3.1 → 4.1 → 4.2 → 4.3 → 5.1 → 5.2 → 6.1 → 7.1 → 7.2</div>
+
+      <details open>
+        <summary>WBS tree for Option A</summary>
+        <ul>
+          <li><b>1.0 Preconstruction</b>
+            <ul>
+              <li><b>1.1 Design & scope</b>
+                <ul>
+                  <li>Confirm shed size, location, and snow/wind design assumptions (mountain conditions).</li>
+                  <li>Define loads, anchoring approach, and moisture management strategy.</li>
+                  <li>Create materials takeoff + cut list.</li>
+                </ul>
+              </li>
+              <li><b>1.2 Permits/approvals</b>
+                <ul>
+                  <li>Submit drawings/site plan; address setbacks/frost depth requirements.</li>
+                  <li>Coordinate inspections (foundation/framing if applicable).</li>
+                </ul>
+              </li>
+              <li><b>1.3 Procurement & logistics</b>
+                <ul>
+                  <li>Order lumber, sheathing, roofing, fasteners, hardware.</li>
+                  <li>Plan mountain delivery: staging, vehicle access, weather window.</li>
+                </ul>
+              </li>
+              <li><b>1.4 Construction method selection (stick-built)</b>
+                <ul>
+                  <li>Commit to on-site wall framing (no prefab panel fabrication).</li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+
+          <li><b>2.0 Mobilization & siteworks</b>
+            <ul>
+              <li><b>2.1 Mobilize to site</b>
+                <ul>
+                  <li>Transport tools, hardware, and materials; set up safe staging area.</li>
+                  <li>Establish power plan (generator/batteries) if off-grid.</li>
+                </ul>
+              </li>
+              <li><b>2.2 Site prep & layout</b>
+                <ul>
+                  <li>Clear/grade pad, manage drainage, stake corners, verify square.</li>
+                  <li>Erosion control / spoil management (mountain soil constraints).</li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+
+          <li><b>3.0 Foundation</b>
+            <ul>
+              <li><b>3.1 Concrete pier foundation</b>
+                <ul>
+                  <li>Dig below frost depth; form and pour piers; set anchors/hardware.</li>
+                  <li>Cure time / strength check before framing load.</li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+
+          <li><b>4.0 Structure</b>
+            <ul>
+              <li><b>4.1 Floor system</b>
+                <ul>
+                  <li>Install beams/joists, rim board, blocking; lay and fasten subfloor.</li>
+                </ul>
+              </li>
+              <li><b>4.2 Walls – stick framing</b>
+                <ul>
+                  <li>Frame wall sections; stand, plumb, and brace; install sheathing.</li>
+                  <li>Frame rough openings (door/window) sized for mountain weather seals.</li>
+                </ul>
+              </li>
+              <li><b>4.3 Roof dry-in</b>
+                <ul>
+                  <li>Install rafters/trusses, roof sheathing, underlayment, roofing.</li>
+                  <li>Add snow-load details (e.g., ice/water barrier, snow guards if metal).</li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+
+          <li><b>5.0 Shell & exterior</b>
+            <ul>
+              <li><b>5.1 Wrap shell & temporary close openings</b>
+                <ul>
+                  <li>Housewrap, tape seams, flashing prep; temporary door/opening protection.</li>
+                </ul>
+              </li>
+              <li><b>5.2 Final exterior</b>
+                <ul>
+                  <li>Install permanent door/windows, flashing, siding, trim.</li>
+                  <li>Seal penetrations; add gutters/drip edge as needed.</li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+
+          <li><b>6.0 Interior fit-out</b>
+            <ul>
+              <li><b>6.1 Standard interior</b>
+                <ul>
+                  <li>Insulation/vapor control (if required), wall protection/lining.</li>
+                  <li>Shelving/workbench; basic electrical/lighting if in scope.</li>
+                  <li>Floor seal/finish for wet boots/snowmelt.</li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+
+          <li><b>7.0 Closeout</b>
+            <ul>
+              <li><b>7.1 Integrate & ready for closeout</b>
+                <ul>
+                  <li>Punch list; verify door/window operation; weather sealing check.</li>
+                </ul>
+              </li>
+              <li><b>7.2 Final inspection & cleanup</b>
+                <ul>
+                  <li>Inspection sign-off; site cleanup; spare materials inventory.</li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </details>
+
+      <details>
+        <summary>Option A – Markings (state) after each firing step</summary>
+        <table class='steps'><thead><tr><th>Step</th><th>Firing event (transition = task)</th><th>Resulting marking (tokens = state)</th></tr></thead><tbody><tr><td class='num'>0</td><td>Initial marking M0</td><td class='marking'>Start</td></tr><tr><td class='num'>1</td><td>Fire tA_design: Design &amp; scope</td><td class='marking'>Design complete → permit package ready<br>Design complete → procurement package ready</td></tr><tr><td class='num'>2</td><td>Fire tB_permit: Permits/approvals</td><td class='marking'>Design complete → procurement package ready<br>Permits/approvals complete</td></tr><tr><td class='num'>3</td><td>Fire tC_procure: Procure &amp; logistics</td><td class='marking'>Permits/approvals complete<br>Materials/logistics ready to mobilize<br>Prefabrication option token</td></tr><tr><td class='num'>4</td><td>Fire tH0_skip_panels: Skip prefab option</td><td class='marking'>Permits/approvals complete<br>Materials/logistics ready to mobilize</td></tr><tr><td class='num'>5</td><td>Fire tD_mobilize: Mobilize to site</td><td class='marking'>Permits/approvals complete<br>Crew/tools/materials mobilized to mountain site</td></tr><tr><td class='num'>6</td><td>Fire tE_siteprep: Site prep &amp; layout</td><td class='marking'>Site prepped &amp; layout staked</td></tr><tr><td class='num'>7</td><td>Fire tF1_concrete: Foundation: concrete piers</td><td class='marking'>Foundation complete</td></tr><tr><td class='num'>8</td><td>Fire tG_floor: Build floor system</td><td class='marking'>Floor system/deck complete</td></tr><tr><td class='num'>9</td><td>Fire tH1_stick_frame: Frame walls (stick-built)</td><td class='marking'>Walls erected &amp; braced</td></tr><tr><td class='num'>10</td><td>Fire tI_roof: Frame &amp; install roof (dry-in)</td><td class='marking'>Roof dried-in (weather-tight roof)</td></tr><tr><td class='num'>11</td><td>Fire tJ1_shell: Wrap shell &amp; temp close</td><td class='marking'>Shell weatherproof → interior can start<br>Shell weatherproof → exterior finish can start</td></tr><tr><td class='num'>12</td><td>Fire tJ2_exterior: Final exterior (windows/doors/siding)</td><td class='marking'>Shell weatherproof → interior can start<br>Exterior complete (windows/doors/siding)</td></tr><tr><td class='num'>13</td><td>Fire tK1_interior_std: Interior fit-out (standard)</td><td class='marking'>Exterior complete (windows/doors/siding)<br>Interior fit-out complete</td></tr><tr><td class='num'>14</td><td>Fire tJoin_ready: Integrate &amp; ready for closeout</td><td class='marking'>Ready for closeout/inspection</td></tr><tr><td class='num'>15</td><td>Fire tM_close: Final inspection &amp; cleanup</td><td class='marking'>Project complete</td></tr></tbody></table>
+      </details>
+    </div>
+
+    <!-- Option B -->
+    <div id="optB" class="tabcontent" role="tabpanel">
+      <h3>Option B – Firing sequence → schedule</h3>
+      <div class="wbs-seq">
+tA_design → tC_procure → tH0_panel_fab → tB_permit → tD_mobilize → tE_siteprep → tF2_skid → tG_floor → tH2_install_panels → tI_roof → tJ1_shell → tK1_interior_std → tJ2_exterior → tJoin_ready → tM_close
+      </div>
+
+      <h3>Option B – Elementary WBS path (tasks + subtasks)</h3>
+      <div class="wbs-seq"><b>Ordered WBS leaf codes:</b> 1.1 → 1.3 → 1.4 → 1.2 → 2.1 → 2.2 → 3.2 → 4.1 → 4.2 → 4.3 → 5.1 → 6.1 → 5.2 → 7.1 → 7.2</div>
+
+      <details open>
+        <summary>WBS tree for Option B</summary>
+        <ul>
+          <li><b>1.0 Preconstruction</b>
+            <ul>
+              <li><b>1.1 Design & scope</b>
+                <ul>
+                  <li>Design wall panels with handling/transport constraints for mountain access.</li>
+                  <li>Confirm foundation is compatible with skids and site drainage.</li>
+                </ul>
+              </li>
+              <li><b>1.3 Procurement & logistics</b>
+                <ul>
+                  <li>Order all materials early (to support offsite fabrication).</li>
+                  <li>Plan “two-stream” logistics: offsite panel shop + on-site delivery staging.</li>
+                </ul>
+              </li>
+              <li><b>1.4 Prefab wall panels (offsite)</b>
+                <ul>
+                  <li>Cut/assemble/sheath panels; label; pre-install blocking where useful.</li>
+                  <li>Bundle for transport; protect edges from moisture.</li>
+                </ul>
+              </li>
+              <li><b>1.2 Permits/approvals</b>
+                <ul>
+                  <li>Run permits in parallel with prefab fabrication where allowed.</li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+
+          <li><b>2.0 Mobilization & siteworks</b>
+            <ul>
+              <li><b>2.1 Mobilize to site</b>
+                <ul>
+                  <li>Deliver skid materials + panel packages; set up lifting/handling plan.</li>
+                </ul>
+              </li>
+              <li><b>2.2 Site prep & layout</b>
+                <ul>
+                  <li>Prepare level pad and drainage (gravel base is sensitive to water paths).</li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+
+          <li><b>3.0 Foundation</b>
+            <ul>
+              <li><b>3.2 Skid / gravel pad foundation</b>
+                <ul>
+                  <li>Place geotextile + gravel; level; set skids; anchor against uplift.</li>
+                  <li>Faster build, often good for remote access, but check local code.</li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+
+          <li><b>4.0 Structure</b>
+            <ul>
+              <li><b>4.1 Floor system</b>
+                <ul>
+                  <li>Frame and sheath floor (square/level matters for prefab fit).</li>
+                </ul>
+              </li>
+              <li><b>4.2 Walls – install prefab panels</b>
+                <ul>
+                  <li>Set corners first; plumb/brace; fasten panel joints and top plates.</li>
+                  <li>Seal joints for wind-driven mountain rain/snow.</li>
+                </ul>
+              </li>
+              <li><b>4.3 Roof dry-in</b>
+                <ul>
+                  <li>Install roof structure + sheathing + underlayment + roofing quickly.</li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+
+          <li><b>5.0 Shell & exterior</b>
+            <ul>
+              <li><b>5.1 Wrap shell & temporary close openings</b>
+                <ul>
+                  <li>Housewrap + tape; temporary closures to protect interior work window.</li>
+                </ul>
+              </li>
+              <li><b>5.2 Final exterior</b>
+                <ul>
+                  <li>Install door/windows and siding after (or alongside) interior tasks.</li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+
+          <li><b>6.0 Interior fit-out</b>
+            <ul>
+              <li><b>6.1 Standard interior</b>
+                <ul>
+                  <li>Get interior work started as soon as the shell is weatherproof (mountain weather risk).</li>
+                  <li>Shelving/workbench; insulation/vapor control if needed; basic lighting.</li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+
+          <li><b>7.0 Closeout</b>
+            <ul>
+              <li><b>7.1 Integrate & ready for closeout</b>
+                <ul>
+                  <li>Coordinate final exterior + interior completion for inspection readiness.</li>
+                </ul>
+              </li>
+              <li><b>7.2 Final inspection & cleanup</b>
+                <ul>
+                  <li>Inspection sign-off; cleanup; demobilize.</li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </details>
+
+      <details>
+        <summary>Option B – Markings (state) after each firing step</summary>
+        <table class='steps'><thead><tr><th>Step</th><th>Firing event (transition = task)</th><th>Resulting marking (tokens = state)</th></tr></thead><tbody><tr><td class='num'>0</td><td>Initial marking M0</td><td class='marking'>Start</td></tr><tr><td class='num'>1</td><td>Fire tA_design: Design &amp; scope</td><td class='marking'>Design complete → permit package ready<br>Design complete → procurement package ready</td></tr><tr><td class='num'>2</td><td>Fire tC_procure: Procure &amp; logistics</td><td class='marking'>Design complete → permit package ready<br>Materials/logistics ready to mobilize<br>Prefabrication option token</td></tr><tr><td class='num'>3</td><td>Fire tH0_panel_fab: Offsite fab wall panels</td><td class='marking'>Design complete → permit package ready<br>Materials/logistics ready to mobilize<br>Prefab wall panels fabricated</td></tr><tr><td class='num'>4</td><td>Fire tB_permit: Permits/approvals</td><td class='marking'>Materials/logistics ready to mobilize<br>Prefab wall panels fabricated<br>Permits/approvals complete</td></tr><tr><td class='num'>5</td><td>Fire tD_mobilize: Mobilize to site</td><td class='marking'>Prefab wall panels fabricated<br>Permits/approvals complete<br>Crew/tools/materials mobilized to mountain site</td></tr><tr><td class='num'>6</td><td>Fire tE_siteprep: Site prep &amp; layout</td><td class='marking'>Prefab wall panels fabricated<br>Site prepped &amp; layout staked</td></tr><tr><td class='num'>7</td><td>Fire tF2_skid: Foundation: skid/gravel</td><td class='marking'>Prefab wall panels fabricated<br>Foundation complete</td></tr><tr><td class='num'>8</td><td>Fire tG_floor: Build floor system</td><td class='marking'>Prefab wall panels fabricated<br>Floor system/deck complete</td></tr><tr><td class='num'>9</td><td>Fire tH2_install_panels: Install prefab wall panels</td><td class='marking'>Walls erected &amp; braced</td></tr><tr><td class='num'>10</td><td>Fire tI_roof: Frame &amp; install roof (dry-in)</td><td class='marking'>Roof dried-in (weather-tight roof)</td></tr><tr><td class='num'>11</td><td>Fire tJ1_shell: Wrap shell &amp; temp close</td><td class='marking'>Shell weatherproof → interior can start<br>Shell weatherproof → exterior finish can start</td></tr><tr><td class='num'>12</td><td>Fire tK1_interior_std: Interior fit-out (standard)</td><td class='marking'>Shell weatherproof → exterior finish can start<br>Interior fit-out complete</td></tr><tr><td class='num'>13</td><td>Fire tJ2_exterior: Final exterior (windows/doors/siding)</td><td class='marking'>Interior fit-out complete<br>Exterior complete (windows/doors/siding)</td></tr><tr><td class='num'>14</td><td>Fire tJoin_ready: Integrate &amp; ready for closeout</td><td class='marking'>Ready for closeout/inspection</td></tr><tr><td class='num'>15</td><td>Fire tM_close: Final inspection &amp; cleanup</td><td class='marking'>Project complete</td></tr></tbody></table>
+      </details>
+    </div>
+
+    <!-- Option C -->
+    <div id="optC" class="tabcontent" role="tabpanel">
+      <h3>Option C – Firing sequence → schedule</h3>
+      <div class="wbs-seq">
+tA_design → tB_permit → tC_procure → tH0_skip_panels → tD_mobilize → tE_siteprep → tF3_helical → tG_floor → tH1_stick_frame → tI_roof → tJ1_shell → tK2_interior_min → tJ2_exterior → tJoin_ready → tM_close
+      </div>
+
+      <h3>Option C – Elementary WBS path (tasks + subtasks)</h3>
+      <div class="wbs-seq"><b>Ordered WBS leaf codes:</b> 1.1 → 1.2 → 1.3 → 1.4 → 2.1 → 2.2 → 3.3 → 4.1 → 4.2 → 4.3 → 5.1 → 6.2 → 5.2 → 7.1 → 7.2</div>
+
+      <details open>
+        <summary>WBS tree for Option C</summary>
+        <ul>
+          <li><b>1.0 Preconstruction</b>
+            <ul>
+              <li><b>1.1 Design & scope</b>
+                <ul>
+                  <li>Prioritize fast “dry-in”: roof + wrap early; plan staged exterior finish.</li>
+                  <li>Decide minimal interior scope to reduce weather exposure time.</li>
+                </ul>
+              </li>
+              <li><b>1.2 Permits/approvals</b></li>
+              <li><b>1.3 Procurement & logistics</b></li>
+              <li><b>1.4 Construction method selection (stick-built)</b></li>
+            </ul>
+          </li>
+
+          <li><b>2.0 Mobilization & siteworks</b>
+            <ul>
+              <li><b>2.1 Mobilize to site</b></li>
+              <li><b>2.2 Site prep & layout</b></li>
+            </ul>
+          </li>
+
+          <li><b>3.0 Foundation</b>
+            <ul>
+              <li><b>3.3 Helical piers</b>
+                <ul>
+                  <li>Install helical piers and brackets (often fast, less excavation).</li>
+                  <li>Check uplift/torque specs and inspection requirements.</li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+
+          <li><b>4.0 Structure</b>
+            <ul>
+              <li><b>4.1 Floor system</b></li>
+              <li><b>4.2 Walls – stick framing</b></li>
+              <li><b>4.3 Roof dry-in</b>
+                <ul>
+                  <li>Drive hard to reach “roof dry-in” milestone before forecasted storms.</li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+
+          <li><b>5.0 Shell & exterior</b>
+            <ul>
+              <li><b>5.1 Wrap shell & temporary close openings</b>
+                <ul>
+                  <li>Make it weatherproof enough to work inside, even if siding waits.</li>
+                </ul>
+              </li>
+              <li><b>5.2 Final exterior</b>
+                <ul>
+                  <li>Finish windows/doors/siding later when weather improves.</li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+
+          <li><b>6.0 Interior fit-out</b>
+            <ul>
+              <li><b>6.2 Minimal interior</b>
+                <ul>
+                  <li>Shelving + tool hooks + minimal wall protection.</li>
+                  <li>Basic floor seal; defer insulation/electrical if not required.</li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+
+          <li><b>7.0 Closeout</b>
+            <ul>
+              <li><b>7.1 Integrate & ready for closeout</b></li>
+              <li><b>7.2 Final inspection & cleanup</b></li>
+            </ul>
+          </li>
+        </ul>
+      </details>
+
+      <details>
+        <summary>Option C – Markings (state) after each firing step</summary>
+        <table class='steps'><thead><tr><th>Step</th><th>Firing event (transition = task)</th><th>Resulting marking (tokens = state)</th></tr></thead><tbody><tr><td class='num'>0</td><td>Initial marking M0</td><td class='marking'>Start</td></tr><tr><td class='num'>1</td><td>Fire tA_design: Design &amp; scope</td><td class='marking'>Design complete → permit package ready<br>Design complete → procurement package ready</td></tr><tr><td class='num'>2</td><td>Fire tB_permit: Permits/approvals</td><td class='marking'>Design complete → procurement package ready<br>Permits/approvals complete</td></tr><tr><td class='num'>3</td><td>Fire tC_procure: Procure &amp; logistics</td><td class='marking'>Permits/approvals complete<br>Materials/logistics ready to mobilize<br>Prefabrication option token</td></tr><tr><td class='num'>4</td><td>Fire tH0_skip_panels: Skip prefab option</td><td class='marking'>Permits/approvals complete<br>Materials/logistics ready to mobilize</td></tr><tr><td class='num'>5</td><td>Fire tD_mobilize: Mobilize to site</td><td class='marking'>Permits/approvals complete<br>Crew/tools/materials mobilized to mountain site</td></tr><tr><td class='num'>6</td><td>Fire tE_siteprep: Site prep &amp; layout</td><td class='marking'>Site prepped &amp; layout staked</td></tr><tr><td class='num'>7</td><td>Fire tF3_helical: Foundation: helical piers</td><td class='marking'>Foundation complete</td></tr><tr><td class='num'>8</td><td>Fire tG_floor: Build floor system</td><td class='marking'>Floor system/deck complete</td></tr><tr><td class='num'>9</td><td>Fire tH1_stick_frame: Frame walls (stick-built)</td><td class='marking'>Walls erected &amp; braced</td></tr><tr><td class='num'>10</td><td>Fire tI_roof: Frame &amp; install roof (dry-in)</td><td class='marking'>Roof dried-in (weather-tight roof)</td></tr><tr><td class='num'>11</td><td>Fire tJ1_shell: Wrap shell &amp; temp close</td><td class='marking'>Shell weatherproof → interior can start<br>Shell weatherproof → exterior finish can start</td></tr><tr><td class='num'>12</td><td>Fire tK2_interior_min: Interior fit-out (minimal)</td><td class='marking'>Shell weatherproof → exterior finish can start<br>Interior fit-out complete</td></tr><tr><td class='num'>13</td><td>Fire tJ2_exterior: Final exterior (windows/doors/siding)</td><td class='marking'>Interior fit-out complete<br>Exterior complete (windows/doors/siding)</td></tr><tr><td class='num'>14</td><td>Fire tJoin_ready: Integrate &amp; ready for closeout</td><td class='marking'>Ready for closeout/inspection</td></tr><tr><td class='num'>15</td><td>Fire tM_close: Final inspection &amp; cleanup</td><td class='marking'>Project complete</td></tr></tbody></table>
+      </details>
+    </div>
+
+    <div class="hr"></div>
+    <p class="small">
+      Note: The Petri net defines the <i>allowed</i> task orderings (what can happen when). Start times/durations/resources can be added as a separate “timing” layer—e.g., PERT-style constraints. fileciteturn1file1
+    </p>
+  </section>
+
+  <section class="card" style="margin-top:14px;">
+    <h2>4) Why this matches the project instructions (Petri net → SMC → WBS)</h2>
+    <p class="note">
+      Your project rationale is that a Petri net can be treated as a generative specification for (a strict/commutative) symmetric monoidal category,
+      and that schedule/WBS variants come from different reachable markings and firing sequences.
+    </p>
+    <ul class="small">
+      <li>In the attached “Open Petri nets” paper, a Petri net is treated as presenting a free commutative/symmetric monoidal category, and reachability is described as a relation between markings. fileciteturn1file10 fileciteturn1file19</li>
+      <li>In the attached operads/complex-systems design paper, Petri-net transitions are described as primitive tasks and as generators for monoidal-category structure. fileciteturn1file9</li>
+      <li>The “Project Scheduling and Copresheaves” note connects scheduling constraints (PERT-like) to categorical structure, and even discusses coherence between schedule networks and WBS trees. fileciteturn1file1 fileciteturn1file15</li>
+    </ul>
+    <p class="small">
+      If you want to go further into executable/compositional tooling, wiring-diagram semantics and graph rewriting provide an operational way to “run” these structures. fileciteturn0file20
+      And if you need to transfer plans across domains, functorial data migration gives a principled way to map plans between ontologies. fileciteturn0file21
+    </p>
+    <p class="small">
+      Related compositional “open systems” ideas also appear for stock–flow diagrams (useful when you later add resource/consumption dynamics). fileciteturn1file0 fileciteturn0file18
+    </p>
+  </section>
+
+</div>
+
+<script>
+(function() {
+  const optionToTransitions = {
+    optA: ["tA_design","tB_permit","tC_procure","tH0_skip_panels","tD_mobilize","tE_siteprep","tF1_concrete","tG_floor","tH1_stick_frame","tI_roof","tJ1_shell","tJ2_exterior","tK1_interior_std","tJoin_ready","tM_close"],
+    optB: ["tA_design","tC_procure","tH0_panel_fab","tB_permit","tD_mobilize","tE_siteprep","tF2_skid","tG_floor","tH2_install_panels","tI_roof","tJ1_shell","tK1_interior_std","tJ2_exterior","tJoin_ready","tM_close"],
+    optC: ["tA_design","tB_permit","tC_procure","tH0_skip_panels","tD_mobilize","tE_siteprep","tF3_helical","tG_floor","tH1_stick_frame","tI_roof","tJ1_shell","tK2_interior_min","tJ2_exterior","tJoin_ready","tM_close"]
+  };
+
+  function clearHighlights() {
+    document.querySelectorAll("rect.transition").forEach(el => el.classList.remove("hl"));
+  }
+  function highlight(optionId) {
+    clearHighlights();
+    (optionToTransitions[optionId] || []).forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.add("hl");
+    });
+  }
+
+  function setActiveTab(tabId) {
+    document.querySelectorAll(".tabbtn").forEach(btn => {
+      const isActive = btn.dataset.tab === tabId;
+      btn.classList.toggle("active", isActive);
+      btn.setAttribute("aria-selected", isActive ? "true" : "false");
+    });
+    document.querySelectorAll(".tabcontent").forEach(div => {
+      div.classList.toggle("active", div.id === tabId);
+    });
+    highlight(tabId);
+  }
+
+  document.querySelectorAll(".tabbtn").forEach(btn => {
+    btn.addEventListener("click", () => setActiveTab(btn.dataset.tab));
+  });
+
+  // default highlight
+  highlight("optA");
+})();
+</script>
+</body>
+</html>
