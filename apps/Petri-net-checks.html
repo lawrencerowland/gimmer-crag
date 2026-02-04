@@ -1,0 +1,1272 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Petri Net Workflow Demo — Mountain Refuge Shed</title>
+  <style>
+    :root{
+      --bg:#0b1220; --panel:#0f1a30; --panel2:#0c1629; --text:#e7eefc; --muted:#98a7c7;
+      --accent:#6ee7ff; --good:#37d67a; --warn:#ffcc66; --bad:#ff6b6b; --line:#2a3b63;
+      --chip:#152549;
+    }
+    *{box-sizing:border-box}
+    body{margin:0; font:14px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; background:var(--bg); color:var(--text);}
+    header{
+      padding:14px 16px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    }
+    header .title{font-weight:700; letter-spacing:.2px}
+    header .subtitle{color:var(--muted)}
+    .app{
+      display:grid;
+      grid-template-columns: minmax(520px, 1.25fr) minmax(360px, .95fr);
+      gap:12px;
+      padding:12px;
+      align-items:stretch;
+    }
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:12px;
+      overflow:hidden;
+      box-shadow:0 10px 30px rgba(0,0,0,.25);
+    }
+    .card .hd{
+      padding:10px 12px;
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      background:rgba(255,255,255,.03);
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .card .hd .right{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+    .btn{
+      appearance:none; border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.04);
+      color:var(--text);
+      padding:8px 10px;
+      border-radius:10px;
+      cursor:pointer;
+      transition:transform .06s ease, background .12s ease, border-color .12s ease;
+      user-select:none;
+      font-weight:600;
+    }
+    .btn:hover{background:rgba(255,255,255,.07); border-color:rgba(255,255,255,.18)}
+    .btn:active{transform:translateY(1px)}
+    .btn.good{border-color:rgba(55,214,122,.35)}
+    .btn.good:hover{background:rgba(55,214,122,.12)}
+    .btn.warn{border-color:rgba(255,204,102,.35)}
+    .btn.warn:hover{background:rgba(255,204,102,.12)}
+    .btn.bad{border-color:rgba(255,107,107,.35)}
+    .btn.bad:hover{background:rgba(255,107,107,.12)}
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.03);
+      color:var(--muted);
+      font-weight:600;
+      font-size:12px;
+    }
+    .pill .dot{width:8px; height:8px; border-radius:99px; background:var(--muted)}
+    .pill.ok .dot{background:var(--good)}
+    .pill.dead .dot{background:var(--bad)}
+    .pill.run .dot{background:var(--accent)}
+    .body{padding:10px 12px}
+    .split{
+      display:grid;
+      grid-template-rows: auto auto auto;
+      gap:10px;
+    }
+    .panel{
+      background:rgba(0,0,0,.15);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:12px;
+      overflow:hidden;
+    }
+    .panel .ph{
+      padding:8px 10px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      display:flex; align-items:center; justify-content:space-between;
+      background:rgba(255,255,255,.03);
+      font-weight:700;
+      color:var(--text);
+    }
+    .panel .pc{padding:10px}
+    table{width:100%; border-collapse:collapse}
+    th, td{padding:7px 6px; border-bottom:1px solid rgba(255,255,255,.06); text-align:left}
+    th{color:var(--muted); font-size:12px; font-weight:700}
+    tr:last-child td{border-bottom:none}
+    .row-ok{background:rgba(55,214,122,.09)}
+    .row-warn{background:rgba(255,204,102,.09)}
+    .muted{color:var(--muted)}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+    .chips{display:flex; flex-wrap:wrap; gap:6px}
+    .chip{
+      background:var(--chip);
+      border:1px solid rgba(255,255,255,.10);
+      padding:6px 8px;
+      border-radius:999px;
+      cursor:pointer;
+      user-select:none;
+      font-weight:700;
+      font-size:12px;
+    }
+    .chip:hover{border-color:rgba(255,255,255,.18)}
+    .chip.active{outline:2px solid rgba(110,231,255,.45)}
+    .tabs{display:flex; gap:6px; flex-wrap:wrap}
+    .tab{
+      background:rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.12);
+      padding:6px 10px;
+      border-radius:10px;
+      cursor:pointer;
+      font-weight:800;
+      font-size:12px;
+      user-select:none;
+    }
+    .tab.active{outline:2px solid rgba(110,231,255,.45)}
+    .tab small{opacity:.7; font-weight:700}
+    textarea, input{
+      width:100%;
+      background:rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:10px;
+      padding:8px 10px;
+      color:var(--text);
+      outline:none;
+    }
+    textarea{min-height:84px; resize:vertical}
+    .kbd{font-family:ui-monospace, Menlo, monospace; font-size:12px; padding:2px 6px; border:1px solid rgba(255,255,255,.15); border-radius:8px; background:rgba(0,0,0,.25)}
+    .hint{color:var(--muted); font-size:12px}
+    .footer{
+      padding:10px 12px 14px;
+      border-top:1px solid rgba(255,255,255,.08);
+      color:var(--muted);
+      font-size:12px;
+    }
+    /* SVG styles */
+    svg{width:100%; height:640px; display:block; background:radial-gradient(1000px 500px at 30% 20%, rgba(110,231,255,.08), transparent 55%),
+                                         radial-gradient(900px 500px at 70% 80%, rgba(55,214,122,.07), transparent 55%);}
+    .place{cursor:default}
+    .place circle{fill:rgba(255,255,255,.03); stroke:rgba(255,255,255,.25); stroke-width:2}
+    .place text{font-size:12px; fill:var(--text); font-weight:700}
+    .token text{font-size:12px; fill:var(--text); font-weight:900}
+    .transition rect{fill:rgba(255,255,255,.05); stroke:rgba(255,255,255,.20); stroke-width:2; rx:4; ry:4}
+    .transition text{font-size:12px; fill:var(--text); font-weight:800}
+    .transition.enabled rect{stroke:rgba(55,214,122,.7); fill:rgba(55,214,122,.12)}
+    .transition.disabled rect{opacity:.85}
+    .transition:hover rect{stroke:rgba(110,231,255,.65)}
+    .arc{stroke:rgba(255,255,255,.25); stroke-width:2; fill:none; marker-end:url(#arrow);}
+    .arc.enabled{stroke:rgba(55,214,122,.55)}
+    .arc.bad{stroke:rgba(255,107,107,.5)}
+    .highlight{filter:url(#glow)}
+    .place.hl circle{fill:rgba(255,204,102,.12); stroke:rgba(255,204,102,.75)}
+    .place.preok circle{stroke:rgba(55,214,122,.65)}
+    .legend{font-size:12px; fill:var(--muted)}
+  </style>
+</head>
+<body>
+<header>
+  <div class="title">Petri Net Workflow Demo</div>
+  <div class="subtitle">Mountain refuge shed tasklet preloaded — click transitions to fire, or use the 5 “explainer” buttons.</div>
+</header>
+
+<div class="app">
+  <!-- LEFT: SVG net -->
+  <div class="card">
+    <div class="hd">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div style="font-weight:800">Net view (SVG)</div>
+        <span id="statusPill" class="pill ok"><span class="dot"></span><span id="statusText">Ready</span></span>
+        <span class="pill run"><span class="dot"></span><span class="mono">Click a transition ▭ to fire</span></span>
+      </div>
+      <div class="right">
+        <button class="btn" id="btnStep">▶ Step</button>
+        <button class="btn good" id="btnAuto">⏵ Auto-play feasible path</button>
+        <button class="btn warn" id="btnCons">∑ Show Conservation</button>
+        <button class="btn" id="btnReach">🎯 Check Goal Reachability</button>
+        <button class="btn" id="btnBranch">🌿 Branch Explorer</button>
+      </div>
+    </div>
+    <svg id="svg" viewBox="0 0 980 640" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Petri net diagram">
+      <defs>
+        <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+          <path d="M 0 0 L 12 6 L 0 12 z" fill="rgba(255,255,255,.35)"/>
+        </marker>
+        <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feMerge>
+            <feMergeNode in="blur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+
+      <g id="arcs"></g>
+      <g id="places"></g>
+      <g id="transitions"></g>
+
+      <g transform="translate(18,614)">
+        <text class="legend">Legend: ▭ transition, ◯ place. Enabled transitions glow green; click to fire. S-invariants highlight places in amber.</text>
+      </g>
+    </svg>
+
+    <div class="footer">
+      Tip: Use <span class="kbd">Branch Explorer</span> when multiple transitions are enabled — each click forks a new schedule path tab.
+    </div>
+  </div>
+
+  <!-- RIGHT: panels -->
+  <div class="card">
+    <div class="hd">
+      <div style="font-weight:800">Explainers + Panels</div>
+      <div class="right">
+        <button class="btn bad" id="btnReset" title="Reset the current path to the initial marking">↺ Reset path</button>
+      </div>
+    </div>
+
+    <div class="body split">
+      <!-- Path tabs -->
+      <div class="panel">
+        <div class="ph">
+          <div>Paths (forked schedules)</div>
+          <div class="muted" id="pathMeta">—</div>
+        </div>
+        <div class="pc">
+          <div class="tabs" id="tabs"></div>
+          <div class="hint" style="margin-top:6px">
+            Markings = “what’s true right now”. Different path tabs = different feasible schedules (different firing sequences).
+          </div>
+        </div>
+      </div>
+
+      <!-- Marking Panel -->
+      <div class="panel">
+        <div class="ph">
+          <div>Marking Panel</div>
+          <div class="muted"><span class="kbd">green</span> = pre-places satisfied for an enabled transition</div>
+        </div>
+        <div class="pc">
+          <table>
+            <thead><tr><th>Place</th><th class="mono">id</th><th>Tokens</th></tr></thead>
+            <tbody id="markingRows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Sequence + Audit -->
+      <div class="panel">
+        <div class="ph">
+          <div>Sequence Panel</div>
+          <div class="muted">click breadcrumb to rewind</div>
+        </div>
+        <div class="pc">
+          <div class="chips" id="breadcrumbs"></div>
+          <div style="height:10px"></div>
+
+          <div style="display:grid; gap:10px">
+            <div>
+              <div style="font-weight:800; margin-bottom:6px">Goal (JSON)</div>
+              <textarea id="goalInput" class="mono" spellcheck="false">{"complete":1}</textarea>
+              <div class="hint">Example: <span class="mono">{"painted":1}</span> or <span class="mono">{"complete":1,"crew":2}</span>. Place ids are in the table.</div>
+            </div>
+
+            <div>
+              <div style="font-weight:800; margin-bottom:6px">Audit Panel (live JSON receipt)</div>
+              <pre id="audit" class="mono" style="white-space:pre-wrap; background:rgba(0,0,0,.25); padding:10px; border-radius:12px; border:1px solid rgba(255,255,255,.08); max-height:220px; overflow:auto"></pre>
+            </div>
+
+            <div>
+              <div style="font-weight:800; margin-bottom:6px">Conservation (S-invariants)</div>
+              <div id="invList" class="chips"></div>
+              <div class="hint" style="margin-top:6px">
+                Click <span class="kbd">∑ Show Conservation</span> to compute invariants from the incidence matrix (kernel of <span class="mono">Cᵀ</span>).
+              </div>
+            </div>
+
+            <div>
+              <div style="font-weight:800; margin-bottom:6px">Reachability result</div>
+              <div id="reachOut" class="mono" style="background:rgba(0,0,0,.25); padding:10px; border-radius:12px; border:1px solid rgba(255,255,255,.08); min-height:60px"></div>
+              <div class="hint" style="margin-top:6px">
+                The reachability check is a bounded BFS from <span class="mono">M₀</span> (initial marking) — if goal is found it shows a witness firing sequence; otherwise it shows a deadlock frontier and which preconditions fail.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  /***********************
+   * 1) Petri net model  *
+   ***********************/
+  const net = {
+    name: "Mountain Refuge Shed — Tasklet",
+    places: [
+      { id:"permit", label:"Permit approved", x:70,  y:60,  tokens:1 },
+      { id:"crew", label:"Crew available", x:70,  y:140, tokens:2 },
+
+      { id:"site_unprepared", label:"Site unprepared", x:220, y:95, tokens:1 },
+      { id:"site_cleared", label:"Site cleared", x:360, y:95, tokens:0 },
+      { id:"foundation_ready", label:"Foundation ready", x:500, y:95, tokens:0 },
+
+      { id:"wood_ordered", label:"Wood ordered", x:220, y:230, tokens:1 },
+      { id:"wood_stock", label:"Wood stock", x:360, y:230, tokens:0 },
+
+      { id:"roof_ordered", label:"Roof kit ordered", x:220, y:320, tokens:1 },
+      { id:"roof_materials", label:"Roof kit on-site", x:360, y:320, tokens:0 },
+
+      { id:"paint_ordered", label:"Paint ordered", x:220, y:410, tokens:1 },
+      { id:"paint_supplies", label:"Paint on-site", x:360, y:410, tokens:0 },
+
+      { id:"framed", label:"Framed", x:590, y:230, tokens:0 },
+      { id:"roofed", label:"Roofed", x:720, y:230, tokens:0 },
+      { id:"painted", label:"Painted", x:850, y:230, tokens:0 },
+      { id:"complete", label:"Shed complete", x:850, y:380, tokens:0 },
+    ],
+    transitions: [
+      {
+        id:"tClearSite", label:"Clear site", x:290, y:95,
+        pre:{site_unprepared:1, permit:1, crew:1},
+        post:{site_cleared:1, permit:1, crew:1}
+      },
+      {
+        id:"tPourFoundation", label:"Pour\nfoundation", x:430, y:95,
+        pre:{site_cleared:1, crew:1},
+        post:{foundation_ready:1, crew:1}
+      },
+      {
+        id:"tDeliverWood", label:"Deliver\nwood", x:290, y:230,
+        pre:{wood_ordered:1, crew:1},
+        post:{wood_stock:1, crew:1}
+      },
+      {
+        id:"tDeliverRoof", label:"Deliver\nroof kit", x:290, y:320,
+        pre:{roof_ordered:1, crew:1},
+        post:{roof_materials:1, crew:1}
+      },
+      {
+        id:"tDeliverPaint", label:"Deliver\npaint", x:290, y:410,
+        pre:{paint_ordered:1, crew:1},
+        post:{paint_supplies:1, crew:1}
+      },
+      {
+        id:"tFrame", label:"Frame", x:545, y:230,
+        pre:{foundation_ready:1, wood_stock:1, crew:1},
+        post:{foundation_ready:1, framed:1, crew:1}
+      },
+      {
+        id:"tRoof", label:"Roof", x:670, y:230,
+        pre:{foundation_ready:1, framed:1, roof_materials:1, crew:1},
+        post:{foundation_ready:1, roofed:1, crew:1}
+      },
+      {
+        id:"tPaint", label:"Paint", x:795, y:230,
+        pre:{foundation_ready:1, roofed:1, paint_supplies:1, crew:1},
+        post:{foundation_ready:1, painted:1, crew:1}
+      },
+      {
+        id:"tFinish", label:"Finish", x:850, y:300,
+        pre:{painted:1},
+        post:{complete:1}
+      },
+    ]
+  };
+
+  const placeIndex = Object.fromEntries(net.places.map((p,i)=>[p.id,i]));
+  const transIndex = Object.fromEntries(net.transitions.map((t,i)=>[t.id,i]));
+
+  function deepClone(obj){ return JSON.parse(JSON.stringify(obj)); }
+
+  /**********************************
+   * 2) Path (tab) state management  *
+   **********************************/
+  function initialMarking(){
+    const m = {};
+    for (const p of net.places) m[p.id] = p.tokens;
+    return m;
+  }
+  const M0 = initialMarking();
+
+  let paths = [];
+  let activePathId = null;
+  let autoTimer = null;
+  let invariantsCache = null;
+  let selectedInvariantIdx = null;
+
+  function newPath(name, baseSnapshot){
+    const id = "p" + Math.random().toString(16).slice(2);
+    const snap0 = baseSnapshot ? deepClone(baseSnapshot) : { marking: deepClone(M0), fired: null };
+    const path = {
+      id,
+      name,
+      snapshots: [ snap0 ], // each {marking, fired}
+      cursor: 0
+    };
+    paths.push(path);
+    return path;
+  }
+
+  function activePath(){ return paths.find(p => p.id === activePathId); }
+  function currentSnapshot(){ const p = activePath(); return p.snapshots[p.cursor]; }
+  function currentMarking(){ return currentSnapshot().marking; }
+
+  function resetPath(){
+    const p = activePath();
+    p.snapshots = [{ marking: deepClone(M0), fired:null }];
+    p.cursor = 0;
+    setStatus("Ready", "ok");
+    reachOut.textContent = "";
+    renderAll();
+  }
+
+  // init
+  newPath("Path A", null);
+  activePathId = paths[0].id;
+
+  /**********************
+   * 3) Petri semantics *
+   **********************/
+  function enabledTransitions(marking){
+    const enabled = [];
+    for (const t of net.transitions){
+      let ok = true;
+      for (const [pid,w] of Object.entries(t.pre)){
+        if ((marking[pid] ?? 0) < w){ ok=false; break; }
+      }
+      if (ok) enabled.push(t);
+    }
+    return enabled;
+  }
+
+  function fire(marking, t){
+    // assumes enabled
+    const m2 = deepClone(marking);
+    for (const [pid,w] of Object.entries(t.pre)) m2[pid] -= w;
+    for (const [pid,w] of Object.entries(t.post)) m2[pid] = (m2[pid] ?? 0) + w;
+    return m2;
+  }
+
+  function stepOne(choiceFn){
+    const p = activePath();
+    const snap = currentSnapshot();
+    const m = snap.marking;
+    const enabled = enabledTransitions(m);
+    if (!enabled.length){
+      setStatus("Deadlock (no enabled transitions)", "dead");
+      return false;
+    }
+    const t = choiceFn(enabled);
+    const next = fire(m, t);
+
+    // truncate future if rewound
+    p.snapshots = p.snapshots.slice(0, p.cursor + 1);
+    p.snapshots.push({ marking: next, fired: t.id });
+    p.cursor++;
+
+    setStatus("Fired: " + t.id, "ok");
+    renderAll();
+    return true;
+  }
+
+  function setStatus(text, kind){
+    const pill = document.getElementById("statusPill");
+    const st = document.getElementById("statusText");
+    st.textContent = text;
+    pill.classList.remove("ok","dead","run");
+    if (kind === "dead") pill.classList.add("dead");
+    else if (kind === "run") pill.classList.add("run");
+    else pill.classList.add("ok");
+  }
+
+  /**********************
+   * 4) SVG rendering   *
+   **********************/
+  const svg = document.getElementById("svg");
+  const gPlaces = document.getElementById("places");
+  const gTrans = document.getElementById("transitions");
+  const gArcs = document.getElementById("arcs");
+
+  const R = 18;
+  const TW = 18, TH = 44;
+
+  function arcPath(x1,y1,x2,y2, bend=0){
+    // quadratic curve with control point shifted perpendicular
+    const mx = (x1+x2)/2, my=(y1+y2)/2;
+    const dx = x2-x1, dy = y2-y1;
+    const len = Math.hypot(dx,dy) || 1;
+    const nx = -dy/len, ny = dx/len; // perpendicular
+    const cx = mx + nx*bend, cy = my + ny*bend;
+    return `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`;
+  }
+
+  function placeAnchor(p, towardX, towardY){
+    const dx = towardX - p.x, dy = towardY - p.y;
+    const len = Math.hypot(dx,dy) || 1;
+    return { x: p.x + dx/len*R, y: p.y + dy/len*R };
+  }
+  function transAnchor(t, towardX, towardY){
+    const cx = t.x, cy = t.y;
+    const dx = towardX - cx, dy = towardY - cy;
+    const absDx = Math.abs(dx), absDy = Math.abs(dy);
+    if (absDx > absDy){
+      return { x: cx + Math.sign(dx)*(TW/2), y: cy + dy/(absDx||1)*(TH/2) };
+    }else{
+      return { x: cx + dx/(absDy||1)*(TW/2), y: cy + Math.sign(dy)*(TH/2) };
+    }
+  }
+
+  function draw(){
+    // arcs first, then nodes
+    gArcs.innerHTML = "";
+    gPlaces.innerHTML = "";
+    gTrans.innerHTML = "";
+
+    // build quick lookup
+    const P = Object.fromEntries(net.places.map(p=>[p.id,p]));
+    const T = Object.fromEntries(net.transitions.map(t=>[t.id,t]));
+
+    // helper to add arc
+    function addArc(fromType, fromId, toType, toId, bend){
+      const from = fromType==="p" ? P[fromId] : T[fromId];
+      const to   = toType==="p"   ? P[toId]   : T[toId];
+
+      const a1 = fromType==="p" ? placeAnchor(from, to.x, to.y) : transAnchor(from, to.x, to.y);
+      const a2 = toType==="p" ? placeAnchor(to, from.x, from.y) : transAnchor(to, from.x, from.y);
+      const path = document.createElementNS("http://www.w3.org/2000/svg","path");
+      path.setAttribute("d", arcPath(a1.x,a1.y,a2.x,a2.y, bend||0));
+      path.setAttribute("class","arc");
+      path.dataset.from = fromId;
+      path.dataset.to = toId;
+      path.dataset.fromType = fromType;
+      path.dataset.toType = toType;
+      gArcs.appendChild(path);
+      return path;
+    }
+
+    // Arcs from pre and post
+    // To keep it readable, we bend resource arcs slightly.
+    for (const t of net.transitions){
+      // pre arcs: place -> transition
+      for (const pid of Object.keys(t.pre)){
+        let bend = 0;
+        if (pid==="crew") bend = -18;
+        if (pid==="permit") bend = 18;
+        if (pid==="foundation_ready") bend = -26;
+        addArc("p", pid, "t", t.id, bend);
+      }
+      // post arcs: transition -> place
+      for (const pid of Object.keys(t.post)){
+        let bend = 0;
+        if (pid==="crew") bend = 18;
+        if (pid==="permit") bend = -18;
+        if (pid==="foundation_ready") bend = 26;
+        addArc("t", t.id, "p", pid, bend);
+      }
+    }
+
+    // Places
+    for (const p of net.places){
+      const g = document.createElementNS("http://www.w3.org/2000/svg","g");
+      g.setAttribute("class","place");
+      g.setAttribute("data-id", p.id);
+      g.setAttribute("transform",`translate(${p.x},${p.y})`);
+
+      const c = document.createElementNS("http://www.w3.org/2000/svg","circle");
+      c.setAttribute("r", R);
+      g.appendChild(c);
+
+      const label = document.createElementNS("http://www.w3.org/2000/svg","text");
+      label.setAttribute("text-anchor","middle");
+      label.setAttribute("x","0");
+      label.setAttribute("y", (R+16).toString());
+      label.textContent = p.label;
+      g.appendChild(label);
+
+      const tok = document.createElementNS("http://www.w3.org/2000/svg","g");
+      tok.setAttribute("class","token");
+      tok.setAttribute("data-token-for", p.id);
+
+      // token dot + count
+      const td = document.createElementNS("http://www.w3.org/2000/svg","circle");
+      td.setAttribute("r","8");
+      td.setAttribute("cx","0"); td.setAttribute("cy","0");
+      td.setAttribute("fill","rgba(110,231,255,.22)");
+      td.setAttribute("stroke","rgba(110,231,255,.7)");
+      td.setAttribute("stroke-width","2");
+      tok.appendChild(td);
+
+      const tt = document.createElementNS("http://www.w3.org/2000/svg","text");
+      tt.setAttribute("text-anchor","middle");
+      tt.setAttribute("x","0");
+      tt.setAttribute("y","4");
+      tt.textContent = "0";
+      tok.appendChild(tt);
+
+      g.appendChild(tok);
+      gPlaces.appendChild(g);
+    }
+
+    // Transitions
+    for (const t of net.transitions){
+      const g = document.createElementNS("http://www.w3.org/2000/svg","g");
+      g.setAttribute("class","transition");
+      g.setAttribute("data-id", t.id);
+      g.setAttribute("transform",`translate(${t.x},${t.y})`);
+      g.style.cursor = "pointer";
+
+      const r = document.createElementNS("http://www.w3.org/2000/svg","rect");
+      r.setAttribute("x", (-TW/2).toString());
+      r.setAttribute("y", (-TH/2).toString());
+      r.setAttribute("width", TW.toString());
+      r.setAttribute("height", TH.toString());
+      g.appendChild(r);
+
+      const tx = document.createElementNS("http://www.w3.org/2000/svg","text");
+      tx.setAttribute("text-anchor","middle");
+      tx.setAttribute("x","0");
+      tx.setAttribute("y",(TH/2+16).toString());
+      // multiline via tspans
+      const lines = t.label.split("\n");
+      for (let i=0;i<lines.length;i++){
+        const sp = document.createElementNS("http://www.w3.org/2000/svg","tspan");
+        sp.setAttribute("x","0");
+        sp.setAttribute("dy", i===0 ? "0" : "13");
+        sp.textContent = lines[i];
+        tx.appendChild(sp);
+      }
+      g.appendChild(tx);
+
+      g.addEventListener("click", () => {
+        const m = currentMarking();
+        const en = enabledTransitions(m).map(x=>x.id);
+        if (!en.includes(t.id)){
+          flashArcsForTransition(t.id, true);
+          setStatus("Not enabled: " + t.id, "dead");
+          setTimeout(()=>setStatus("Ready", "ok"), 700);
+          return;
+        }
+        stepOne(() => t);
+      });
+
+      gTrans.appendChild(g);
+    }
+  }
+
+  function flashArcsForTransition(tid, bad=false){
+    const arcs = [...gArcs.querySelectorAll(".arc")].filter(a => a.dataset.to===tid || a.dataset.from===tid);
+    arcs.forEach(a => a.classList.toggle("bad", bad));
+    setTimeout(()=>arcs.forEach(a=>a.classList.remove("bad")), 500);
+  }
+
+  /****************************
+   * 5) Panels + highlighting *
+   ****************************/
+  const markingRows = document.getElementById("markingRows");
+  const breadcrumbs = document.getElementById("breadcrumbs");
+  const audit = document.getElementById("audit");
+  const invList = document.getElementById("invList");
+  const reachOut = document.getElementById("reachOut");
+  const tabs = document.getElementById("tabs");
+  const pathMeta = document.getElementById("pathMeta");
+
+  function renderTabs(){
+    tabs.innerHTML = "";
+    for (const p of paths){
+      const el = document.createElement("div");
+      el.className = "tab" + (p.id===activePathId ? " active":"");
+      el.textContent = p.name + " ";
+      const sm = document.createElement("small");
+      sm.textContent = `(${p.cursor}/${p.snapshots.length-1})`;
+      el.appendChild(sm);
+      el.addEventListener("click", ()=>{
+        activePathId = p.id;
+        setStatus("Ready", "ok");
+        renderAll();
+      });
+      tabs.appendChild(el);
+    }
+    const p = activePath();
+    pathMeta.textContent = `${p.snapshots[p.cursor].fired ? "last: "+p.snapshots[p.cursor].fired : "start"} · enabled: ${enabledTransitions(currentMarking()).length}`;
+  }
+
+  function renderMarkingPanel(){
+    const m = currentMarking();
+    const enabled = enabledTransitions(m);
+    const preOK = new Set();
+    for (const t of enabled){
+      for (const [pid,w] of Object.entries(t.pre)){
+        if ((m[pid]??0) >= w) preOK.add(pid);
+      }
+    }
+
+    markingRows.innerHTML = "";
+    for (const p of net.places){
+      const tr = document.createElement("tr");
+      if (preOK.has(p.id)) tr.classList.add("row-ok");
+      const td1 = document.createElement("td"); td1.textContent = p.label;
+      const td2 = document.createElement("td"); td2.textContent = p.id; td2.className="mono muted";
+      const td3 = document.createElement("td"); td3.textContent = m[p.id] ?? 0;
+      tr.append(td1,td2,td3);
+      markingRows.appendChild(tr);
+    }
+
+    // Update SVG tokens + highlight preOK
+    for (const p of net.places){
+      const g = gPlaces.querySelector(`.place[data-id="${p.id}"]`);
+      g.classList.toggle("preok", preOK.has(p.id));
+      const tok = g.querySelector(`.token[data-token-for="${p.id}"]`);
+      const count = m[p.id] ?? 0;
+      tok.style.display = count>0 ? "block" : "none";
+      tok.querySelector("text").textContent = String(count);
+    }
+  }
+
+  function renderTransitions(){
+    const m = currentMarking();
+    const enabled = new Set(enabledTransitions(m).map(t=>t.id));
+    for (const t of net.transitions){
+      const g = gTrans.querySelector(`.transition[data-id="${t.id}"]`);
+      g.classList.toggle("enabled", enabled.has(t.id));
+      g.classList.toggle("disabled", !enabled.has(t.id));
+    }
+    // arcs colored if touching enabled transitions
+    for (const a of gArcs.querySelectorAll(".arc")){
+      const touchesEnabled = (a.dataset.toType==="t" && enabled.has(a.dataset.to)) || (a.dataset.fromType==="t" && enabled.has(a.dataset.from));
+      a.classList.toggle("enabled", touchesEnabled);
+    }
+  }
+
+  function renderBreadcrumbs(){
+    const p = activePath();
+    breadcrumbs.innerHTML = "";
+    for (let i=0;i<p.snapshots.length;i++){
+      const s = p.snapshots[i];
+      const chip = document.createElement("div");
+      chip.className = "chip" + (i===p.cursor ? " active":"");
+      chip.textContent = i===0 ? "M0" : `${i}: ${s.fired}`;
+      chip.addEventListener("click", ()=>{
+        p.cursor = i;
+        setStatus(i===0 ? "Ready" : ("Rewound to step "+i), "ok");
+        renderAll();
+      });
+      breadcrumbs.appendChild(chip);
+    }
+  }
+
+  function renderAudit(){
+    const p = activePath();
+    const m = currentMarking();
+
+    const enabled = enabledTransitions(m).map(t=>t.id);
+    const enabledDetail = enabledTransitions(m).map(t=>({
+      id: t.id,
+      pre: t.pre,
+      post: t.post
+    }));
+
+    const auditObj = {
+      net: {
+        name: net.name,
+        places: net.places.map(p=>({id:p.id, label:p.label})),
+        transitions: net.transitions.map(t=>({id:t.id, label:t.label, pre:t.pre, post:t.post}))
+      },
+      M0,
+      activePath: {
+        id: p.id, name: p.name, cursor: p.cursor,
+        firedSequence: p.snapshots.slice(1, p.cursor+1).map(s=>s.fired),
+        currentMarking: m
+      },
+      enabledTransitions: enabled,
+      enabledTransitionIO: enabledDetail,
+      invariantsBasis: invariantsCache ? invariantsCache.pretty : null,
+      lastReachability: window.__lastReach || null
+    };
+
+    audit.textContent = JSON.stringify(auditObj, null, 2);
+  }
+
+  function clearInvariantHighlight(){
+    for (const p of net.places){
+      const g = gPlaces.querySelector(`.place[data-id="${p.id}"]`);
+      g.classList.remove("hl");
+    }
+  }
+
+  function renderInvariantList(){
+    invList.innerHTML = "";
+    if (!invariantsCache){
+      const msg = document.createElement("div");
+      msg.className = "muted";
+      msg.textContent = "No invariants computed yet.";
+      invList.appendChild(msg);
+      return;
+    }
+    invariantsCache.pretty.forEach((inv, idx)=>{
+      const chip = document.createElement("div");
+      chip.className = "chip" + (idx===selectedInvariantIdx ? " active":"");
+      chip.textContent = inv.title;
+      chip.title = inv.expr;
+      chip.addEventListener("click", ()=>{
+        selectedInvariantIdx = idx;
+        highlightInvariant(idx);
+        renderInvariantList();
+        renderAudit();
+      });
+      invList.appendChild(chip);
+    });
+  }
+
+  function highlightInvariant(idx){
+    clearInvariantHighlight();
+    if (!invariantsCache) return;
+    const inv = invariantsCache.vectors[idx];
+    const coeffs = inv.coeffs; // BigInt[]
+    for (let i=0;i<net.places.length;i++){
+      if (coeffs[i] !== 0n){
+        const pid = net.places[i].id;
+        const g = gPlaces.querySelector(`.place[data-id="${pid}"]`);
+        g.classList.add("hl");
+      }
+    }
+  }
+
+  function renderAll(){
+    renderTabs();
+    renderMarkingPanel();
+    renderTransitions();
+    renderBreadcrumbs();
+    renderInvariantList();
+    renderAudit();
+  }
+
+  /*********************************
+   * 6) Linear algebra: S-invariants
+   *********************************/
+  function bigintGcd(a,b){
+    a = a < 0n ? -a : a;
+    b = b < 0n ? -b : b;
+    while (b !== 0n){ const t=a%b; a=b; b=t; }
+    return a;
+  }
+  function bigintLcm(a,b){
+    a = a < 0n ? -a : a; b = b < 0n ? -b : b;
+    if (a===0n || b===0n) return 0n;
+    return (a / bigintGcd(a,b)) * b;
+  }
+  function rat(n,d=1n){
+    if (d===0n) throw new Error("division by zero");
+    if (d<0n){ n=-n; d=-d; }
+    const g = bigintGcd(n,d);
+    return {n:n/g, d:d/g};
+  }
+  function ratAdd(a,b){ return rat(a.n*b.d + b.n*a.d, a.d*b.d); }
+  function ratSub(a,b){ return rat(a.n*b.d - b.n*a.d, a.d*b.d); }
+  function ratMul(a,b){ return rat(a.n*b.n, a.d*b.d); }
+  function ratDiv(a,b){ return rat(a.n*b.d, a.d*b.n); }
+  function ratNeg(a){ return {n:-a.n, d:a.d}; }
+  function ratIsZero(a){ return a.n===0n; }
+  function ratToString(a){
+    if (a.d===1n) return a.n.toString();
+    return `${a.n.toString()}/${a.d.toString()}`;
+  }
+
+  function computeIncidence(){
+    // C is |P| x |T| where C[p][t] = post - pre
+    const Pn = net.places.length;
+    const Tn = net.transitions.length;
+    const C = Array.from({length: Pn}, ()=>Array.from({length: Tn}, ()=>0n));
+    for (let ti=0; ti<Tn; ti++){
+      const t = net.transitions[ti];
+      for (const [pid,w] of Object.entries(t.pre)){
+        C[placeIndex[pid]][ti] -= BigInt(w);
+      }
+      for (const [pid,w] of Object.entries(t.post)){
+        C[placeIndex[pid]][ti] += BigInt(w);
+      }
+    }
+    return C;
+  }
+
+  function nullspaceOfTranspose(C){
+    // Find kernel of C^T: A y = 0 where A = C^T has shape (T x P)
+    const Pn = net.places.length;
+    const Tn = net.transitions.length;
+
+    let A = Array.from({length:Tn}, (_,r)=>Array.from({length:Pn}, (_,c)=>rat(C[c][r],1n)));
+
+    // Gauss-Jordan RREF
+    let lead = 0;
+    const pivotCols = [];
+    const pivotRowForCol = new Map();
+
+    for (let r=0; r<Tn; r++){
+      if (lead >= Pn) break;
+      let i = r;
+      while (i<Tn && ratIsZero(A[i][lead])) i++;
+      if (i===Tn){ lead++; r--; continue; }
+      // swap
+      [A[r],A[i]] = [A[i],A[r]];
+      // normalize row
+      const lv = A[r][lead];
+      for (let j=0;j<Pn;j++) A[r][j] = ratDiv(A[r][j], lv);
+      // eliminate others
+      for (let i2=0;i2<Tn;i2++){
+        if (i2===r) continue;
+        const lv2 = A[i2][lead];
+        if (ratIsZero(lv2)) continue;
+        for (let j=0;j<Pn;j++){
+          A[i2][j] = ratSub(A[i2][j], ratMul(lv2, A[r][j]));
+        }
+      }
+      pivotCols.push(lead);
+      pivotRowForCol.set(lead, r);
+      lead++;
+    }
+
+    const isPivot = new Set(pivotCols);
+    const freeCols = [];
+    for (let c=0;c<Pn;c++) if (!isPivot.has(c)) freeCols.push(c);
+
+    // construct basis vectors
+    const basis = [];
+    for (const free of freeCols){
+      let v = Array.from({length:Pn}, ()=>rat(0n,1n));
+      v[free] = rat(1n,1n);
+      for (const piv of pivotCols){
+        const r = pivotRowForCol.get(piv);
+        // pivot variable = - A[r][free]
+        v[piv] = ratNeg(A[r][free]);
+      }
+      basis.push(v);
+    }
+    return basis; // rationals length P
+  }
+
+  function prettyInvariants(){
+    const C = computeIncidence();
+    const basisR = nullspaceOfTranspose(C);
+    // convert each rational vector to integer vector by lcm of denominators
+    const vectors = [];
+    const pretty = [];
+    const placeIds = net.places.map(p=>p.id);
+
+    basisR.forEach((vr, idx)=>{
+      let l = 1n;
+      for (const a of vr) l = bigintLcm(l, a.d);
+      let ints = vr.map(a => (a.n * (l / a.d)));
+      // normalize by gcd
+      let g = 0n;
+      for (const k of ints) g = (g===0n) ? (k<0n?-k:k) : bigintGcd(g,k);
+      if (g===0n) g = 1n;
+      ints = ints.map(k => k/g);
+
+      // build expression
+      const terms = [];
+      for (let i=0;i<ints.length;i++){
+        if (ints[i]===0n) continue;
+        const coeff = ints[i];
+        const name = placeIds[i];
+        terms.push({coeff, name});
+      }
+
+      // compute constant value from M0
+      let constant = 0n;
+      for (let i=0;i<ints.length;i++){
+        const pid = placeIds[i];
+        constant += ints[i] * BigInt(M0[pid] ?? 0);
+      }
+
+      // human-ish title
+      let title = `Inv ${idx+1}`;
+      // if it looks like a sum of stage-ish places, label it
+      const allNonNeg = ints.every(k=>k>=0n);
+      if (allNonNeg){
+        // check for simple single-place invariants
+        const nonZero = terms.length;
+        if (nonZero===1) title = `Conserved: ${terms[0].name}`;
+        else title = `Conserved sum (${nonZero} places)`;
+      }
+
+      // build string
+      const expr = terms.map(t=>{
+        const c = t.coeff;
+        if (c===1n) return t.name;
+        if (c===-1n) return `- ${t.name}`;
+        if (c<0n) return `- ${(-c).toString()}·${t.name}`;
+        return `${c.toString()}·${t.name}`;
+      }).join(" + ").replace(/\+\s-\s/g, "- ");
+
+      const eq = `${expr} = ${constant.toString()}`;
+
+      vectors.push({ coeffs: ints, constant });
+      pretty.push({ title, expr:eq });
+    });
+
+    // sort so "nice" invariants show up first
+    const order = pretty.map((p,i)=>({i, score: (p.expr.includes("= 1")?2:0) + (p.expr.includes("crew")?3:0)}))
+      .sort((a,b)=>b.score-a.score)
+      .map(o=>o.i);
+
+    const vectors2 = order.map(i=>vectors[i]);
+    const pretty2 = order.map(i=>{
+      const eq = pretty[i].expr;
+      const title = eq.includes("crew") ? "Conserved: crew" :
+                    (eq.includes("site_unprepared") && eq.includes("foundation_ready")) ? "Conserved: site progress" :
+                    (eq.includes("wood_stock") && eq.includes("painted")) ? "Conserved: build progress" :
+                    pretty[i].title;
+      return { title, expr: eq };
+    });
+
+    return { vectors: vectors2, pretty: pretty2 };
+  }
+
+  /***********************
+   * 7) Reachability BFS *
+   ***********************/
+  function parseGoal(text){
+    let obj;
+    try{
+      obj = JSON.parse(text);
+    }catch(e){
+      throw new Error("Goal must be valid JSON (e.g. {\"complete\":1}).");
+    }
+    if (typeof obj !== "object" || obj === null || Array.isArray(obj)) {
+      throw new Error("Goal JSON must be an object mapping place ids to token counts.");
+    }
+    // allow labels as keys too
+    const labelToId = Object.fromEntries(net.places.map(p=>[p.label, p.id]));
+    const goal = {};
+    for (const [k,v] of Object.entries(obj)){
+      const pid = placeIndex[k] !== undefined ? k : (labelToId[k] || null);
+      if (!pid) throw new Error(`Unknown place key: "${k}". Use place ids from the Marking Panel.`);
+      const n = Number(v);
+      if (!Number.isFinite(n) || n<0 || !Number.isInteger(n)) throw new Error(`Bad token count for "${k}": must be a nonnegative integer.`);
+      goal[pid] = n;
+    }
+    return goal;
+  }
+
+  function markingKey(m){
+    return net.places.map(p => (m[p.id] ?? 0)).join(",");
+  }
+
+  function meetsGoal(m, goal){
+    for (const [pid, n] of Object.entries(goal)){
+      if ((m[pid] ?? 0) !== n) return false;
+    }
+    return true;
+  }
+
+  function deadlockExplanation(m){
+    const issues = [];
+    for (const t of net.transitions){
+      const missing = [];
+      for (const [pid,w] of Object.entries(t.pre)){
+        const have = m[pid] ?? 0;
+        if (have < w) missing.push(`${pid} (${have}/${w})`);
+      }
+      if (missing.length) issues.push({t:t.id, missing});
+    }
+    issues.sort((a,b)=>a.missing.length-b.missing.length);
+    return issues.slice(0,4);
+  }
+
+  function boundedReachability(goal, opts={maxDepth:20, maxStates:5000}){
+    const start = deepClone(M0);
+    const q = [];
+    const seen = new Map(); // key -> {prevKey, viaTid}
+    const startKey = markingKey(start);
+    seen.set(startKey, { prev:null, via:null, depth:0, marking:start });
+
+    q.push(startKey);
+    let foundKey = null;
+
+    const deadlocks = []; // {key, depth}
+    while (q.length){
+      const key = q.shift();
+      const node = seen.get(key);
+      const m = node.marking;
+      if (meetsGoal(m, goal)){
+        foundKey = key; break;
+      }
+      if (node.depth >= opts.maxDepth) continue;
+
+      const enabled = enabledTransitions(m);
+      if (!enabled.length){
+        deadlocks.push({key, depth: node.depth});
+        continue;
+      }
+
+      for (const t of enabled){
+        const m2 = fire(m, t);
+        const k2 = markingKey(m2);
+        if (!seen.has(k2)){
+          if (seen.size >= opts.maxStates) {
+            return { truncated:true, found:false, deadlocks, seenSize:seen.size };
+          }
+          seen.set(k2, { prev:key, via:t.id, depth:node.depth+1, marking:m2 });
+          q.push(k2);
+        }
+      }
+    }
+
+    if (foundKey){
+      // reconstruct
+      const seq = [];
+      let k = foundKey;
+      while (seen.get(k).prev !== null){
+        const n = seen.get(k);
+        seq.push(n.via);
+        k = n.prev;
+      }
+      seq.reverse();
+      return { found:true, seq, states: seen.size, depth: seq.length };
+    }else{
+      // pick earliest deadlocks
+      deadlocks.sort((a,b)=>a.depth-b.depth);
+      const earliest = deadlocks[0];
+      return {
+        found:false,
+        truncated:false,
+        states: seen.size,
+        deadlock: earliest ? { depth: earliest.depth, marking: seen.get(earliest.key).marking } : null
+      };
+    }
+  }
+
+  /***********************
+   * 8) UI button wiring *
+   ***********************/
+  const btnStep = document.getElementById("btnStep");
+  const btnAuto = document.getElementById("btnAuto");
+  const btnCons = document.getElementById("btnCons");
+  const btnReach = document.getElementById("btnReach");
+  const btnBranch = document.getElementById("btnBranch");
+  const btnReset = document.getElementById("btnReset");
+  const goalInput = document.getElementById("goalInput");
+
+  btnStep.addEventListener("click", ()=>{
+    stepOne(enabled => enabled[Math.floor(Math.random()*enabled.length)]);
+  });
+
+  btnAuto.addEventListener("click", ()=>{
+    if (autoTimer){
+      clearInterval(autoTimer);
+      autoTimer = null;
+      btnAuto.textContent = "⏵ Auto-play feasible path";
+      setStatus("Auto-play stopped", "ok");
+      return;
+    }
+    setStatus("Auto-play running…", "run");
+    btnAuto.textContent = "⏸ Stop auto-play";
+    autoTimer = setInterval(()=>{
+      const ok = stepOne(enabled => enabled[Math.floor(Math.random()*enabled.length)]);
+      // stop if deadlock or reached complete
+      const m = currentMarking();
+      if (!ok || (m.complete ?? 0) >= 1){
+        clearInterval(autoTimer);
+        autoTimer = null;
+        btnAuto.textContent = "⏵ Auto-play feasible path";
+        setStatus((m.complete ?? 0) >= 1 ? "Reached goal-ish (complete)" : "Stopped", (m.complete ?? 0) >= 1 ? "ok":"dead");
+      }
+    }, 450);
+  });
+
+  btnCons.addEventListener("click", ()=>{
+    invariantsCache = prettyInvariants();
+    selectedInvariantIdx = 0;
+    highlightInvariant(0);
+    renderInvariantList();
+    renderAudit();
+    // also show a friendly headline in reachOut
+    const inv0 = invariantsCache.pretty[0];
+    reachOut.textContent = `S-invariants computed (basis size ${invariantsCache.pretty.length}). Example: ${inv0.expr}`;
+  });
+
+  btnReach.addEventListener("click", ()=>{
+    let goal;
+    try{
+      goal = parseGoal(goalInput.value.trim());
+    }catch(e){
+      reachOut.textContent = "Goal parse error: " + e.message;
+      setStatus("Goal parse error", "dead");
+      return;
+    }
+    const res = boundedReachability(goal, {maxDepth:22, maxStates:8000});
+    if (res.truncated){
+      reachOut.textContent = `Search truncated at ${res.seenSize} states (increase bounds in code).`;
+      window.__lastReach = res;
+      renderAudit();
+      return;
+    }
+    if (res.found){
+      reachOut.textContent = `Reachable ✅ (depth ${res.depth}, explored ${res.states} states)\nWitness: ${res.seq.join(" → ")}`;
+      window.__lastReach = res;
+      setStatus("Goal reachable", "ok");
+    }else{
+      if (!res.deadlock){
+        reachOut.textContent = `Not found within bounds ❌ (explored ${res.states} states)\nNo deadlock states encountered within search.`;
+      }else{
+        const dead = res.deadlock.marking;
+        const why = deadlockExplanation(dead);
+        const prettyDead = JSON.stringify(dead, null, 0);
+        reachOut.textContent =
+          `Not found within bounds ❌ (explored ${res.states} states)\nFirst deadlock frontier at depth ${res.deadlock.depth}.\nDeadlock marking: ${prettyDead}\n\nClosest preconditions (missing tokens):\n` +
+          why.map(x=>`- ${x.t}: missing ${x.missing.join(", ")}`).join("\n");
+      }
+      window.__lastReach = res;
+      setStatus("Goal not found (bounded)", "dead");
+    }
+    renderAudit();
+  });
+
+  btnBranch.addEventListener("click", ()=>{
+    const m = currentMarking();
+    const enabled = enabledTransitions(m);
+    if (!enabled.length){
+      reachOut.textContent = "Branch Explorer: no enabled transitions (deadlock).";
+      setStatus("Deadlock", "dead");
+      return;
+    }
+    // Simple “modal” using prompt-like panel in reachOut
+    const lines = enabled.map((t,i)=>`${i+1}. ${t.id} — ${t.label.replace(/\n/g," ")}`).join("\n");
+    const pick = prompt(
+      "Enabled transitions (pick a number to fork a new path by firing it):\n\n" + lines + "\n\n(Leave blank to cancel)"
+    );
+    if (!pick) return;
+    const k = Number(pick);
+    if (!Number.isFinite(k) || k<1 || k>enabled.length) return;
+    const chosen = enabled[k-1];
+
+    // Fork from current snapshot
+    const base = currentSnapshot();
+    const np = newPath(`Path ${String.fromCharCode(65 + paths.length - 1)}`, base);
+    // Fire chosen in the NEW path
+    activePathId = np.id;
+    stepOne(()=>chosen);
+    renderAll();
+  });
+
+  btnReset.addEventListener("click", ()=>{
+    if (autoTimer){ clearInterval(autoTimer); autoTimer=null; btnAuto.textContent="⏵ Auto-play feasible path"; }
+    resetPath();
+  });
+
+  /***********************
+   * 9) bootstrap render *
+   ***********************/
+  draw();
+  renderAll();
+
+})();
+</script>
+</body>
+</html>
