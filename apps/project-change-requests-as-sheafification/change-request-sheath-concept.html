@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Change Request Sheath Concept</title>
+  <link rel="stylesheet" href="../../common.css" />
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 24px 20px 48px;
+    }
+    header {
+      margin-bottom: 24px;
+    }
+    nav {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    section {
+      margin-bottom: 24px;
+      padding: 16px 18px;
+      border-radius: 12px;
+      background: rgba(127, 209, 255, 0.08);
+      border: 1px solid rgba(127, 209, 255, 0.25);
+    }
+    h1 {
+      margin: 0 0 8px;
+    }
+    h2 {
+      margin-top: 0;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="../../index.html">Back to app index</a>
+    <a href="./index.html">Back to sheafification demo</a>
+  </nav>
+
+  <header>
+    <h1>Change Request Sheath Concept</h1>
+    <p class="note">A compact summary of how change requests behave like refinements that require gluing work.</p>
+  </header>
+
+  <section>
+    <h2>One-sentence version</h2>
+    <p>
+      A change request can be viewed as a refinement of scope that introduces new interfaces, and
+      sheafification is the process of forcing local decisions to agree on overlaps so the project
+      still forms a coherent whole.
+    </p>
+  </section>
+
+  <section>
+    <h2>Short paragraph (PM-friendly)</h2>
+    <p>
+      Model the project as overlapping “areas of responsibility” (Approach, Foundation, Interior).
+      Each area carries local decisions (owner, materials, inspection status). Where areas overlap,
+      decisions must agree; if they do, they “glue” into a single integrated plan (a global section).
+      A change request refines the scope (splitting areas into smaller parts), which creates more
+      overlap points and coordination requirements. If the old plan no longer agrees at these new
+      interfaces, the mismatch highlights exactly where integration work is needed.
+    </p>
+  </section>
+
+  <section>
+    <h2>Slightly more mathematical (but still readable)</h2>
+    <p>
+      Treat each project area as an open set in a cover. A presheaf assigns local specifications to
+      each open set and restriction maps to overlaps. A global section is a set of local specs that
+      agree on every overlap. A change request refines the cover (splits opens into smaller opens),
+      creating additional overlaps. Sheafification corresponds to enforcing the gluing condition:
+      updating or reconciling local specs so that they become consistent across the refined overlaps.
+    </p>
+  </section>
+</body>
+</html>
