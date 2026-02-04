@@ -1,0 +1,36 @@
+.petri-net-app {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin: 0 auto;
+  max-width: 1100px;
+}
+
+.petri-net-header h1 {
+  margin-bottom: 0.5rem;
+}
+
+.petri-net-header p {
+  margin: 0;
+  color: #4b5563;
+}
+
+.petri-net-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.petri-net-frame {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0b1220;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+}
+
+.petri-net-frame iframe {
+  width: 100%;
+  min-height: 720px;
+  border: 0;
+}
