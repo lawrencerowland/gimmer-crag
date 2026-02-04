@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Operadic composition for complex systems (and shed + Petri net + WBS)</title>
+  <link rel="stylesheet" href="../../common.css" />
+  <style>
+    :root{
+      --bg:#0b0f17;
+      --panel:#101a2a;
+      --panel2:#0f1522;
+      --text:#e9eef7;
+      --muted:#b9c3d6;
+      --accent:#67d5ff;
+      --accent2:#a6ffb0;
+      --warn:#ffd479;
+      --line:rgba(255,255,255,.12);
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius:14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    body{
+      margin:0;
+      font-family:var(--sans);
+      background:radial-gradient(1200px 700px at 15% -10%, rgba(103,213,255,.20), transparent 55%),
+                 radial-gradient(900px 600px at 90% 10%, rgba(166,255,176,.14), transparent 55%),
+                 var(--bg);
+      color:var(--text);
+      line-height:1.5;
+    }
+    a{ color: var(--accent); text-decoration:none; }
+    a:hover{ text-decoration:underline; }
+    .wrap{ max-width:1100px; margin:0 auto; padding:24px; }
+    header{
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      padding:18px 18px 10px;
+      box-shadow: var(--shadow);
+    }
+    h1{ margin:0 0 6px 0; font-size: 26px; letter-spacing:.2px; }
+    .sub{ margin:0; color:var(--muted); font-size:14px; }
+    .nav{
+      margin-top:14px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      padding:10px 0 6px;
+      border-top: 1px solid var(--line);
+    }
+    .pill{
+      display:inline-block;
+      padding:8px 10px;
+      border-radius: 999px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      font-size:13px;
+      color: var(--text);
+    }
+    .pill:hover{ background: rgba(255,255,255,.06); }
+    .grid{
+      display:grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap:18px;
+      margin-top:18px;
+    }
+    @media (max-width: 920px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+    section{
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px 16px 14px;
+      box-shadow: var(--shadow);
+    }
+    h2{ margin:0 0 10px 0; font-size: 18px; }
+    h3{ margin:14px 0 8px 0; font-size: 15px; color: var(--accent2); }
+    .callout{
+      border:1px solid var(--line);
+      background: rgba(16,26,42,.65);
+      border-radius: 12px;
+      padding: 12px;
+      margin: 10px 0;
+    }
+    .callout strong{ color: var(--accent2); }
+    code, pre{ font-family: var(--mono); font-size: 12.8px; color: #e7f2ff; }
+    .math{
+      font-family: var(--mono);
+      background: rgba(255,255,255,.05);
+      border: 1px solid var(--line);
+      padding: 3px 6px;
+      border-radius: 8px;
+      white-space: nowrap;
+    }
+    details{
+      border:1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255,255,255,.02);
+      padding:10px 10px 8px;
+      margin:10px 0;
+    }
+    summary{ cursor:pointer; font-weight:600; color: var(--accent); }
+    .small{ color: var(--muted); font-size: 13px; }
+    .kpi{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin:10px 0 0;
+    }
+    .kpi .box{
+      flex:1 1 190px;
+      border:1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(15,21,34,.7);
+      padding: 10px;
+      min-width:190px;
+    }
+    .box .lbl{ font-size: 12px; color: var(--muted); }
+    .box .val{ font-size: 14px; margin-top:4px; }
+    .tabs{
+      border:1px solid var(--line);
+      border-radius: 12px;
+      overflow:hidden;
+      background: rgba(15,21,34,.7);
+    }
+    .tabbar{
+      display:flex;
+      gap:0;
+      border-bottom:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      overflow:auto;
+    }
+    .tabbar label{
+      padding:10px 12px;
+      cursor:pointer;
+      font-weight:600;
+      font-size:13px;
+      color: var(--muted);
+      border-right:1px solid var(--line);
+      white-space:nowrap;
+    }
+    .tabbar label:hover{ color: var(--text); }
+    .tabcontent{ padding: 12px; }
+    input[type="radio"]{ display:none; }
+    #t_tree:checked ~ .tabbar label[for="t_tree"],
+    #t_api:checked ~ .tabbar label[for="t_api"],
+    #t_eq:checked ~ .tabbar label[for="t_eq"],
+    #t_sys:checked ~ .tabbar label[for="t_sys"]{
+      color: var(--text);
+      background: rgba(103,213,255,.10);
+    }
+    .pane{ display:none; }
+    #t_tree:checked ~ .tabcontent #pane_tree,
+    #t_api:checked  ~ .tabcontent #pane_api,
+    #t_eq:checked   ~ .tabcontent #pane_eq,
+    #t_sys:checked  ~ .tabcontent #pane_sys{
+      display:block;
+    }
+    .svgwrap{
+      background: rgba(255,255,255,.02);
+      border:1px dashed rgba(255,255,255,.20);
+      border-radius: 12px;
+      padding: 10px;
+      overflow:auto;
+      margin: 8px 0;
+    }
+    .legend{
+      display:flex; gap:10px; flex-wrap:wrap; margin-top:8px;
+      color: var(--muted); font-size:12.5px;
+    }
+    .chip{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 8px; border-radius:999px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+    }
+    .dot{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+    .dot.type{ background: var(--accent2); }
+    .dot.op{ background: var(--accent); }
+    .dot.place{ background: var(--warn); }
+    .dot.trans{ background: #ff7bd6; }
+    table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      overflow:hidden;
+      border-radius: 12px;
+      border:1px solid var(--line);
+      background: rgba(15,21,34,.7);
+      font-size: 13px;
+      margin: 10px 0;
+    }
+    th, td{
+      padding:10px 10px;
+      border-bottom:1px solid var(--line);
+      vertical-align: top;
+    }
+    th{
+      text-align:left;
+      color: var(--text);
+      background: rgba(255,255,255,.03);
+      font-size: 12px;
+      letter-spacing:.3px;
+      text-transform: uppercase;
+    }
+    tr:last-child td{ border-bottom:none; }
+    .muted{ color: var(--muted); }
+  </style>
+</head>
+
+<body>
+<div class="wrap">
+  <p><a href="../../index.html">Back to app index</a></p>
+
+  <header>
+    <h1>Operadic composition for complex systems</h1>
+    <p class="sub">
+      A worked explanation (based on <em>“Operads for complex system design specification, analysis and synthesis”</em>)
+      and how the same ideas can frame a “shed halfway up a mountain” Petri net and its WBS.
+    </p>
+
+    <div class="nav">
+      <a class="pill" href="#operads">Operads in one page</a>
+      <a class="pill" href="#views">Four views + visuals</a>
+      <a class="pill" href="#wbs">WBS as an operadic hierarchy</a>
+      <a class="pill" href="#petri">Petri nets ↔ operads</a>
+      <a class="pill" href="#shed">Shed: framing the net + WBS operadically</a>
+      <a class="pill" href="#takeaways">Takeaways</a>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section id="operads">
+      <h2>Operads in one page</h2>
+
+      <div class="callout">
+        <strong>Core idea:</strong> An <em>operad</em> is a formal language for building big things out of smaller things,
+        where composition is “plugging a whole design into a component slot.”
+        In complex systems terms: you get <strong>hierarchy with type-safe interfaces</strong> and a disciplined way to attach
+        multiple analyses to the same architecture.
+      </div>
+
+      <h3>Typed operads: “many inputs → one output” operations</h3>
+      <p>
+        Foley et&nbsp;al. focus on a <em>typed</em> (a.k.a. <em>coloured</em>) operad. It has:
+      </p>
+      <ul>
+        <li><strong>Types</strong> <span class="math">T</span> (think: interface/boundary labels),</li>
+        <li><strong>Operations</strong> <span class="math">O(X<sub>1</sub>,…,X<sub>n</sub>;Y)</span> (an operation <span class="math">f : ⟨X<sub>i</sub>⟩ → Y</span>),</li>
+        <li><strong>Composition by substitution</strong>:
+          if <span class="math">f : ⟨Y<sub>i</sub>⟩ → Z</span> and each <span class="math">g<sub>i</sub> : ⟨X<sub>ij</sub>⟩ → Y<sub>i</sub></span>,
+          then you can form <span class="math">f ∘ (g<sub>1</sub>,…,g<sub>n</sub>) : ⟨X<sub>ij</sub>⟩ → Z</span>.</li>
+      </ul>
+
+      <h3>Why this is specifically useful for complex systems</h3>
+      <p>
+        The paper pushes a three-layer separation:
+      </p>
+      <ol>
+        <li><strong>Composition separates subsystem designs</strong> into modules (hierarchical decomposition).</li>
+        <li><strong>Functorial semantics</strong> separates the abstract design language (“syntax”) from computational models (“semantics”).</li>
+        <li><strong>Natural transformations</strong> align multiple semantic models of the same design (e.g., state vs KPIs).</li>
+      </ol>
+
+      <details>
+        <summary>Glossary: syntax, semantics, algebras, functors (in this operads-for-design sense)</summary>
+        <p>
+          In the “systems view,” an operation is an <em>architecture</em>, and you interpret (evaluate)
+          architectures via <em>functorial semantics</em>: a mapping <span class="math">Model : O → Sem</span>
+          to some semantic context (sets/functions, probabilities, dynamical equations, etc.).
+        </p>
+        <p class="small">
+          An “operad algebra” is such an interpretation; natural transformations/algebra homomorphisms then
+          align interpretations (“extract KPIs from state” while respecting composition).
+        </p>
+      </details>
+    </section>
+
+    <section id="views">
+      <h2>Four views of operads</h2>
+      <p class="small">
+        Foley et&nbsp;al. highlight tree (hierarchy), API (typed composition),
+        equational (laws/contracts), and systems (architectures + functorial semantics).
+      </p>
+
+      <div class="tabs">
+        <input id="t_tree" type="radio" name="tabs" checked />
+        <input id="t_api"  type="radio" name="tabs" />
+        <input id="t_eq"   type="radio" name="tabs" />
+        <input id="t_sys"  type="radio" name="tabs" />
+
+        <div class="tabbar">
+          <label for="t_tree">Tree view</label>
+          <label for="t_api">API view</label>
+          <label for="t_eq">Equational view</label>
+          <label for="t_sys">Systems view</label>
+        </div>
+
+        <div class="tabcontent">
+          <div class="pane" id="pane_tree">
+            <p>
+              <strong>Tree view:</strong> each operation is a step in hierarchical decomposition; composing operations builds a tree.
+              Coherence ensures that “refine Sub1 then Sub2” equals “refine Sub2 then Sub1” when both yield the same fully-refined tree.
+            </p>
+            <div class="svgwrap">
+              <svg width="740" height="220" viewBox="0 0 740 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Operad tree composition diagram">
+                <defs>
+                  <style>
+                    .n{ fill:#101a2a; stroke:rgba(255,255,255,.25); stroke-width:1.2;}
+                    .t{ fill:#a6ffb0; }
+                    .o{ fill:#67d5ff; }
+                    .lbl{ fill:#e9eef7; font: 12px ui-monospace, Menlo, Consolas, monospace; }
+                    .edge{ stroke: rgba(255,255,255,.35); stroke-width:1.2; }
+                  </style>
+                </defs>
+
+                <circle class="n t" cx="370" cy="30" r="12"/>
+                <text class="lbl" x="388" y="34">System (Y)</text>
+
+                <rect class="n o" x="330" y="60" width="80" height="26" rx="6"/>
+                <text class="lbl" x="346" y="78">op : ⟨Sub1,Sub2⟩→System</text>
+
+                <circle class="n t" cx="260" cy="140" r="12"/>
+                <text class="lbl" x="278" y="144">Sub1 (X₁)</text>
+
+                <circle class="n t" cx="480" cy="140" r="12"/>
+                <text class="lbl" x="498" y="144">Sub2 (X₂)</text>
+
+                <line class="edge" x1="370" y1="42" x2="370" y2="60"/>
+                <line class="edge" x1="350" y1="86" x2="260" y2="128"/>
+                <line class="edge" x1="390" y1="86" x2="480" y2="128"/>
+
+                <rect class="n o" x="210" y="168" width="100" height="26" rx="6"/>
+                <text class="lbl" x="220" y="186">op₁ : ⟨Sub11,Sub12⟩→Sub1</text>
+                <line class="edge" x1="260" y1="152" x2="260" y2="168"/>
+
+                <circle class="n t" cx="215" cy="210" r="10"/>
+                <text class="lbl" x="230" y="214">Sub11</text>
+                <circle class="n t" cx="305" cy="210" r="10"/>
+                <text class="lbl" x="320" y="214">Sub12</text>
+                <line class="edge" x1="245" y1="194" x2="215" y2="200"/>
+                <line class="edge" x1="275" y1="194" x2="305" y2="200"/>
+              </svg>
+              <div class="legend">
+                <span class="chip"><span class="dot type"></span> Type (interface/boundary)</span>
+                <span class="chip"><span class="dot op"></span> Operation (decomposition step)</span>
+              </div>
+            </div>
+            <p class="small">
+              If you read WBS trees as “a deliverable assembled from sub-deliverables,” you are already thinking operadically.
+              The operad adds a formal, reusable notion of “plug a refined sub-tree into the parent.”
+            </p>
+          </div>
+
+          <div class="pane" id="pane_api">
+            <p>
+              <strong>API view:</strong> treat the operad as a strongly typed “API” where operations are methods with signatures
+              <span class="math">⟨X₁,…,Xₙ⟩ → Y</span>.
+              Type discipline controls what can be composed, like a compiler rejecting mismatched types.
+            </p>
+            <div class="callout">
+              <div class="lbl">Project analogy:</div>
+              <div class="val">
+                A “work package” can have an interface like
+                <span class="math">⟨SiteReady, MaterialsOnSite, CrewAvailable⟩ → FoundationReady</span>.
+                Any refinement you “plug in” must output <span class="math">FoundationReady</span> if it is to satisfy that slot.
+              </div>
+            </div>
+            <details>
+              <summary>How this differs from “just a tree”</summary>
+              <p>
+                Trees say “Sub1 is inside System.” Typed operads say “Sub1 must present the right interface to System,” and
+                composition is only legal when those interfaces match. The paper stresses types as <em>boundaries</em>, not “the systems.”
+              </p>
+            </details>
+          </div>
+
+          <div class="pane" id="pane_eq">
+            <p>
+              <strong>Equational view:</strong> beyond “what can compose,” you can declare <em>equations</em> between different hierarchical
+              decompositions (different trees) that represent “the same system.” These act like contracts or rewrite rules.
+            </p>
+            <div class="callout">
+              <div class="lbl">Paper’s key pattern:</div>
+              <div class="val">
+                Two decompositions can be related by a common refinement (e.g. their LSI example: <span class="math">f(l,t)=g(s,a)</span>).
+              </div>
+            </div>
+            <p class="small">
+              Project analogy: “deliverable decomposition” and “trade decomposition” can be equated when they refine to the same lowest-level work packages (or a common refinement exists).
+            </p>
+          </div>
+
+          <div class="pane" id="pane_sys">
+            <p>
+              <strong>Systems view:</strong> interpret <span class="math">f : ⟨Xᵢ⟩ → Y</span> as a <em>system architecture</em>:
+              the <span class="math">Xᵢ</span> are component interfaces, and <span class="math">Y</span> is the environment/system boundary.
+              Composition is nesting: “one engineer’s system becomes the next engineer’s component.”
+            </p>
+            <p>
+              Then attach multiple analyses as <em>functorial semantics</em> and align those analyses with natural transformations/homomorphisms.
+            </p>
+            <div class="kpi">
+              <div class="box">
+                <div class="lbl">Same architecture</div>
+                <div class="val">WBS / decomposition tree (syntax)</div>
+              </div>
+              <div class="box">
+                <div class="lbl">Different semantics</div>
+                <div class="val">Cost, duration, risk, logistics…</div>
+              </div>
+              <div class="box">
+                <div class="lbl">Aligned semantics</div>
+                <div class="val">KPIs extracted from state must respect composition</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <details>
+        <summary>Where do wiring diagrams and network operads fit?</summary>
+        <ul>
+          <li><strong>Wiring diagram operads</strong> (top-down): explicit interfaces + nesting; great for multiple decompositions + equations.</li>
+          <li><strong>Network operads</strong> (bottom-up): generate composite designs/plans from atomic types + link templates.</li>
+        </ul>
+      </details>
+    </section>
+  </div>
+
+  <section id="wbs">
+    <h2>How operads describe hierarchical project components</h2>
+
+    <p>
+      A WBS is essentially a <em>hierarchical decomposition</em>.
+      The operad “tree view” captures exactly this: operations are decomposition steps; composing operations builds a refinement tree,
+      and coherence guarantees refinements don’t depend on the order you expand pieces.
+    </p>
+
+    <h3>Concrete mapping: WBS as operad syntax</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Project notion</th>
+          <th>Operad notion</th>
+          <th>How to read it</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Deliverable / interface label</strong></td>
+          <td><strong>Type</strong> <span class="math">X</span></td>
+          <td class="muted">“This work package produces/consumes this kind of thing / boundary condition.”</td>
+        </tr>
+        <tr>
+          <td><strong>Decomposition step</strong></td>
+          <td><strong>Operation</strong> <span class="math">f : ⟨X₁,…,Xₙ⟩ → Y</span></td>
+          <td class="muted">“If you have these sub-deliverables, you get the parent deliverable.”</td>
+        </tr>
+        <tr>
+          <td><strong>Refine a work package</strong></td>
+          <td><strong>Operadic composition</strong> (substitution)</td>
+          <td class="muted">“Plug the refined sub-tree into the parent slot.”</td>
+        </tr>
+        <tr>
+          <td><strong>Alternative decompositions</strong></td>
+          <td><strong>Equations between trees</strong></td>
+          <td class="muted">“Two views are ‘the same system’ if they share a common refinement.”</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <details>
+      <summary>Why the paper insists types are “interfaces/boundaries,” not “the systems themselves”</summary>
+      <p>
+        This is the key to keeping the syntax stable while swapping semantics: you can change what you treat as the interface
+        (deliverables vs resources vs approvals) without changing the underlying compositional story.
+      </p>
+    </details>
+  </section>
+
+  <section id="petri">
+    <h2>Petri nets ↔ operads in the paper</h2>
+
+    <p>
+      The paper’s SAR-tasking example is the direct bridge: they say it’s enough to give a Petri net as a template,
+      from which a network operad is constructed; transitions correspond to primitive tasks, token-colours to agent types.
+    </p>
+
+    <div class="callout">
+      <div class="lbl">Reusable lesson for projects:</div>
+      <div class="val">
+        Use a Petri net as <strong>generative syntax</strong> (primitive tasks + resources/conditions),
+        then build an operad of composite plans so only compositions respecting that logic are even formable.
+      </div>
+    </div>
+
+    <details>
+      <summary>Why Petri nets are a natural “generator language” here</summary>
+      <p class="small">
+        Petri nets already present monoidal process structure (concurrency, resource flow); operadic “substitution” adds the hierarchy/refinement dimension.
+      </p>
+    </details>
+  </section>
+
+  <section id="shed">
+    <h2>Can the shed-halfway-up-a-mountain Petri net and its WBS be framed operadically?</h2>
+
+    <p>
+      Yes—if you choose your <em>types</em> (interfaces/boundaries) carefully—either as deliverables (WBS-style) or as resource/condition states (Petri-style),
+      and then treat: <strong>(A)</strong> the Petri net as a generator template for primitive tasks, and/or <strong>(B)</strong> the WBS as the operad syntax whose semantics are Petri nets + schedule/cost/risk models.
+      The payoff is “type-safe” generativity: only hierarchies/schedules compatible with the physical logic are constructible.
+    </p>
+
+    <h3>A minimal toy “shed on a mountain” Petri net</h3>
+    <p class="small">
+      Places = conditions/resources; transitions = tasks. (Tiny, illustrative, not a full build spec.)
+    </p>
+
+    <div class="svgwrap">
+      <svg width="980" height="260" viewBox="0 0 980 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Toy Petri net for shed project">
+        <defs>
+          <style>
+            .place{ fill:#101a2a; stroke:rgba(255,255,255,.30); stroke-width:1.2;}
+            .trans{ fill:#ff7bd6; stroke:rgba(255,255,255,.25); stroke-width:1.2; }
+            .lab{ fill:#e9eef7; font: 12px ui-monospace, Menlo, Consolas, monospace; }
+            .arc{ stroke: rgba(255,255,255,.45); stroke-width:1.2; fill:none; marker-end:url(#arr); }
+          </style>
+          <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(255,255,255,.45)" />
+          </marker>
+        </defs>
+
+        <circle class="place" cx="80"  cy="70"  r="18"/><text class="lab" x="20"  y="45">P0: Permit+Design OK</text>
+        <circle class="place" cx="80"  cy="190" r="18"/><text class="lab" x="18"  y="165">P1: Materials at Trailhead</text>
+
+        <circle class="place" cx="300" cy="70"  r="18"/><text class="lab" x="248" y="45">P2: Site Prepared</text>
+        <circle class="place" cx="300" cy="190" r="18"/><text class="lab" x="230" y="165">P3: Materials On Mountain</text>
+
+        <circle class="place" cx="520" cy="70"  r="18"/><text class="lab" x="444" y="45">P4: Foundation Ready</text>
+        <circle class="place" cx="520" cy="190" r="18"/><text class="lab" x="450" y="165">P5: Framing Ready</text>
+
+        <circle class="place" cx="740" cy="130" r="18"/><text class="lab" x="684" y="105">P6: Roof On</text>
+        <circle class="place" cx="900" cy="130" r="18"/><text class="lab" x="838" y="105">P7: Shed Complete</text>
+
+        <rect class="trans" x="150" y="55" width="26" height="30" rx="4"/><text class="lab" x="135" y="98">T1: Prep Site</text>
+        <rect class="trans" x="150" y="175" width="26" height="30" rx="4"/><text class="lab" x="110" y="220">T2: Haul Materials Up</text>
+
+        <rect class="trans" x="370" y="55" width="26" height="30" rx="4"/><text class="lab" x="342" y="98">T3: Pour+Set Foundation</text>
+        <rect class="trans" x="370" y="175" width="26" height="30" rx="4"/><text class="lab" x="340" y="220">T4: Frame Walls</text>
+
+        <rect class="trans" x="600" y="115" width="26" height="30" rx="4"/><text class="lab" x="574" y="158">T5: Install Roof</text>
+        <rect class="trans" x="820" y="115" width="26" height="30" rx="4"/><text class="lab" x="785" y="158">T6: Finish/Closeout</text>
+
+        <path class="arc" d="M 98 70 C 120 70, 130 70, 150 70" />
+        <path class="arc" d="M 98 190 C 120 190, 130 190, 150 190" />
+
+        <path class="arc" d="M 176 70 C 215 70, 250 70, 282 70" />
+        <path class="arc" d="M 176 190 C 215 190, 250 190, 282 190" />
+
+        <path class="arc" d="M 318 70 C 340 70, 350 70, 370 70" />
+        <path class="arc" d="M 318 190 C 340 190, 350 190, 370 190" />
+
+        <path class="arc" d="M 396 70 C 430 70, 470 70, 502 70" />
+        <path class="arc" d="M 396 190 C 430 190, 470 190, 502 190" />
+
+        <path class="arc" d="M 538 70 C 565 85, 585 105, 600 130" />
+        <path class="arc" d="M 538 190 C 565 175, 585 155, 600 130" />
+
+        <path class="arc" d="M 626 130 C 660 130, 700 130, 722 130" />
+        <path class="arc" d="M 758 130 C 785 130, 795 130, 820 130" />
+        <path class="arc" d="M 846 130 C 865 130, 880 130, 882 130" />
+      </svg>
+
+      <div class="legend">
+        <span class="chip"><span class="dot place"></span> Place (condition/resource state)</span>
+        <span class="chip"><span class="dot trans"></span> Transition (task)</span>
+      </div>
+    </div>
+
+    <h3>Two operadic framings (choose based on what you want to generate)</h3>
+
+    <details>
+      <summary>Framing A: Petri net as template → network operad of feasible task plans</summary>
+      <p>
+        Primitive transitions (T1…T6) become generators; token-colours (Crew, Lumber, Concrete, AccessWindow, etc.) control legality.
+        The operad’s operations then represent composite plans built from these primitives—only those that are syntactically feasible under the template can be formed.
+      </p>
+    </details>
+
+    <details>
+      <summary>Framing B: WBS operad as syntax → Petri net + schedule models as semantics</summary>
+      <p>
+        Treat WBS refinement steps as operad operations (syntax), then interpret each operation as:
+        (i) a Petri net fragment (physical/enabling logic) and (ii) duration/cost/risk functions (schedule semantics). Natural transformations align “state” and “KPIs” so aggregation commutes with refinement.
+      </p>
+    </details>
+
+    <h3>Markings as schedule options</h3>
+    <p>
+      If you treat different markings as different feasible logistical states (materials staged vs not, crew on-mountain vs trailhead, etc.), then reachability constrains which schedules are realizable; the operad viewpoint says “only schedules that can be assembled from legal substitutions are even expressible.”
+    </p>
+
+    <details>
+      <summary>Practical tip: interface choice for the shed (keeps the operad clean)</summary>
+      <ul>
+        <li><strong>Deliverable-typed</strong>: <span class="math">FoundationReady</span>, <span class="math">FramingReady</span>, … (WBS-native)</li>
+        <li><strong>Resource/condition-typed</strong>: <span class="math">MaterialsOnMountain</span>, <span class="math">CrewOnSite</span>, <span class="math">WeatherWindow</span>, … (Petri-native)</li>
+      </ul>
+      <p class="small">Mixing both is possible but you usually get a cleaner first pass by privileging one typing discipline and deriving the other by a homomorphism (“extract deliverables from resources” or vice versa).</p>
+    </details>
+  </section>
+
+  <section id="takeaways">
+    <h2>Takeaways</h2>
+    <ol>
+      <li><strong>Operadic composition is substitution.</strong> It’s the formal version of “refine a component, then plug it into the bigger design,” with type-matching preventing nonsense.</li>
+      <li><strong>WBS fits the tree/API views almost directly.</strong> Operads add explicit interface typing, equations relating alternative decompositions, and a principled way to attach multiple semantics (cost/schedule/risk) to the same structure.</li>
+      <li><strong>Your shed Petri net can be ‘operadic’ in two ways:</strong> as a template generating composite task plans (network operad), or as a semantic interpretation of a WBS operad, aligning physical logic with KPIs via functorial semantics.</li>
+      <li><strong>Design-space exploration becomes disciplined.</strong> You get “no syntactically invalid designs,” and you can do lazy evaluation: coarse semantics first, expensive semantics later, without losing compositional coherence.</li>
+    </ol>
+
+    <details>
+      <summary>Primary reference</summary>
+      <p class="small">
+        Foley JD, Breiner S, Subrahmanian E, Dusel JM (2021) <em>Operads for complex system design specification, analysis and synthesis</em>, Proc. R. Soc. A 477:20210099.
+      </p>
+    </details>
+  </section>
+
+  <section>
+    <p class="small"><em>Coda:</em> If you want a perversely powerful next step, treat “change requests” as equations you may or may not choose to impose on the WBS-operad, and study which semantic models stop commuting first when the equation is added.</p>
+  </section>
+
+</div>
+</body>
+</html>
