@@ -161,6 +161,13 @@
     .spacer{flex:1;}
     .smalltxt{font-size:12px;color:var(--muted);}
     .kbd{font-family:var(--mono);font-size:11px;padding:1px 6px;border-radius:8px;border:1px solid rgba(148,163,184,.20);background:rgba(0,0,0,.28);color:#cbd5e1;}
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:.2s;}
+    .modal.open{opacity:1;pointer-events:auto;}
+    .modal .content{background:var(--panel2);border:1px solid rgba(148,163,184,.25);border-radius:14px;max-width:740px;width:92%;position:relative;box-shadow:0 10px 30px rgba(0,0,0,.55);}
+    .modal .content .hd{padding:12px 16px;border-bottom:1px solid rgba(148,163,184,.15);display:flex;align-items:center;justify-content:space-between;gap:12px;}
+    .modal .content .hd h3{font-size:16px;font-weight:650;margin:0;}
+    .modal .content .bd{padding:16px;}
+    .modal .close{border:none;background:transparent;color:var(--accent);font-size:20px;font-weight:700;cursor:pointer;line-height:1;}
   </style>
 </head>
 <body>
@@ -178,6 +185,10 @@
       <span class="badge">Petri net = “what’s allowed”</span>
       <span class="badge">SMC term = “how it composes”</span>
       <span class="badge">WBS = “how you package it”</span>
+    </div>
+    <div class="row" style="margin:10px 0 4px;">
+      <button class="btn secondary" data-explain="notes">Notes</button>
+      <span class="muted smalltxt">Quick explainer for the Petri net → SMC → WBS framing.</span>
     </div>
 
     <div class="panel">
@@ -456,6 +467,16 @@
       </div>
     </div>
 
+  </div>
+
+  <div id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="content">
+      <div class="hd">
+        <h3 id="modalTitle">Notes</h3>
+        <button class="close" aria-label="Close">×</button>
+      </div>
+      <div class="bd" id="modalBody" style="white-space:pre-wrap"></div>
+    </div>
   </div>
 
 <script>
@@ -1161,6 +1182,17 @@ function renderSelected(){
 const netJsonEl = document.getElementById("netJson");
 const btnCopyJson = document.getElementById("btnCopyJson");
 const copyStatus = document.getElementById("copyStatus");
+const EXPLAIN = {
+  notes: [
+    "• The Petri net is the source of truth for physical logic (what depends on what; what resources gate parallelism).",
+    "• Schedules are generated as executions of that same net (different priorities, resource-token counts, and durations ⇒ different valid schedules).",
+    "• WBS is treated as a view/projection of the same underlying process: one schedule ⇒ one “schedule-derived elementary WBS”, plus an SMC-style expression that exposes ⊗ (parallel) vs ; (sequential).",
+    "",
+    "Petri net (fundamentals): places/tokens = project state & resource availability; transitions = work. This captures the “physics” of what is possible independent of any particular schedule.",
+    "• SMC (compositional schedule syntax): the same plan can be written as different string diagrams / compositions—vertical composition for sequencing and horizontal composition for parallelism—which is exactly the lens you want for “different schedules as different (but equivalent) composites.”",
+    "• Elementary WBS (hierarchical): when you have an SMC expression / execution trace, an operad-style decomposition viewpoint tells you how to “break down and reconstitute the whole” while keeping correctness under substitution—this is a good mathematical fit for WBS factoring choices."
+  ].join("\n")
+};
 
 function netAsJson(){
   const spec = deepCopy(net);
@@ -1184,6 +1216,30 @@ btnCopyJson.addEventListener("click", async ()=>{
   }catch(e){
     copyStatus.textContent = "Copy failed (browser permissions).";
   }
+});
+
+/* ---------- Modal explainers ---------- */
+
+function openModal(title, body){
+  document.getElementById("modalTitle").textContent = title;
+  document.getElementById("modalBody").textContent = body;
+  document.getElementById("modal").classList.add("open");
+}
+function closeModal(){
+  document.getElementById("modal").classList.remove("open");
+}
+
+document.querySelector("#modal .close").addEventListener("click", closeModal);
+window.addEventListener("click",(e)=>{ if(e.target && e.target.id==="modal") closeModal(); });
+window.addEventListener("keydown",(e)=>{ if(e.key==="Escape") closeModal(); });
+
+Array.from(document.querySelectorAll("[data-explain]")).forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    const key = btn.dataset.explain;
+    const txt = EXPLAIN[key] || "No explainer found.";
+    const title = btn.textContent || key;
+    openModal(title, txt);
+  });
 });
 
 /* ---------- Buttons / event wiring ---------- */
