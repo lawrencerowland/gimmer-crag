@@ -1,0 +1,842 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cliff-Refuge Mini-Generator</title>
+  <link rel="stylesheet" href="../../common.css" />
+  <style>
+    .page {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 24px 16px 40px;
+    }
+    .card {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 16px;
+      padding: 18px;
+      margin-top: 16px;
+    }
+    .code-block {
+      background: #0b1120;
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      padding: 16px;
+      overflow-x: auto;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #e2e8f0;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+    }
+    .meta {
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      background: rgba(15, 23, 42, 0.35);
+      font-size: 14px;
+    }
+    .meta h3 {
+      margin-top: 0;
+      font-size: 14px;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .actions a {
+      display: inline-block;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      text-decoration: none;
+    }
+    details summary {
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .note {
+      font-size: 14px;
+      color: #cbd5f5;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <a href="../../index.html">Back to app index</a>
+    <h1>Cliff-Refuge (Shed-on-a-Cliff) Mini-Generator</h1>
+    <p class="note">A stdlib-only Julia script that models a cliffside refuge Petri net, enumerates all reachable markings, and emits a D3/Tailwind HTML reachability graph.</p>
+
+    <section class="card">
+      <h2>What this script does</h2>
+      <div class="meta-grid">
+        <div class="meta">
+          <h3>Cliff-specific constraints</h3>
+          <p>Encodes access logistics (fixed lines, anchors), permits, weather windows, and a consumable heli slot.</p>
+        </div>
+        <div class="meta">
+          <h3>Reachability graph</h3>
+          <p>BFS enumerates every reachable marking and records labeled transition firings.</p>
+        </div>
+        <div class="meta">
+          <h3>Shareable artifacts</h3>
+          <p>Outputs a TSV of markings plus a standalone HTML visualization.</p>
+        </div>
+      </div>
+      <div class="actions">
+        <a href="./cliff_refuge_petri.jl" download>Download Julia script</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Run locally</h2>
+      <pre class="code-block">julia cliff_refuge_petri.jl
+# Outputs:
+#   /tmp/cliff_refuge_markings.tsv
+#   /tmp/cliff_refuge_reachability.html</pre>
+    </section>
+
+    <section class="card">
+      <details>
+        <summary>Show the full Julia source</summary>
+        <pre class="code-block"><code>###############################
+#  Cliff‑Refuge (Shed‑on‑a‑Cliff) mini‑generator
+#  Reachability (markings) + HTML viz
+#  Julia (stdlib‑only)
+###############################
+#
+# This script is deliberately dependency‑free (stdlib only):
+# we want a “tiny sharable artifact” that runs anywhere.
+#
+# What it does
+# ------------
+#  1) Defines a *Petri net* for a mountain refuge halfway up a cliff
+#     (places = physical preconditions/resources, transitions = tasks).
+#  2) Auto‑enumerates all reachable markings from the initial marking.
+#  3) Builds the reachability graph (nodes = markings, edges = firings).
+#  4) Emits:
+#       - /tmp/cliff_refuge_markings.tsv
+#       - /tmp/cliff_refuge_reachability.html
+#
+# Run
+# ---
+#   julia cliff_refuge_petri.jl
+# Then open the HTML in a browser.
+#
+# Notes on modeling style
+# -----------------------
+# We stick to the “collective token” philosophy: markings are multisets of places.
+# This is the Petri‑net/CMC stance (Baez–Master), which is exactly what you want
+# if you interpret markings as “state snapshots” and transitions as “task firings”.
+
+using Random
+using Printf
+
+###############################
+# 0. Petri net core
+###############################
+
+&quot;&quot;&quot;A Petri net over named places and named transitions.
+
+pre[t][p]  = tokens required from place p to fire transition t
+post[t][p] = tokens produced into place p after firing transition t
+
+All token counts are nonnegative integers.
+&quot;&quot;&quot;
+struct PetriNet
+    places::Vector{String}
+    transitions::Vector{String}
+    pre::Matrix{Int}   # |T| × |P|
+    post::Matrix{Int}  # |T| × |P|
+    duration::Vector{Float64}  # per‑transition estimate (days)
+end
+
+&quot;&quot;&quot;Return true iff transition t is enabled at marking m.&quot;&quot;&quot;
+function enabled(net::PetriNet, m::Vector{Int}, t::Int)
+    @inbounds for p in eachindex(m)
+        if m[p] &lt; net.pre[t,p]
+            return false
+        end
+    end
+    return true
+end
+
+&quot;&quot;&quot;Fire transition t at marking m, producing a new marking.&quot;&quot;&quot;
+function fire(net::PetriNet, m::Vector{Int}, t::Int)
+    m2 = copy(m)
+    @inbounds for p in eachindex(m)
+        m2[p] = m2[p] - net.pre[t,p] + net.post[t,p]
+        if m2[p] &lt; 0
+            error(&quot;Bug: negative token count after firing $(net.transitions[t]) at place $(net.places[p])&quot;)
+        end
+    end
+    return m2
+end
+
+&quot;&quot;&quot;Stable string key for a marking (for hashing / indexing).&quot;&quot;&quot;
+marking_key(m::Vector{Int}) = join(m, &quot;,&quot;)
+
+###############################
+# 1. Cliff‑refuge toy project net
+###############################
+
+&quot;&quot;&quot;Build a Petri net for a small refuge halfway up a cliff.
+
+Interpretation heuristics:
+- Places are *facts/resources* that must hold.
+- Tokens are coarse &quot;available&quot; flags (mostly 0/1) except where noted.
+
+We include the cliff‑specific constraints that make this richer than a garden shed:
+- Access logistics: approach path, fixed lines, anchor points
+- Lift window: helicopter / winch availability as a token
+- Safety gating: method statement + permit + buddy check
+- Weather window: treated as a tokenized resource (a single usable window)
+
+This is still a toy model: it’s meant to stress concurrency vs gating, not realism.
+&quot;&quot;&quot;
+function build_cliff_refuge_net()
+    # Places
+    P = String[
+        # logistical / safety
+        &quot;BaseCampReady&quot;,          # staging area established
+        &quot;ApproachRouteOpen&quot;,      # approach path usable
+        &quot;FixedLinesRigged&quot;,       # ropes fixed / protection installed
+        &quot;AnchorsCertified&quot;,       # anchor points tested/certified
+        &quot;PermitApproved&quot;,         # local permission / safety plan approved
+        &quot;WeatherWindow&quot;,          # a good weather window exists (token consumed by some tasks)
+        &quot;HeliSlot&quot;,               # helicopter/winch slot available (token consumed)
+        &quot;CrewOnLedge&quot;,            # crew positioned at ledge site
+
+        # build state
+        &quot;RockPadPrepared&quot;,        # leveled/secured pad or terrace prepared
+        &quot;FoundationSet&quot;,          # micro‑foundation / anchors drilled &amp; cured
+        &quot;FrameErected&quot;,           # structure framed
+        &quot;RoofSealed&quot;,             # roof on &amp; sealed
+        &quot;WallCladdingOn&quot;,         # walls/cladding on
+        &quot;StoveFlueFitted&quot;,         # stove/flue installed
+        &quot;DoorInstalled&quot;,          # door installed
+        &quot;InteriorBunkBuilt&quot;,       # bunks fitted
+        &quot;Painted&quot;,                # protective coating applied
+        &quot;RefugeComplete&quot;          # end state
+    ]
+
+    # Transitions (tasks)
+    T = String[
+        &quot;EstablishBaseCamp&quot;,
+        &quot;ApprovePermitAndMethod&quot;,
+        &quot;RigFixedLines&quot;,
+        &quot;TestAndCertifyAnchors&quot;,
+        &quot;MoveCrewToLedge&quot;,
+        &quot;PrepareRockPad&quot;,
+        &quot;DrillAndSetFoundation&quot;,
+        &quot;WinchMaterialsToLedge&quot;,
+        &quot;ErectFrame&quot;,
+        &quot;SealRoof&quot;,
+        &quot;AttachWallCladding&quot;,
+        &quot;FitDoor&quot;,
+        &quot;FitStoveAndFlue&quot;,
+        &quot;BuildBunks&quot;,
+        &quot;PaintProtectiveCoat&quot;,
+        &quot;FinalSafetyAndSignoff&quot;
+    ]
+
+    np = length(P)
+    nt = length(T)
+    pre  = zeros(Int, nt, np)
+    post = zeros(Int, nt, np)
+
+    # Helper to index places / transitions by name
+    pidx = Dict(P[i] =&gt; i for i in eachindex(P))
+    tidx = Dict(T[i] =&gt; i for i in eachindex(T))
+
+    # Convenience setters
+    function req(tname::String, pname::String, k::Int=1)
+        pre[tidx[tname], pidx[pname]] += k
+    end
+    function prod(tname::String, pname::String, k::Int=1)
+        post[tidx[tname], pidx[pname]] += k
+    end
+
+    # --- Define task semantics ---
+
+    # Establish basecamp: requires open approach route + weather; yields basecamp
+    req(&quot;EstablishBaseCamp&quot;, &quot;ApproachRouteOpen&quot;)
+    req(&quot;EstablishBaseCamp&quot;, &quot;WeatherWindow&quot;)
+    prod(&quot;EstablishBaseCamp&quot;, &quot;BaseCampReady&quot;)
+
+    # Permit/method statement approval: yields permit
+    prod(&quot;ApprovePermitAndMethod&quot;, &quot;PermitApproved&quot;)
+
+    # Rig fixed lines: requires basecamp, permit, weather; yields fixed lines
+    req(&quot;RigFixedLines&quot;, &quot;BaseCampReady&quot;)
+    req(&quot;RigFixedLines&quot;, &quot;PermitApproved&quot;)
+    req(&quot;RigFixedLines&quot;, &quot;WeatherWindow&quot;)
+    prod(&quot;RigFixedLines&quot;, &quot;FixedLinesRigged&quot;)
+
+    # Certify anchors: requires fixed lines; yields anchors certified
+    req(&quot;TestAndCertifyAnchors&quot;, &quot;FixedLinesRigged&quot;)
+    prod(&quot;TestAndCertifyAnchors&quot;, &quot;AnchorsCertified&quot;)
+
+    # Move crew to ledge: requires fixed lines + anchors certified
+    req(&quot;MoveCrewToLedge&quot;, &quot;FixedLinesRigged&quot;)
+    req(&quot;MoveCrewToLedge&quot;, &quot;AnchorsCertified&quot;)
+    prod(&quot;MoveCrewToLedge&quot;, &quot;CrewOnLedge&quot;)
+
+    # Prepare rock pad: requires crew on ledge + weather
+    req(&quot;PrepareRockPad&quot;, &quot;CrewOnLedge&quot;)
+    req(&quot;PrepareRockPad&quot;, &quot;WeatherWindow&quot;)
+    prod(&quot;PrepareRockPad&quot;, &quot;RockPadPrepared&quot;)
+
+    # Drill &amp; set foundation: requires rock pad prepared + anchors certified + weather
+    req(&quot;DrillAndSetFoundation&quot;, &quot;RockPadPrepared&quot;)
+    req(&quot;DrillAndSetFoundation&quot;, &quot;AnchorsCertified&quot;)
+    req(&quot;DrillAndSetFoundation&quot;, &quot;WeatherWindow&quot;)
+    prod(&quot;DrillAndSetFoundation&quot;, &quot;FoundationSet&quot;)
+
+    # Winch materials: requires basecamp + heli slot + crew on ledge
+    # We model the heli slot as consumable (one lift); basecamp and crew persist.
+    req(&quot;WinchMaterialsToLedge&quot;, &quot;BaseCampReady&quot;)
+    req(&quot;WinchMaterialsToLedge&quot;, &quot;CrewOnLedge&quot;)
+    req(&quot;WinchMaterialsToLedge&quot;, &quot;HeliSlot&quot;)
+    prod(&quot;WinchMaterialsToLedge&quot;, &quot;HeliSlot&quot;, 0)  # consumed by not reproducing
+    # (No explicit material inventory place in this toy model; the effect is enabling later tasks
+    #  via the fact that we can schedule this transition before frame/roof/etc in the reachability graph.)
+
+    # Erect frame: requires foundation set + crew on ledge
+    req(&quot;ErectFrame&quot;, &quot;FoundationSet&quot;)
+    req(&quot;ErectFrame&quot;, &quot;CrewOnLedge&quot;)
+    prod(&quot;ErectFrame&quot;, &quot;FrameErected&quot;)
+
+    # Seal roof: requires frame erected + weather
+    req(&quot;SealRoof&quot;, &quot;FrameErected&quot;)
+    req(&quot;SealRoof&quot;, &quot;WeatherWindow&quot;)
+    prod(&quot;SealRoof&quot;, &quot;RoofSealed&quot;)
+
+    # Attach wall cladding: requires frame erected
+    req(&quot;AttachWallCladding&quot;, &quot;FrameErected&quot;)
+    prod(&quot;AttachWallCladding&quot;, &quot;WallCladdingOn&quot;)
+
+    # Fit door: requires wall cladding
+    req(&quot;FitDoor&quot;, &quot;WallCladdingOn&quot;)
+    prod(&quot;FitDoor&quot;, &quot;DoorInstalled&quot;)
+
+    # Fit stove/flue: requires roof sealed + wall cladding
+    req(&quot;FitStoveAndFlue&quot;, &quot;RoofSealed&quot;)
+    req(&quot;FitStoveAndFlue&quot;, &quot;WallCladdingOn&quot;)
+    prod(&quot;FitStoveAndFlue&quot;, &quot;StoveFlueFitted&quot;)
+
+    # Build bunks: requires wall cladding
+    req(&quot;BuildBunks&quot;, &quot;WallCladdingOn&quot;)
+    prod(&quot;BuildBunks&quot;, &quot;InteriorBunkBuilt&quot;)
+
+    # Paint protective coat: requires roof sealed + door installed
+    req(&quot;PaintProtectiveCoat&quot;, &quot;RoofSealed&quot;)
+    req(&quot;PaintProtectiveCoat&quot;, &quot;DoorInstalled&quot;)
+    prod(&quot;PaintProtectiveCoat&quot;, &quot;Painted&quot;)
+
+    # Final safety/signoff: requires painted + stove/flue + bunks
+    req(&quot;FinalSafetyAndSignoff&quot;, &quot;Painted&quot;)
+    req(&quot;FinalSafetyAndSignoff&quot;, &quot;StoveFlueFitted&quot;)
+    req(&quot;FinalSafetyAndSignoff&quot;, &quot;InteriorBunkBuilt&quot;)
+    prod(&quot;FinalSafetyAndSignoff&quot;, &quot;RefugeComplete&quot;)
+
+    # --- Durations (days), deliberately rough ---
+    dur = Dict(
+        &quot;EstablishBaseCamp&quot; =&gt; 1.0,
+        &quot;ApprovePermitAndMethod&quot; =&gt; 0.5,
+        &quot;RigFixedLines&quot; =&gt; 1.0,
+        &quot;TestAndCertifyAnchors&quot; =&gt; 0.5,
+        &quot;MoveCrewToLedge&quot; =&gt; 0.5,
+        &quot;PrepareRockPad&quot; =&gt; 1.0,
+        &quot;DrillAndSetFoundation&quot; =&gt; 1.5,
+        &quot;WinchMaterialsToLedge&quot; =&gt; 0.5,
+        &quot;ErectFrame&quot; =&gt; 1.0,
+        &quot;SealRoof&quot; =&gt; 0.5,
+        &quot;AttachWallCladding&quot; =&gt; 1.0,
+        &quot;FitDoor&quot; =&gt; 0.5,
+        &quot;FitStoveAndFlue&quot; =&gt; 0.5,
+        &quot;BuildBunks&quot; =&gt; 0.5,
+        &quot;PaintProtectiveCoat&quot; =&gt; 0.5,
+        &quot;FinalSafetyAndSignoff&quot; =&gt; 0.5
+    )
+    duration = [dur[t] for t in T]
+
+    return PetriNet(P, T, pre, post, duration)
+end
+
+# Initial marking (tokens)
+function initial_marking(net::PetriNet)
+    m = zeros(Int, length(net.places))
+    idx = Dict(net.places[i] =&gt; i for i in eachindex(net.places))
+    # We start with: approach route open, a weather window, and one heli slot.
+    # Everything else must be achieved.
+    m[idx[&quot;ApproachRouteOpen&quot;]] = 1
+    m[idx[&quot;WeatherWindow&quot;]] = 1
+    m[idx[&quot;HeliSlot&quot;]] = 1
+    return m
+end
+
+###############################
+# 2. Reachability enumeration
+###############################
+
+&quot;&quot;&quot;Enumerate all reachable markings and the labeled edges between them.
+
+Returns:
+  markings :: Vector{Vector{Int}}      # list of unique markings
+  edges    :: Vector{NamedTuple}       # (src, dst, t)
+
+We do a standard BFS over the state graph of markings.
+&quot;&quot;&quot;
+function enumerate_reachability(net::PetriNet, m0::Vector{Int}; max_states::Int=50_000)
+    q = Vector{Int}()                # queue of node indices
+    markings = Vector{Vector{Int}}() # index -&gt; marking
+    seen = Dict{String, Int}()       # key -&gt; index
+    edges = NamedTuple{(:src,:dst,:t),Tuple{Int,Int,Int}}[]
+
+    function add_marking!(m::Vector{Int})
+        k = marking_key(m)
+        if haskey(seen, k)
+            return seen[k]
+        end
+        push!(markings, m)
+        idx = length(markings)
+        seen[k] = idx
+        push!(q, idx)
+        return idx
+    end
+
+    add_marking!(copy(m0))
+
+    head = 1
+    while head &lt;= length(q)
+        if length(markings) &gt; max_states
+            error(&quot;State explosion: exceeded max_states=$(max_states). Consider tightening the model.&quot;)
+        end
+        src_idx = q[head]
+        head += 1
+        m = markings[src_idx]
+
+        for t in eachindex(net.transitions)
+            if enabled(net, m, t)
+                m2 = fire(net, m, t)
+                dst_idx = add_marking!(m2)
+                push!(edges, (src=src_idx, dst=dst_idx, t=t))
+            end
+        end
+    end
+
+    return markings, edges
+end
+
+###############################
+# 3. Pretty printing &amp; TSV export
+###############################
+
+&quot;&quot;&quot;Human‑readable marking: only list places with nonzero tokens.&quot;&quot;&quot;
+function pretty_marking(net::PetriNet, m::Vector{Int})
+    parts = String[]
+    for (i, c) in enumerate(m)
+        if c != 0
+            if c == 1
+                push!(parts, net.places[i])
+            else
+                push!(parts, &quot;$(net.places[i])×$c&quot;)
+            end
+        end
+    end
+    isempty(parts) ? &quot;∅&quot; : join(parts, &quot;; &quot;)
+end
+
+function write_tsv(net::PetriNet, markings, edges, path::String)
+    open(path, &quot;w&quot;) do io
+        println(io, &quot;state_id\tmarking\tis_goal\tout_degree&quot;)
+        outdeg = zeros(Int, length(markings))
+        for e in edges
+            outdeg[e.src] += 1
+        end
+        goal_idx = findfirst(i -&gt; net.places[i] == &quot;RefugeComplete&quot;, eachindex(net.places))
+        for (i, m) in enumerate(markings)
+            is_goal = (m[goal_idx] &gt; 0) ? 1 : 0
+            println(io, &quot;$(i)\t$(pretty_marking(net, m))\t$(is_goal)\t$(outdeg[i])&quot;)
+        end
+    end
+end
+
+###############################
+# 4. HTML + D3 visualisation
+###############################
+
+&quot;&quot;&quot;A self‑contained HTML page with:
+
+- Force‑directed reachability graph
+- Click node =&gt; show marking
+- Click edge =&gt; show which transition fired
+- Buttons:
+    * How to read this
+    * Model notes (cliff‑specific constraints)
+    * Invariants &amp; sanity checks
+    * Possible extension (Willerton enriched scheduling / adjoints)
+
+We include Tailwind via CDN (allowed) and D3 via CDNJS.
+&quot;&quot;&quot;
+function write_html(net::PetriNet, markings, edges, html_path::String)
+    # Build JSON strings by hand to avoid extra deps
+    # Nodes: {id, label, is_goal}
+    goal_place = findfirst(==(&quot;RefugeComplete&quot;), net.places)
+
+    node_lines = String[]
+    for (i, m) in enumerate(markings)
+        is_goal = (m[goal_place] &gt; 0)
+        label = replace(pretty_marking(net, m), &#x27;&quot;&#x27; =&gt; &quot;\\\&quot;&quot;)
+        push!(node_lines, &quot;{\\\&quot;id\\\&quot;:$i,\\\&quot;label\\\&quot;:\\\&quot;$label\\\&quot;,\\\&quot;is_goal\\\&quot;:$(is_goal ? \&quot;true\&quot; : \&quot;false\&quot;)}&quot; )
+    end
+
+    edge_lines = String[]
+    for e in edges
+        tname = replace(net.transitions[e.t], &#x27;&quot;&#x27; =&gt; &quot;\\\&quot;&quot;)
+        dur = @sprintf(&quot;%.2f&quot;, net.duration[e.t])
+        push!(edge_lines, &quot;{\\\&quot;source\\\&quot;:$(e.src),\\\&quot;target\\\&quot;:$(e.dst),\\\&quot;t\\\&quot;:\\\&quot;$tname\\\&quot;,\\\&quot;dur\\\&quot;:$dur}&quot; )
+    end
+
+    nodes_json = &quot;[&quot; * join(node_lines, &quot;,&quot;) * &quot;]&quot;
+    edges_json = &quot;[&quot; * join(edge_lines, &quot;,&quot;) * &quot;]&quot;
+
+    # Small helper: crude token conservation/invariant hints (toy only)
+    # Here, we note that many places are “facts” (0/1). Not a strict invariant.
+
+    html = &quot;&quot;&quot;
+&lt;!doctype html&gt;
+&lt;html lang=\&quot;en\&quot;&gt;
+&lt;head&gt;
+  &lt;meta charset=\&quot;utf-8\&quot; /&gt;
+  &lt;meta name=\&quot;viewport\&quot; content=\&quot;width=device-width, initial-scale=1\&quot; /&gt;
+  &lt;title&gt;Cliff Refuge — Reachability (Markings)&lt;/title&gt;
+  &lt;script src=\&quot;https://cdn.tailwindcss.com?plugins=typography\&quot;&gt;&lt;/script&gt;
+  &lt;script src=\&quot;https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js\&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body class=\&quot;bg-slate-950 text-slate-100\&quot;&gt;
+
+&lt;div class=\&quot;max-w-6xl mx-auto p-4 sm:p-6\&quot;&gt;
+  &lt;header class=\&quot;flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3\&quot;&gt;
+    &lt;div&gt;
+      &lt;h1 class=\&quot;text-2xl sm:text-3xl font-semibold tracking-tight\&quot;&gt;Cliff Refuge (Halfway up a Cliff)&lt;/h1&gt;
+      &lt;p class=\&quot;text-slate-300 mt-1\&quot;&gt;Reachability graph of Petri-net markings (states) — click nodes/edges for details.&lt;/p&gt;
+    &lt;/div&gt;
+    &lt;div class=\&quot;flex flex-wrap gap-2\&quot;&gt;
+      &lt;button id=\&quot;btnHow\&quot; class=\&quot;px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 shadow\&quot;&gt;How to read this&lt;/button&gt;
+      &lt;button id=\&quot;btnModel\&quot; class=\&quot;px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 shadow\&quot;&gt;Model notes&lt;/button&gt;
+      &lt;button id=\&quot;btnInv\&quot; class=\&quot;px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 shadow\&quot;&gt;Invariants &amp; sanity&lt;/button&gt;
+      &lt;button id=\&quot;btnExt\&quot; class=\&quot;px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 shadow\&quot;&gt;Possible extension&lt;/button&gt;
+      &lt;button id=\&quot;btnReset\&quot; class=\&quot;px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 shadow\&quot;&gt;Reset layout&lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/header&gt;
+
+  &lt;main class=\&quot;mt-5 grid grid-cols-1 lg:grid-cols-3 gap-4\&quot;&gt;
+    &lt;section class=\&quot;lg:col-span-2\&quot;&gt;
+      &lt;div class=\&quot;rounded-2xl bg-slate-900 shadow border border-slate-800 overflow-hidden\&quot;&gt;
+        &lt;div class=\&quot;px-4 py-3 border-b border-slate-800 flex items-center justify-between\&quot;&gt;
+          &lt;div class=\&quot;text-sm text-slate-300\&quot;&gt;
+            &lt;span class=\&quot;font-medium\&quot;&gt;Graph&lt;/span&gt;
+            &lt;span class=\&quot;ml-2\&quot; id=\&quot;stats\&quot;&gt;&lt;/span&gt;
+          &lt;/div&gt;
+          &lt;div class=\&quot;text-xs text-slate-400\&quot;&gt;drag nodes • scroll to zoom&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div id=\&quot;viz\&quot; class=\&quot;w-full\&quot; style=\&quot;height: 520px\&quot;&gt;&lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;div class=\&quot;mt-4 grid grid-cols-1 md:grid-cols-2 gap-4\&quot;&gt;
+        &lt;div class=\&quot;rounded-2xl bg-slate-900 shadow border border-slate-800 p-4\&quot;&gt;
+          &lt;h2 class=\&quot;font-semibold\&quot;&gt;Selected node (marking)&lt;/h2&gt;
+          &lt;p id=\&quot;nodeText\&quot; class=\&quot;mt-2 text-slate-200 text-sm leading-relaxed\&quot;&gt;Click a node…&lt;/p&gt;
+          &lt;div class=\&quot;mt-3 text-xs text-slate-400\&quot; id=\&quot;nodeMeta\&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=\&quot;rounded-2xl bg-slate-900 shadow border border-slate-800 p-4\&quot;&gt;
+          &lt;h2 class=\&quot;font-semibold\&quot;&gt;Selected edge (firing)&lt;/h2&gt;
+          &lt;p id=\&quot;edgeText\&quot; class=\&quot;mt-2 text-slate-200 text-sm leading-relaxed\&quot;&gt;Click an edge…&lt;/p&gt;
+          &lt;div class=\&quot;mt-3 text-xs text-slate-400\&quot; id=\&quot;edgeMeta\&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/section&gt;
+
+    &lt;aside class=\&quot;lg:col-span-1\&quot;&gt;
+      &lt;div class=\&quot;rounded-2xl bg-slate-900 shadow border border-slate-800 p-4\&quot;&gt;
+        &lt;h2 class=\&quot;font-semibold\&quot;&gt;Legend&lt;/h2&gt;
+        &lt;ul class=\&quot;mt-3 space-y-2 text-sm text-slate-200\&quot;&gt;
+          &lt;li class=\&quot;flex items-center gap-2\&quot;&gt;&lt;span class=\&quot;inline-block w-3 h-3 rounded-full bg-slate-400\&quot;&gt;&lt;/span&gt; ordinary marking&lt;/li&gt;
+          &lt;li class=\&quot;flex items-center gap-2\&quot;&gt;&lt;span class=\&quot;inline-block w-3 h-3 rounded-full bg-emerald-400\&quot;&gt;&lt;/span&gt; goal marking (RefugeComplete)&lt;/li&gt;
+        &lt;/ul&gt;
+        &lt;hr class=\&quot;my-4 border-slate-800\&quot;/&gt;
+        &lt;h3 class=\&quot;font-semibold\&quot;&gt;Quick checks&lt;/h3&gt;
+        &lt;ul class=\&quot;mt-2 space-y-2 text-sm text-slate-200\&quot;&gt;
+          &lt;li&gt;Does the goal appear reachable?&lt;/li&gt;
+          &lt;li&gt;Where do dead-ends (out-degree 0) occur?&lt;/li&gt;
+          &lt;li&gt;Which transitions branch the most?&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/div&gt;
+
+      &lt;div class=\&quot;mt-4 rounded-2xl bg-slate-900 shadow border border-slate-800 p-4\&quot;&gt;
+        &lt;h2 class=\&quot;font-semibold\&quot;&gt;Transitions&lt;/h2&gt;
+        &lt;div class=\&quot;mt-2 text-sm text-slate-200\&quot; id=\&quot;tList\&quot;&gt;&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/aside&gt;
+  &lt;/main&gt;
+&lt;/div&gt;
+
+&lt;!-- Modal --&gt;
+&lt;div id=\&quot;modal\&quot; class=\&quot;fixed inset-0 hidden items-center justify-center p-4\&quot;&gt;
+  &lt;div class=\&quot;absolute inset-0 bg-black/70\&quot;&gt;&lt;/div&gt;
+  &lt;div class=\&quot;relative max-w-2xl w-full rounded-2xl bg-slate-900 border border-slate-700 shadow-xl overflow-hidden\&quot;&gt;
+    &lt;div class=\&quot;flex items-start justify-between gap-3 px-4 py-3 border-b border-slate-800\&quot;&gt;
+      &lt;h3 id=\&quot;modalTitle\&quot; class=\&quot;font-semibold\&quot;&gt;&lt;/h3&gt;
+      &lt;button id=\&quot;modalClose\&quot; class=\&quot;px-3 py-1 rounded-xl bg-slate-800 hover:bg-slate-700\&quot;&gt;Close&lt;/button&gt;
+    &lt;/div&gt;
+    &lt;div id=\&quot;modalBody\&quot; class=\&quot;px-4 py-4 prose prose-invert max-w-none\&quot;&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;script&gt;
+const NODES = $nodes_json;
+const LINKS = $edges_json;
+
+// Build stats
+const statsEl = document.getElementById(&#x27;stats&#x27;);
+statsEl.textContent = `${NODES.length} markings • ${LINKS.length} firings`;
+
+// Transition list
+const tList = document.getElementById(&#x27;tList&#x27;);
+{
+  const byName = new Map();
+  LINKS.forEach(e =&gt; {
+    const k = e.t;
+    byName.set(k, (byName.get(k) || 0) + 1);
+  });
+  const rows = [...byName.entries()].sort((a,b)=&gt;b[1]-a[1]).map(([t,c]) =&gt;
+    `&lt;div class=\&quot;flex justify-between gap-3 py-1 border-b border-slate-800/60\&quot;&gt;
+       &lt;div class=\&quot;truncate\&quot;&gt;${t}&lt;/div&gt;
+       &lt;div class=\&quot;text-slate-400\&quot;&gt;${c}&lt;/div&gt;
+     &lt;/div&gt;`
+  ).join(&#x27;&#x27;);
+  tList.innerHTML = `&lt;div class=\&quot;text-xs text-slate-400 mb-2\&quot;&gt;(count of outgoing firings across the state graph)&lt;/div&gt;${rows}`;
+}
+
+// Modal helpers
+const modal = document.getElementById(&#x27;modal&#x27;);
+const modalTitle = document.getElementById(&#x27;modalTitle&#x27;);
+const modalBody = document.getElementById(&#x27;modalBody&#x27;);
+function openModal(title, html){
+  modalTitle.textContent = title;
+  modalBody.innerHTML = html;
+  modal.classList.remove(&#x27;hidden&#x27;);
+  modal.classList.add(&#x27;flex&#x27;);
+}
+function closeModal(){
+  modal.classList.add(&#x27;hidden&#x27;);
+  modal.classList.remove(&#x27;flex&#x27;);
+}
+document.getElementById(&#x27;modalClose&#x27;).onclick = closeModal;
+modal.addEventListener(&#x27;click&#x27;, (e)=&gt;{ if(e.target === modal.firstElementChild) closeModal(); });
+
+// Explainer buttons
+
+document.getElementById(&#x27;btnHow&#x27;).onclick = () =&gt; openModal(
+  &#x27;How to read this&#x27;,
+  `&lt;p&gt;&lt;b&gt;Nodes&lt;/b&gt; are &lt;i&gt;markings&lt;/i&gt; (token distributions over places). Think: “what is true/available right now?”.&lt;/p&gt;
+   &lt;p&gt;&lt;b&gt;Edges&lt;/b&gt; are &lt;i&gt;firings&lt;/i&gt;: a named transition whose pre‑places were marked, producing a new marking.&lt;/p&gt;
+   &lt;p&gt;This graph is the plan‑space: any path from the initial node to a green goal node is a feasible schedule skeleton.
+   Concurrency shows up as &lt;i&gt;branching and re‑joining&lt;/i&gt; rather than a single linear chain.&lt;/p&gt;
+   &lt;p&gt;Tip: click nodes to see the state; click edges to see the task name + duration estimate.&lt;/p&gt;`
+);
+
+document.getElementById(&#x27;btnModel&#x27;).onclick = () =&gt; openModal(
+  &#x27;Model notes (cliff specifics)&#x27;,
+  `&lt;p&gt;This is the “shed” upgraded into a &lt;b&gt;mountain refuge halfway up a cliff&lt;/b&gt;. The extra structure is mainly about &lt;i&gt;access and safety gating&lt;/i&gt;.&lt;/p&gt;
+   &lt;ul&gt;
+     &lt;li&gt;&lt;b&gt;Fixed lines&lt;/b&gt; and &lt;b&gt;anchor certification&lt;/b&gt; gate getting crew onto the ledge.&lt;/li&gt;
+     &lt;li&gt;&lt;b&gt;WeatherWindow&lt;/b&gt; is modeled as a tokenized condition used by exposure‑sensitive tasks (basecamp, rigging, pad prep, foundation, roof, paint).&lt;/li&gt;
+     &lt;li&gt;&lt;b&gt;HeliSlot&lt;/b&gt; is a consumable “lift opportunity” required for winching materials; in a richer model you’d track material lots explicitly.&lt;/li&gt;
+   &lt;/ul&gt;
+   &lt;p&gt;All of this is still toy‑level; the point is to show how a small set of places can enforce the physical logic while still generating many schedules.&lt;/p&gt;`
+);
+
+document.getElementById(&#x27;btnInv&#x27;).onclick = () =&gt; openModal(
+  &#x27;Invariants &amp; sanity checks&#x27;,
+  `&lt;p&gt;In a “collective token” Petri net you can often compute linear invariants (S‑invariants) from the incidence matrix.
+  In this dependency‑only toy, most places behave like &lt;b&gt;0/1 facts&lt;/b&gt; rather than conserved resources, so invariants are weak.&lt;/p&gt;
+  &lt;p&gt;Practical sanity checks you can do visually:&lt;/p&gt;
+  &lt;ul&gt;
+    &lt;li&gt;&lt;b&gt;Deadlocks&lt;/b&gt;: nodes with no outgoing edges. Are they expected (e.g. after consuming HeliSlot without enabling enough)?&lt;/li&gt;
+    &lt;li&gt;&lt;b&gt;Goal reachability&lt;/b&gt;: do any green nodes exist? If not, you’ve over‑constrained (or missed a producer).&lt;/li&gt;
+    &lt;li&gt;&lt;b&gt;Accidental bypass&lt;/b&gt;: can you reach FrameErected without FoundationSet? If yes, you mis‑wired a precondition.&lt;/li&gt;
+  &lt;/ul&gt;
+  &lt;p&gt;If you want real invariants, introduce explicit resources (crew‑hours, rope kits, battery drills, material crates) as conserved tokens.&lt;/p&gt;`
+);
+
+document.getElementById(&#x27;btnExt&#x27;).onclick = () =&gt; openModal(
+  &#x27;Possible extension&#x27;,
+  `&lt;p&gt;&lt;b&gt;Second layer:&lt;/b&gt; project the reachability graph into a &lt;i&gt;poset of enabling relations&lt;/i&gt; (Willerton‑style enriched scheduling),
+  and compute the &lt;b&gt;critical path&lt;/b&gt; as an &lt;i&gt;adjoint&lt;/i&gt; rather than by explicit search.&lt;/p&gt;
+  &lt;p&gt;Concretely: build the free \(\mathbb{R}\)-enriched category from task durations, take earliest‑start as a left Kan extension / colimit,
+  and obtain slack/float from the right adjoint (latest‑start), so “critical” becomes “zero residuation” in the enriched order.&lt;/p&gt;`
+);
+
+// Force‑directed graph
+const width = document.getElementById(&#x27;viz&#x27;).clientWidth;
+const height = document.getElementById(&#x27;viz&#x27;).clientHeight;
+
+const svg = d3.select(&#x27;#viz&#x27;).append(&#x27;svg&#x27;)
+  .attr(&#x27;width&#x27;, width)
+  .attr(&#x27;height&#x27;, height)
+  .attr(&#x27;class&#x27;, &#x27;bg-slate-950&#x27;);
+
+const g = svg.append(&#x27;g&#x27;);
+
+const zoom = d3.zoom().scaleExtent([0.2, 4]).on(&#x27;zoom&#x27;, (event) =&gt; {
+  g.attr(&#x27;transform&#x27;, event.transform);
+});
+svg.call(zoom);
+
+const link = g.append(&#x27;g&#x27;)
+  .attr(&#x27;stroke&#x27;, &#x27;#334155&#x27;)
+  .attr(&#x27;stroke-opacity&#x27;, 0.8)
+  .selectAll(&#x27;line&#x27;)
+  .data(LINKS)
+  .join(&#x27;line&#x27;)
+  .attr(&#x27;stroke-width&#x27;, 1);
+
+const node = g.append(&#x27;g&#x27;)
+  .selectAll(&#x27;circle&#x27;)
+  .data(NODES)
+  .join(&#x27;circle&#x27;)
+  .attr(&#x27;r&#x27;, d =&gt; d.is_goal ? 7 : 5)
+  .attr(&#x27;fill&#x27;, d =&gt; d.is_goal ? &#x27;#34d399&#x27; : &#x27;#94a3b8&#x27;)
+  .attr(&#x27;stroke&#x27;, &#x27;#0b1220&#x27;)
+  .attr(&#x27;stroke-width&#x27;, 1.5)
+  .call(d3.drag()
+    .on(&#x27;start&#x27;, dragstarted)
+    .on(&#x27;drag&#x27;, dragged)
+    .on(&#x27;end&#x27;, dragended));
+
+const label = g.append(&#x27;g&#x27;)
+  .selectAll(&#x27;text&#x27;)
+  .data(NODES)
+  .join(&#x27;text&#x27;)
+  .text(d =&gt; d.id)
+  .attr(&#x27;font-size&#x27;, 10)
+  .attr(&#x27;fill&#x27;, &#x27;#cbd5e1&#x27;)
+  .attr(&#x27;opacity&#x27;, 0.9)
+  .attr(&#x27;dx&#x27;, 8)
+  .attr(&#x27;dy&#x27;, 3);
+
+const sim = d3.forceSimulation(NODES)
+  .force(&#x27;link&#x27;, d3.forceLink(LINKS).id(d =&gt; d.id).distance(42).strength(0.6))
+  .force(&#x27;charge&#x27;, d3.forceManyBody().strength(-160))
+  .force(&#x27;center&#x27;, d3.forceCenter(width/2, height/2))
+  .force(&#x27;collide&#x27;, d3.forceCollide().radius(d =&gt; d.is_goal ? 12 : 10));
+
+sim.on(&#x27;tick&#x27;, () =&gt; {
+  link
+    .attr(&#x27;x1&#x27;, d =&gt; d.source.x)
+    .attr(&#x27;y1&#x27;, d =&gt; d.source.y)
+    .attr(&#x27;x2&#x27;, d =&gt; d.target.x)
+    .attr(&#x27;y2&#x27;, d =&gt; d.target.y);
+
+  node
+    .attr(&#x27;cx&#x27;, d =&gt; d.x)
+    .attr(&#x27;cy&#x27;, d =&gt; d.y);
+
+  label
+    .attr(&#x27;x&#x27;, d =&gt; d.x)
+    .attr(&#x27;y&#x27;, d =&gt; d.y);
+});
+
+function dragstarted(event, d) {
+  if (!event.active) sim.alphaTarget(0.25).restart();
+  d.fx = d.x;
+  d.fy = d.y;
+}
+function dragged(event, d) {
+  d.fx = event.x;
+  d.fy = event.y;
+}
+function dragended(event, d) {
+  if (!event.active) sim.alphaTarget(0);
+  d.fx = null;
+  d.fy = null;
+}
+
+// Selection UI
+const nodeText = document.getElementById(&#x27;nodeText&#x27;);
+const nodeMeta = document.getElementById(&#x27;nodeMeta&#x27;);
+const edgeText = document.getElementById(&#x27;edgeText&#x27;);
+const edgeMeta = document.getElementById(&#x27;edgeMeta&#x27;);
+
+node.on(&#x27;click&#x27;, (event, d) =&gt; {
+  node.attr(&#x27;stroke&#x27;, &#x27;#0b1220&#x27;);
+  d3.select(event.currentTarget).attr(&#x27;stroke&#x27;, &#x27;#60a5fa&#x27;);
+  nodeText.textContent = d.label;
+  nodeMeta.textContent = `state #${d.id}${d.is_goal ? &#x27; • GOAL&#x27; : &#x27;&#x27;}`;
+});
+
+link.on(&#x27;click&#x27;, (event, d) =&gt; {
+  link.attr(&#x27;stroke&#x27;, &#x27;#334155&#x27;);
+  d3.select(event.currentTarget).attr(&#x27;stroke&#x27;, &#x27;#fbbf24&#x27;);
+  const s = (typeof d.source === &#x27;object&#x27;) ? d.source.id : d.source;
+  const t = (typeof d.target === &#x27;object&#x27;) ? d.target.id : d.target;
+  edgeText.textContent = `${d.t}  (≈ ${d.dur} days)`;
+  edgeMeta.textContent = `from state #${s} → state #${t}`;
+});
+
+// Reset layout button
+
+document.getElementById(&#x27;btnReset&#x27;).onclick = () =&gt; {
+  sim.alpha(1).restart();
+  svg.transition().duration(250).call(zoom.transform, d3.zoomIdentity);
+};
+
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+&quot;&quot;&quot;
+
+    open(html_path, &quot;w&quot;) do io
+        write(io, html)
+    end
+end
+
+###############################
+# 5. Main
+###############################
+
+function main()
+    net = build_cliff_refuge_net()
+    m0 = initial_marking(net)
+
+    markings, edges = enumerate_reachability(net, m0)
+
+    tsv_path  = &quot;/tmp/cliff_refuge_markings.tsv&quot;
+    html_path = &quot;/tmp/cliff_refuge_reachability.html&quot;
+
+    write_tsv(net, markings, edges, tsv_path)
+    write_html(net, markings, edges, html_path)
+
+    println(&quot;Wrote TSV  : $tsv_path&quot;)
+    println(&quot;Wrote HTML : $html_path&quot;)
+    println(&quot;Markings   : $(length(markings))&quot;)
+    println(&quot;Firings    : $(length(edges))&quot;)
+    println(&quot;\nOpen the HTML file in your browser to explore the reachability graph.&quot;)
+end
+
+main()
+</code></pre>
+      </details>
+    </section>
+  </main>
+</body>
+</html>
