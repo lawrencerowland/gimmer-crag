@@ -92,12 +92,26 @@
       <div id="status"></div>
 
       <details>
-        <summary>What is going on here?</summary>
+        <summary>What does this demo mean?</summary>
         <div class="inline-help">
-          <p><b>Open cover.</b> We model a simple “refuge” via three opens: Approach (A), Foundation (F), Interior (I). Each open carries a <i>local spec</i>—here, an assignment such as Owner, Materials, or Inspection status.</p>
-          <p><b>Overlaps.</b> Where opens overlap (A∩F, F∩I, A∩I), assignments must agree to glue into a <i>global section</i> (a single consistent choice across the whole object).</p>
-          <p><b>Change request as refinement.</b> A CR subdivides opens (A → Path+Access; F → Footings+Pour) and may tighten overlap constraints. Sheafification is the “fix” that forces data to agree on overlaps. If your previous global section breaks, the UI shows which overlaps cause it.</p>
-          <p><b>Interpretation.</b> In PM terms, a CR that refines scope often introduces stricter coordination points. Failures to glue highlight integration risks (handoffs, interfaces) that need resolution.</p>
+          <p><b>Open cover (scope slices).</b> We represent the project using three overlapping “scope slices”:
+            Approach (A), Foundation (F), and Interior (I). Each slice holds a <i>local specification</i> such as an owner,
+            a material choice, or an inspection status.</p>
+
+          <p><b>Overlaps (interfaces).</b> Where slices overlap (A∩F, F∩I, A∩I), the project has an interface/handoff.
+            For the plan to be coherent, the relevant local specs must agree on these overlaps.
+            When they do, the local specs <i>glue</i> into one consistent project-wide plan.</p>
+
+          <p><b>Global section (integrated plan).</b> A <i>global section</i> is simply a complete set of local choices
+            that are mutually consistent across all overlaps—i.e., an integrated plan.</p>
+
+          <p><b>Change request (refinement).</b> A CR often refines scope: it splits a slice into more detailed pieces
+            (e.g., Approach → Path + Access; Foundation → Footings + Pour). This introduces additional overlaps
+            and therefore more coordination points.</p>
+
+          <p><b>Sheafification (forcing consistency).</b> If the refined overlaps no longer agree, the earlier “global plan”
+            breaks. The failed overlaps show exactly where the CR creates integration risk—interfaces that need
+            negotiation, rework, or a new decision so the plan becomes consistent again.</p>
         </div>
       </details>
     </div>
