@@ -19,3 +19,4 @@
 17,build-a-shed-petri-net-split-materials,Build-a-shed Petri net with split materials and parallel prep tasks,Assistant,HTML/JS,"petri net, concurrency, materials",,
 19,operadic-composition-complex-systems,Operadic composition for complex systems (and shed + Petri net + WBS),Assistant,HTML/JS,"operads, petri net, wbs",,
 20,mountain-refuge-petri-wbs-demo,Petri net → SMC → WBS demo for a mountain refuge toy project,Assistant,HTML/JS,"petri net, smc, wbs, mountain refuge",,
+21,gimmer-crag-shed-ontology-explorer,Gimmer Crag shed ontology explorer with Turtle graph view,Assistant,HTML/JS,"ontology, turtle, graph",,
