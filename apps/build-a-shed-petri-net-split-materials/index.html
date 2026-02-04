@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Build-a-Shed: Petri Net (Interactive) - Split Materials + Concurrency</title>
+  <link rel="stylesheet" href="../../common.css" />
+  <style>
+    :root {
+      --bg: #ffffff;
+      --panel: #f7f7f8;
+      --ink: #1f2328;
+      --muted: #6b7280;
+      --border: #d0d7de;
+      --accent: #b42318;
+      --good: #0f766e;
+      --warn: #b45309;
+      --shadow: 0 6px 18px rgba(0,0,0,0.08);
+      --radius: 12px;
+    }
+
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      color: var(--ink);
+      background: var(--bg);
+    }
+
+    .app {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    @media (min-width: 920px) {
+      .app {
+        grid-template-columns: 340px 1fr;
+        align-items: start;
+      }
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .panel .hd {
+      padding: 12px 12px 10px 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .panel .hd h2 {
+      margin: 0;
+      font-size: 14px;
+      letter-spacing: 0.2px;
+    }
+
+    .panel .bd {
+      padding: 12px;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .explainBox {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 13px;
+      line-height: 1.35;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+      min-height: 72px;
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    button {
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: transform 0.04s ease, background 0.12s ease;
+    }
+
+    button:hover { background: #fdfdfd; }
+    button:active { transform: translateY(1px); }
+
+    button.primary {
+      border-color: rgba(180,35,24,0.35);
+      color: var(--accent);
+    }
+
+    button.good {
+      border-color: rgba(15,118,110,0.35);
+      color: var(--good);
+    }
+
+    button.warn {
+      border-color: rgba(180,83,9,0.35);
+      color: var(--warn);
+    }
+
+    .canvasWrap {
+      position: relative;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    canvas {
+      width: 100%;
+      height: auto;
+      display: block;
+      background: #ffffff;
+    }
+
+    .legend {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .legendItem {
+      display: grid;
+      grid-template-columns: 14px 1fr;
+      gap: 10px;
+      align-items: start;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      border: 2px solid var(--ink);
+      margin-top: 3px;
+    }
+
+    .dot.place { background: #fff; }
+    .dot.token { background: #111; border-color: #111; }
+    .dot.trans { background: rgba(180,35,24,0.18); border-color: var(--accent); }
+
+    .modalOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.38);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      z-index: 50;
+    }
+
+    .modal {
+      width: min(920px, 98vw);
+      max-height: min(84vh, 920px);
+      overflow: auto;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    }
+
+    .modal .mhd {
+      position: sticky;
+      top: 0;
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .modal .mhd .ttl {
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .modal .mbd {
+      padding: 12px;
+      color: #111;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .kicker {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      background: #f6f8fa;
+      border: 1px solid #e5e7eb;
+      padding: 1px 6px;
+      border-radius: 8px;
+    }
+
+    ul { margin: 10px 0 10px 18px; }
+    li { margin: 6px 0; }
+  </style>
+</head>
+<body>
+  <a href="../../index.html">Back to app index</a>
+  <div class="app">
+
+    <div class="panel">
+      <div class="hd">
+        <h2>Controls & explainers</h2>
+        <div class="muted" id="statusBadge">ready</div>
+      </div>
+      <div class="bd">
+        <div class="explainBox" id="explain">
+          This version does the “coda”: <b>materials split into multiple places</b> so you can see <b>parallel enabling</b> (multiple prep tasks can fire in any order).<br/>
+          Hover for micro-explainers; click a transition to fire; drag places to tidy.
+        </div>
+
+        <div style="height: 10px"></div>
+
+        <div class="row">
+          <button class="good" onclick="resetNet(true)">Reset tokens</button>
+          <button onclick="toggleCallouts()">Toggle callouts</button>
+          <button class="warn" onclick="runTests()">Run tests</button>
+        </div>
+
+        <div style="height: 12px"></div>
+
+        <div class="row">
+          <button class="primary" onclick="openModal('what')">What changed?</button>
+          <button class="primary" onclick="openModal('how')">How to read markings</button>
+          <button class="primary" onclick="openModal('cat')">From markings to WBS options</button>
+        </div>
+
+        <div class="legend">
+          <div class="legendItem"><div class="dot place"></div><div><b>Place</b>: resource/state (tokens indicate availability / achieved milestone).</div></div>
+          <div class="legendItem"><div class="dot token"></div><div><b>Token</b>: current marking (what’s “true / available” right now).</div></div>
+          <div class="legendItem"><div class="dot trans"></div><div><b>Transition</b>: task/event (enabled iff all input places have tokens).</div></div>
+        </div>
+
+        <div class="kicker">
+          The point: with split resources, the net finally exhibits <b>non-trivial concurrency</b> (multiple enabled transitions), so “schedule options = firing sequences” stops being a cheat.
+        </div>
+      </div>
+    </div>
+
+    <div class="canvasWrap">
+      <canvas id="petriCanvas" width="1120" height="600">Your browser does not support Canvas.</canvas>
+    </div>
+
+  </div>
+
+  <div class="modalOverlay" id="modalOverlay" onclick="overlayClick(event)">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="mhd">
+        <div>
+          <div class="ttl" id="modalTitle">Explainer</div>
+          <div class="muted" id="modalSub">Short, sharp notes.</div>
+        </div>
+        <button onclick="closeModal()">Close</button>
+      </div>
+      <div class="mbd" id="modalBody"></div>
+    </div>
+  </div>
+
+<script>
+// ------------------------------------------------------------
+// 0) Small compatibility helpers
+// ------------------------------------------------------------
+function roundRectPath(ctx, x, y, w, h, r) {
+  // Avoid ctx.roundRect for compatibility.
+  var rr = Math.min(r, w/2, h/2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.lineTo(x + w - rr, y);
+  ctx.arcTo(x + w, y, x + w, y + rr, rr);
+  ctx.lineTo(x + w, y + h - rr);
+  ctx.arcTo(x + w, y + h, x + w - rr, y + h, rr);
+  ctx.lineTo(x + rr, y + h);
+  ctx.arcTo(x, y + h, x, y + h - rr, rr);
+  ctx.lineTo(x, y + rr);
+  ctx.arcTo(x, y, x + rr, y, rr);
+  ctx.closePath();
+}
+
+function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+function escapeHtml(s){
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+// ------------------------------------------------------------
+// 1) PETRI NET (Split resources -> visible concurrency)
+// ------------------------------------------------------------
+// We separate "materials" into: timber, fixings, roofing, paint.
+// Then we add independent "prep/stage" transitions so multiple tasks are enabled at once.
+// That yields different markings and firing sequences = genuinely different schedule options.
+
+var places = [
+  // raw resources (left)
+  { name: "tools",       x:130, y:90,  tokens:1, explanation:"Reusable tools / crew." },
+  { name: "timber",      x:130, y:210, tokens:1, explanation:"Timber supply (simplified as 1 token)." },
+  { name: "fixings",     x:130, y:330, tokens:1, explanation:"Fixings supply (nails/screws etc.)." },
+  { name: "roofing",     x:130, y:450, tokens:1, explanation:"Roofing materials (felt/boards/etc.)." },
+  { name: "paint",       x:130, y:570, tokens:1, explanation:"Paint / stain (optional finishing resource)." },
+
+  // staged resources (mid-left)
+  { name: "timber_prepped",  x:430, y:210, tokens:0, explanation:"Timber cut/staged." },
+  { name: "fixings_staged",  x:430, y:330, tokens:0, explanation:"Fixings staged/ready." },
+  { name: "roofing_staged",  x:430, y:450, tokens:0, explanation:"Roofing staged/ready." },
+  { name: "paint_ready",     x:430, y:570, tokens:0, explanation:"Paint ready (mixed, brushes set)." },
+
+  // milestones (right)
+  { name: "foundation",  x:760, y:120, tokens:0, explanation:"Foundation complete." },
+  { name: "walls",       x:980, y:120, tokens:0, explanation:"Walls erected." },
+  { name: "roof",        x:980, y:360, tokens:0, explanation:"Roof installed." }
+];
+
+var transitions = [
+  // Independent prep transitions (parallelisable)
+  {
+    id: "P1",
+    label: "Precut Timber",
+    x: 280, y: 210,
+    inputs: ["tools", "timber"],
+    outputs: ["tools", "timber_prepped"],
+    explanation: "Prepare timber: requires tools+timber; yields timber_prepped.",
+    callout: { n: 1, title: "P1: precut timber", body: "This and the other 'prep' transitions can fire in any order. That produces distinct intermediate markings—your first real schedule-branching." }
+  },
+  {
+    id: "P2",
+    label: "Stage Fixings",
+    x: 280, y: 330,
+    inputs: ["fixings"],
+    outputs: ["fixings_staged"],
+    explanation: "Stage fixings: no tools assumed (toy simplification).",
+    callout: { n: 2, title: "P2: stage fixings", body: "Independent enabling matters: if this is delayed, later structural transitions can be blocked even if physical precedence is satisfied." }
+  },
+  {
+    id: "P3",
+    label: "Stage Roofing",
+    x: 280, y: 450,
+    inputs: ["roofing"],
+    outputs: ["roofing_staged"],
+    explanation: "Stage roofing materials.",
+    callout: { n: 3, title: "P3: stage roofing", body: "Another independent preparation line. When several are enabled, your net has non-trivial concurrency." }
+  },
+  {
+    id: "P4",
+    label: "Prep Paint",
+    x: 280, y: 570,
+    inputs: ["paint"],
+    outputs: ["paint_ready"],
+    explanation: "Prep paint/stain.",
+    callout: { n: 4, title: "P4: prep paint", body: "Even optional work can be staged early. This is exactly why markings are a good semantics for planning: they encode readiness, not just precedence." }
+  },
+
+  // Structural line (now depends on staged resources)
+  {
+    id: "T1",
+    label: "Build Foundation",
+    x: 600, y: 120,
+    inputs: ["tools", "timber_prepped", "fixings_staged"],
+    outputs: ["tools", "foundation"],
+    explanation: "Requires tools + prepped timber + staged fixings; yields foundation.",
+    callout: { n: 5, title: "T1: foundation", body: "Note the shift: we no longer treat 'materials' as one blob. Instead we require the specific pre-staged resources." }
+  },
+  {
+    id: "T2",
+    label: "Erect Walls",
+    x: 870, y: 120,
+    inputs: ["tools", "foundation", "timber_prepped", "fixings_staged"],
+    outputs: ["tools", "walls"],
+    explanation: "Requires foundation + tools + timber_prepped + fixings_staged.",
+    callout: { n: 6, title: "T2: walls", body: "Walls now clearly depend both on physical precedence (foundation) and on resource readiness (timber_prepped, fixings_staged)." }
+  },
+  {
+    id: "T3",
+    label: "Install Roof",
+    x: 870, y: 360,
+    inputs: ["tools", "walls", "roofing_staged", "fixings_staged"],
+    outputs: ["tools", "roof"],
+    explanation: "Requires walls + tools + roofing_staged + fixings_staged.",
+    callout: { n: 7, title: "T3: roof", body: "Roof uses a different materials slice (roofing_staged). This creates meaningful alternative schedules: you can stage roofing early, or delay it and pay the blocking cost." }
+  },
+  {
+    id: "T4",
+    label: "Paint Shed",
+    x: 1090, y: 360,
+    inputs: ["tools", "roof", "paint_ready"],
+    outputs: ["tools", "roof"],
+    explanation: "Optional finishing: requires roof + paint_ready + tools; preserves roof.",
+    callout: { n: 8, title: "T4: paint", body: "A self-loop on the 'roof' milestone. This encodes finishing that doesn’t create a new structural milestone but still requires readiness." }
+  }
+];
+
+function pByName(nm){
+  for(var i=0;i<places.length;i++) if(places[i].name===nm) return places[i];
+  return null;
+}
+
+function canFire(t){
+  for(var i=0;i<t.inputs.length;i++){
+    var p = pByName(t.inputs[i]);
+    if(!p || p.tokens < 1) return false;
+  }
+  return true;
+}
+
+// ------------------------------------------------------------
+// 2) CANVAS + DRAWING
+// ------------------------------------------------------------
+var canvas = document.getElementById("petriCanvas");
+var ctx = canvas.getContext("2d");
+
+var radius = 30;
+var transW = 28;
+var transH = 34;
+
+var hoverItem = null;
+var showCallouts = true;
+
+// Dragging places
+var drag = { active: false, placeIndex: -1, dx: 0, dy: 0 };
+
+function drawGrid(){
+  ctx.save();
+  ctx.strokeStyle = "rgba(0,0,0,0.035)";
+  ctx.lineWidth = 1;
+  var step = 40;
+  for(var x=0; x<canvas.width; x+=step){
+    ctx.beginPath();
+    ctx.moveTo(x,0);
+    ctx.lineTo(x,canvas.height);
+    ctx.stroke();
+  }
+  for(var y=0; y<canvas.height; y+=step){
+    ctx.beginPath();
+    ctx.moveTo(0,y);
+    ctx.lineTo(canvas.width,y);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawArrow(sx, sy, tx, ty, color){
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = 2;
+
+  // dog-leg routing to reduce overlap
+  ctx.beginPath();
+  ctx.moveTo(sx, sy);
+  var midx = (sx + tx) / 2;
+  ctx.lineTo(midx, sy);
+  ctx.lineTo(midx, ty);
+  ctx.lineTo(tx, ty);
+  ctx.stroke();
+
+  // arrow head aligned with final segment
+  var ang = Math.atan2(ty - ty, tx - midx);
+  if(!isFinite(ang)) ang = 0;
+  ctx.beginPath();
+  ctx.moveTo(tx, ty);
+  ctx.lineTo(tx - 8*Math.cos(ang - Math.PI/6), ty - 8*Math.sin(ang - Math.PI/6));
+  ctx.lineTo(tx - 8*Math.cos(ang + Math.PI/6), ty - 8*Math.sin(ang + Math.PI/6));
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function wrapText(text, x, y, maxWidth, lineHeight){
+  var words = String(text).split(' ');
+  var line = '';
+  var lines = [];
+  for(var n=0;n<words.length;n++){
+    var test = line + words[n] + ' ';
+    if(ctx.measureText(test).width > maxWidth && n > 0){
+      lines.push(line.trim());
+      line = words[n] + ' ';
+    } else {
+      line = test;
+    }
+  }
+  lines.push(line.trim());
+
+  var totalH = lines.length * lineHeight;
+  var startY = y - totalH/2 + lineHeight;
+  for(var i=0;i<lines.length;i++){
+    ctx.fillText(lines[i], x, startY + i*lineHeight);
+  }
+}
+
+function drawCalloutBadge(x, y, label){
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x, y, 10, 0, Math.PI*2);
+  ctx.fillStyle = "#111";
+  ctx.fill();
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.fillStyle = "#fff";
+  ctx.font = "12px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(String(label), x, y+0.5);
+  ctx.restore();
+}
+
+function placeCalloutLabel(placeName){
+  // Keep badges only for a few key nodes to avoid clutter.
+  if(placeName === "tools") return "A";
+  if(placeName === "timber_prepped") return "B";
+  if(placeName === "fixings_staged") return "C";
+  if(placeName === "roofing_staged") return "D";
+  if(placeName === "foundation") return "E";
+  if(placeName === "walls") return "F";
+  if(placeName === "roof") return "G";
+  return null;
+}
+
+function placeCalloutBody(name){
+  if(name === "tools") return "Tools are persistent: most transitions require them and return them. This is the simplest encoding of a renewable resource in a Petri net.";
+  if(name === "timber_prepped") return "A staged readiness place. Its token says: 'timber is cut and positioned, so downstream work can start'.";
+  if(name === "fixings_staged") return "A readiness place whose absence blocks several downstream tasks even if physical precedence is satisfied.";
+  if(name === "roofing_staged") return "Roofing staged is separate from timber staged; this is what makes the net exhibit meaningful branching schedules.";
+  if(name === "foundation") return "Milestone place: enables walls. In more serious nets you’d represent inspections/hold-points as extra places in series.";
+  if(name === "walls") return "Milestone place: enables roof. You could split this into frame / sheathing / bracing for a richer WBS.";
+  if(name === "roof") return "Milestone place: enables paint. Paint is a self-loop: finishing that preserves the same milestone token.";
+  return "";
+}
+
+function drawNet(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawGrid();
+
+  // arcs with small offsets to reduce overlaps
+  transitions.forEach(function(t){
+    // inputs
+    t.inputs.forEach(function(inp, idx){
+      var p = pByName(inp);
+      if(!p) return;
+      var oy = (idx - (t.inputs.length-1)/2) * 7;
+      drawArrow(p.x + radius*0.95, p.y + oy, t.x - transW, t.y + oy, "#9aa0a6");
+    });
+    // outputs
+    t.outputs.forEach(function(outp, idx){
+      var p = pByName(outp);
+      if(!p) return;
+      var oy = (idx - (t.outputs.length-1)/2) * 7;
+      drawArrow(t.x + transW, t.y + oy, p.x - radius*0.95, p.y + oy, "#9aa0a6");
+    });
+  });
+
+  // places
+  places.forEach(function(p){
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, radius, 0, Math.PI*2);
+    ctx.fillStyle = "#ffffff";
+    ctx.strokeStyle = "#1f2328";
+    ctx.lineWidth = 2;
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.font = "13px sans-serif";
+    ctx.fillStyle = "#1f2328";
+    ctx.textAlign = "center";
+    ctx.fillText(p.name, p.x, p.y - radius - 10);
+
+    // tokens
+    for(var k=0;k<p.tokens;k++){
+      var tx = p.x + (k*12 - 12);
+      var ty = p.y + 12;
+      ctx.beginPath();
+      ctx.arc(tx, ty, 6, 0, Math.PI*2);
+      ctx.fillStyle = "#111111";
+      ctx.fill();
+    }
+
+    if(showCallouts){
+      var lab = placeCalloutLabel(p.name);
+      if(lab){
+        drawCalloutBadge(p.x + radius - 10, p.y - radius + 10, lab);
+      }
+    }
+  });
+
+  // transitions
+  transitions.forEach(function(t){
+    var enabled = canFire(t);
+    var x = t.x - transW;
+    var y = t.y - transH/2;
+    roundRectPath(ctx, x, y, transW*2, transH, 7);
+    ctx.fillStyle = enabled ? "rgba(180,35,24,0.16)" : "#f0f2f4";
+    ctx.strokeStyle = enabled ? "#b42318" : "#6b7280";
+    ctx.lineWidth = 2;
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = enabled ? "#7a1710" : "#374151";
+    ctx.textAlign = "center";
+    ctx.font = "12px sans-serif";
+    wrapText(t.label, t.x, t.y + 4, 150, 12);
+
+    if(showCallouts && t.callout && typeof t.callout.n === "number"){
+      drawCalloutBadge(t.x + transW - 6, t.y - transH/2 + 6, t.callout.n);
+    }
+  });
+
+  updateStatusBadge();
+}
+
+// ------------------------------------------------------------
+// 3) INTERACTION: hover, click, drag
+// ------------------------------------------------------------
+function pointInCircle(mx, my, cx, cy, r){
+  var dx = mx - cx;
+  var dy = my - cy;
+  return (dx*dx + dy*dy) <= r*r;
+}
+
+function pointInRect(mx, my, x, y, w, h){
+  return (mx>=x && mx<=x+w && my>=y && my<=y+h);
+}
+
+function getMouse(evt){
+  var r = canvas.getBoundingClientRect();
+  var sx = canvas.width / r.width;
+  var sy = canvas.height / r.height;
+  return { x: (evt.clientX - r.left) * sx, y: (evt.clientY - r.top) * sy };
+}
+
+function hitTest(mx, my){
+  for(var i=0;i<places.length;i++){
+    var p = places[i];
+    if(pointInCircle(mx, my, p.x, p.y, radius)) return {type:"place", index:i};
+  }
+  for(var j=0;j<transitions.length;j++){
+    var t = transitions[j];
+    var rx = t.x - transW;
+    var ry = t.y - transH/2;
+    if(pointInRect(mx, my, rx, ry, transW*2, transH)) return {type:"trans", index:j};
+  }
+  return null;
+}
+
+function updateExplainFromHover(){
+  var box = document.getElementById("explain");
+  if(!hoverItem){
+    box.innerHTML = "Hover places/transitions, click a transition to fire. Drag places to tidy. With split resources, multiple prep tasks are enabled at once — that’s the concurrency.";
+    return;
+  }
+  if(hoverItem.type === "place"){
+    var p = places[hoverItem.index];
+    box.innerHTML = "<b>Place:</b> <code>" + escapeHtml(p.name) + "</code>. " + escapeHtml(p.explanation) + " <span class='muted'>(tokens=" + p.tokens + ")</span>";
+    return;
+  }
+  if(hoverItem.type === "trans"){
+    var t = transitions[hoverItem.index];
+    var ready = canFire(t);
+    var msg = "<b>Transition:</b> " + escapeHtml(t.label) + ". " + escapeHtml(t.explanation) + " ";
+    msg += ready ? "<span style='color:var(--good)'><b>(click to fire)</b></span>" : "<span style='color:var(--warn)'><b>(not ready)</b></span>";
+    box.innerHTML = msg;
+  }
+}
+
+canvas.addEventListener("mousemove", function(evt){
+  var m = getMouse(evt);
+
+  if(drag.active && drag.placeIndex >= 0){
+    var p = places[drag.placeIndex];
+    p.x = clamp(m.x - drag.dx, radius+10, canvas.width - radius - 10);
+    p.y = clamp(m.y - drag.dy, radius+10, canvas.height - radius - 10);
+    drawNet();
+    return;
+  }
+
+  hoverItem = hitTest(m.x, m.y);
+  updateExplainFromHover();
+  drawNet();
+});
+
+canvas.addEventListener("mousedown", function(evt){
+  var m = getMouse(evt);
+  var hit = hitTest(m.x, m.y);
+  if(hit && hit.type === "place"){
+    drag.active = true;
+    drag.placeIndex = hit.index;
+    drag.dx = m.x - places[hit.index].x;
+    drag.dy = m.y - places[hit.index].y;
+  }
+});
+
+window.addEventListener("mouseup", function(evt){
+  drag.active = false;
+  drag.placeIndex = -1;
+});
+
+canvas.addEventListener("click", function(evt){
+  var m = getMouse(evt);
+  var hit = hitTest(m.x, m.y);
+  if(!hit) return;
+
+  if(hit.type === "trans"){
+    var t = transitions[hit.index];
+
+    // click badge -> open callout
+    if(showCallouts && t.callout){
+      var bx = t.x + transW - 6;
+      var by = t.y - transH/2 + 6;
+      if(pointInCircle(m.x, m.y, bx, by, 12)){
+        openInlineCallout(t.callout.title, t.callout.body);
+        return;
+      }
+    }
+
+    // otherwise fire
+    fireTransition(t);
+    return;
+  }
+
+  if(hit.type === "place"){
+    var p = places[hit.index];
+    if(showCallouts){
+      var lab = placeCalloutLabel(p.name);
+      if(lab){
+        var bx2 = p.x + radius - 10;
+        var by2 = p.y - radius + 10;
+        if(pointInCircle(m.x, m.y, bx2, by2, 12)){
+          openInlineCallout("Place " + lab + ": " + p.name, placeCalloutBody(p.name));
+          return;
+        }
+      }
+    }
+  }
+});
+
+// ------------------------------------------------------------
+// 4) FIRING SEMANTICS
+// ------------------------------------------------------------
+function fireTransition(t){
+  if(!canFire(t)){
+    flashStatus("not ready", true);
+    return;
+  }
+
+  // Consume 1 token from each input place
+  t.inputs.forEach(function(nm){
+    var p = pByName(nm);
+    if(!p) return;
+    // tools is treated as persistent: consume then restore via outputs is annoying;
+    // simpler: do not decrement tools at all.
+    if(nm === "tools") return;
+    p.tokens = Math.max(0, p.tokens - 1);
+  });
+
+  // Produce 1 token to each output place
+  t.outputs.forEach(function(nm){
+    var p = pByName(nm);
+    if(!p) return;
+    if(nm === "tools"){
+      p.tokens = Math.max(p.tokens, 1);
+    } else {
+      p.tokens = Math.max(p.tokens, 1);
+    }
+  });
+
+  flashStatus("fired " + t.id, false);
+  drawNet();
+}
+
+// ------------------------------------------------------------
+// 5) RESET, STATUS, TESTS
+// ------------------------------------------------------------
+function resetNet(announce){
+  places.forEach(function(p){
+    // Start with raw resources present
+    if(p.name === "tools") p.tokens = 1;
+    else if(p.name === "timber") p.tokens = 1;
+    else if(p.name === "fixings") p.tokens = 1;
+    else if(p.name === "roofing") p.tokens = 1;
+    else if(p.name === "paint") p.tokens = 1;
+    else p.tokens = 0;
+  });
+  if(announce) flashStatus("reset", false);
+  drawNet();
+}
+
+function updateStatusBadge(){
+  var badge = document.getElementById("statusBadge");
+  if(!badge) return;
+  var enabled = transitions.filter(canFire).length;
+  badge.textContent = enabled + " enabled";
+  badge.style.color = enabled > 0 ? "var(--good)" : "var(--muted)";
+}
+
+function flashStatus(msg, isWarn){
+  var badge = document.getElementById("statusBadge");
+  if(!badge) return;
+  badge.textContent = msg;
+  badge.style.color = isWarn ? "var(--warn)" : "var(--good)";
+  setTimeout(function(){
+    updateStatusBadge();
+  }, 900);
+}
+
+function runTests(){
+  // Basic sanity tests emphasizing concurrency
+  var ok = true;
+  resetNet(false);
+
+  var P1 = transitions.find(function(t){ return t.id === "P1"; });
+  var P2 = transitions.find(function(t){ return t.id === "P2"; });
+  var P3 = transitions.find(function(t){ return t.id === "P3"; });
+  var P4 = transitions.find(function(t){ return t.id === "P4"; });
+
+  // Test 1: at reset, multiple prep transitions are enabled
+  var enabledAtStart = [P1,P2,P3,P4].filter(function(t){ return canFire(t); }).length;
+  ok = ok && (enabledAtStart >= 3); // P1 needs tools+timber, others need single token
+
+  // Fire P2 and P3 in either order should be fine
+  fireTransition(P2);
+  fireTransition(P3);
+  ok = ok && (pByName("fixings_staged").tokens === 1);
+  ok = ok && (pByName("roofing_staged").tokens === 1);
+
+  // Without P1, foundation should still be blocked
+  var T1 = transitions.find(function(t){ return t.id === "T1"; });
+  ok = ok && (canFire(T1) === false);
+
+  // After P1, foundation should be enabled
+  fireTransition(P1);
+  ok = ok && (canFire(T1) === true);
+
+  if(ok) flashStatus("tests pass", false);
+  else flashStatus("tests fail", true);
+}
+
+// ------------------------------------------------------------
+// 6) CALLOUT BUTTONS + MODAL CONTENT
+// ------------------------------------------------------------
+function toggleCallouts(){
+  showCallouts = !showCallouts;
+  drawNet();
+}
+
+function openInlineCallout(title, body){
+  openModalWith(title, "Callout", "<p><b>" + escapeHtml(title) + "</b></p><p>" + escapeHtml(body) + "</p>");
+}
+
+function openModal(kind){
+  if(kind === "what"){
+    openModalWith(
+      "What changed?",
+      "Materials split -> real concurrency",
+      [
+        "<p>The original toy net looked serial because <code>materials</code> was a single token; after one firing, everything blocked.</p>",
+        "<p>Now we split materials into <code>timber</code>, <code>fixings</code>, <code>roofing</code>, <code>paint</code> and introduce independent prep/stage transitions. That means:</p>",
+        "<ul>",
+        "<li>At the initial marking, <b>multiple transitions are enabled</b> (true concurrency).</li>",
+        "<li>Different <b>firing sequences</b> yield different intermediate markings (distinct schedule options).</li>",
+        "<li>Downstream work is blocked by <b>resource readiness</b>, not merely physical precedence.</li>",
+        "</ul>",
+        "<p class='muted'>This is the smallest move that makes ‘markings as schedule-options’ honest rather than decorative.</p>"
+      ].join("")
+    );
+    return;
+  }
+
+  if(kind === "how"){
+    openModalWith(
+      "How to read markings",
+      "A marking is a readiness profile",
+      [
+        "<p>Think of a marking as a set of true propositions: <code>roofing_staged</code> token means “roofing is staged.”</p>",
+        "<ul>",
+        "<li>A transition is enabled iff every input place has a token.</li>",
+        "<li>Firing consumes input tokens (except tools) and produces output tokens.</li>",
+        "<li>When multiple transitions are enabled, their relative order is a genuine schedule degree of freedom.</li>",
+        "</ul>",
+        "<p>Try: fire <code>Stage Roofing</code> and <code>Stage Fixings</code> in either order — you reach the same marking. That commutation is the visible shadow of the SMC’s symmetry.</p>"
+      ].join("")
+    );
+    return;
+  }
+
+  if(kind === "cat"){
+    openModalWith(
+      "From markings to WBS options",
+      "Generate candidate WBS paths",
+      [
+        "<p><b>Petri net → SMC:</b> the net freely generates a (commutative) symmetric monoidal category: objects are markings and morphisms are firing sequences modulo the commutations forced by independence.</p>",
+        "<p><b>Markings → schedule options:</b> pick a current marking and enumerate enabled transitions; each choice extends a firing sequence. Different sequences correspond to different candidate schedules.</p>",
+        "<p><b>Firing sequences → WBS:</b> map each transition to an elementary task; then group tasks into phases (prep / structure / finish). Different sequences induce different plausible WBS paths (especially when you refine transitions into subtasks).</p>",
+        "<p class='muted'>In a richer version, you’d add a separate semantics (a functor) assigning durations/costs to transitions, then optimize over the path space.</p>"
+      ].join("")
+    );
+    return;
+  }
+}
+
+function openModalWith(title, sub, bodyHtml){
+  var overlay = document.getElementById("modalOverlay");
+  document.getElementById("modalTitle").textContent = title;
+  document.getElementById("modalSub").textContent = sub;
+  document.getElementById("modalBody").innerHTML = bodyHtml;
+  overlay.style.display = "flex";
+}
+
+function closeModal(){
+  document.getElementById("modalOverlay").style.display = "none";
+}
+
+function overlayClick(evt){
+  if(evt.target && evt.target.id === "modalOverlay") closeModal();
+}
+
+// ------------------------------------------------------------
+// 7) STARTUP
+// ------------------------------------------------------------
+window.addEventListener("load", function(){
+  resetNet(false);
+  drawNet();
+  updateExplainFromHover();
+});
+</script>
+</body>
+</html>
