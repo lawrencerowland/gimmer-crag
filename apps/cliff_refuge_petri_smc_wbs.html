@@ -1,0 +1,1643 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Petri net → CMC/SMC → WBS/Schedule (Toy: Cliffside Mountain Refuge)</title>
+<style>
+  :root{
+    --bg:#0b1020; --panel:#121a33; --panel2:#0f1630;
+    --text:#e8ecff; --muted:#a8b2e6; --faint:#6c79b6;
+    --accent:#7aa2ff; --accent2:#8ef0d4; --warn:#ffcc66; --bad:#ff6b6b;
+    --ok:#7dff92; --line:#2a376a;
+  }
+  html,body{height:100%;}
+  body{
+    margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    color:var(--text);
+    background: radial-gradient(1400px 900px at 25% 10%, #15224a 0%, var(--bg) 55%, #070a14 100%);
+  }
+  a{color:var(--accent);}
+  .wrap{max-width:1200px; margin:0 auto; padding:22px;}
+  header{
+    display:flex; gap:16px; align-items:flex-start; justify-content:space-between;
+    padding:18px 18px 14px 18px; border:1px solid rgba(122,162,255,.18);
+    background: linear-gradient(180deg, rgba(18,26,51,.9), rgba(11,16,32,.78));
+    border-radius:14px; box-shadow: 0 12px 44px rgba(0,0,0,.45);
+  }
+  h1{margin:0; font-size:18px; letter-spacing:.2px;}
+  .lede{margin:8px 0 0 0; color:var(--muted); line-height:1.35; max-width:78ch;}
+  .badgebar{display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; margin-top:2px;}
+  .badge{
+    font-size:12px; color:var(--muted); border:1px solid rgba(142,240,212,.25);
+    padding:6px 10px; border-radius:999px; background: rgba(142,240,212,.05);
+  }
+  .badge strong{color:var(--text); font-weight:600;}
+  nav{
+    margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;
+  }
+  .tabbtn{
+    appearance:none; border:1px solid rgba(122,162,255,.22);
+    background: rgba(18,26,51,.75); color:var(--text);
+    padding:9px 12px; border-radius:10px; cursor:pointer;
+    font-size:13px; letter-spacing:.2px;
+  }
+  .tabbtn.active{border-color: rgba(142,240,212,.42); box-shadow:0 0 0 2px rgba(142,240,212,.14) inset;}
+  .grid{
+    margin-top:14px;
+    display:grid; grid-template-columns: 1.25fr .75fr; gap:14px;
+  }
+  @media (max-width: 980px){
+    .grid{grid-template-columns: 1fr;}
+    .badgebar{justify-content:flex-start;}
+  }
+  .card{
+    border:1px solid rgba(122,162,255,.16);
+    background: rgba(18,26,51,.62);
+    border-radius:14px;
+    box-shadow: 0 12px 44px rgba(0,0,0,.35);
+    overflow:hidden;
+  }
+  .card h2{
+    margin:0; padding:12px 14px; font-size:13px; color:var(--muted);
+    background: rgba(15,22,48,.75); border-bottom:1px solid rgba(122,162,255,.12);
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  .card .body{padding:12px 14px;}
+  .help{color:var(--muted); font-size:13px; line-height:1.42;}
+  .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;}
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+  .row > *{flex: 0 0 auto;}
+  select, input[type="number"], input[type="range"]{
+    background: rgba(11,16,32,.6); color:var(--text);
+    border: 1px solid rgba(122,162,255,.22); border-radius:10px;
+    padding:7px 10px; font-size:13px;
+  }
+  input[type="range"]{padding:0; height:32px;}
+  .btn{
+    appearance:none; cursor:pointer;
+    background: linear-gradient(180deg, rgba(122,162,255,.18), rgba(122,162,255,.08));
+    border:1px solid rgba(122,162,255,.26);
+    color:var(--text); padding:8px 10px; border-radius:10px; font-size:13px;
+  }
+  .btn:hover{border-color: rgba(142,240,212,.38);}
+  .btn.danger{border-color: rgba(255,107,107,.38); background: rgba(255,107,107,.08);}
+  .small{font-size:12px; color:var(--muted);}
+  .sep{height:1px; background: rgba(122,162,255,.14); margin:10px 0;}
+  .pill{
+    display:inline-flex; align-items:center; gap:6px;
+    border:1px solid rgba(122,162,255,.18); border-radius:999px;
+    padding:6px 10px; background: rgba(11,16,32,.45);
+    font-size:12px; color:var(--muted);
+  }
+  .dot{width:8px; height:8px; border-radius:50%;}
+  .dot.ok{background: var(--ok);}
+  .dot.warn{background: var(--warn);}
+  .dot.bad{background: var(--bad);}
+  /* SVG styles */
+  .svgwrap{background: rgba(11,16,32,.35); border:1px solid rgba(122,162,255,.12); border-radius:12px; padding:8px;}
+  svg{width:100%; height:auto; display:block;}
+  .place circle{fill: rgba(142,240,212,.08); stroke: rgba(142,240,212,.58); stroke-width:2;}
+  .place text{font-size:12px; fill: var(--text);}
+  .place .tok{font-size:12px; fill: var(--accent2); font-weight:700;}
+  .trans rect{fill: rgba(122,162,255,.12); stroke: rgba(122,162,255,.62); stroke-width:2; rx:10; ry:10;}
+  .trans text{font-size:12px; fill: var(--text); pointer-events:none;}
+  .arc{stroke: rgba(168,178,230,.6); stroke-width:2.2; fill:none; marker-end:url(#arrow);}
+  .arc.inhib{stroke-dasharray: 5 6;}
+  .trans.enabled rect{stroke: rgba(142,240,212,.9); fill: rgba(142,240,212,.10);}
+  .trans.disabled rect{opacity:.55;}
+  .trans:hover rect{stroke: rgba(255,204,102,.85);}
+  .caption{color:var(--muted); font-size:12px; margin-top:8px; line-height:1.35;}
+  /* Lists */
+  .list{display:flex; flex-direction:column; gap:10px;}
+  .seqitem{
+    border:1px solid rgba(122,162,255,.14); border-radius:12px;
+    padding:10px 10px; background: rgba(11,16,32,.35);
+  }
+  .seqitem.active{border-color: rgba(142,240,212,.38); box-shadow: 0 0 0 2px rgba(142,240,212,.12) inset;}
+  .seqtitle{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+  .seqtitle b{font-size:13px;}
+  .seqsteps{margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;}
+  .chip{
+    font-size:12px; color:var(--text);
+    padding:4px 8px; border-radius:999px; border:1px solid rgba(122,162,255,.18);
+    background: rgba(18,26,51,.45);
+  }
+  .chip.par{border-color: rgba(142,240,212,.32); background: rgba(142,240,212,.06);}
+  .chip.opt{border-color: rgba(255,204,102,.28); background: rgba(255,204,102,.06);}
+  /* Gantt */
+  .gantt{width:100%; overflow:auto; border:1px solid rgba(122,162,255,.12); border-radius:12px; background: rgba(11,16,32,.35);}
+  .gantt svg{min-width: 860px;}
+  .axis text{fill: var(--muted); font-size:11px;}
+  .axis line, .axis path{stroke: rgba(122,162,255,.18);}
+  .bar{fill: rgba(122,162,255,.38); stroke: rgba(122,162,255,.75); stroke-width:1;}
+  .bar.crit{fill: rgba(255,107,107,.28); stroke: rgba(255,107,107,.70);}
+  .barlabel{fill: var(--text); font-size:12px;}
+  .gridline{stroke: rgba(122,162,255,.10); stroke-width:1;}
+  /* WBS tree */
+  .tree{font-size:13px; line-height:1.35;}
+  .tree ul{list-style:none; margin:0 0 0 18px; padding:0; border-left:1px dashed rgba(122,162,255,.24);}
+  .tree li{margin:8px 0; padding-left:10px; position:relative;}
+  .tree li::before{
+    content:""; position:absolute; left:-1px; top:12px; width:12px; height:1px;
+    background: rgba(122,162,255,.24);
+  }
+  .node{
+    display:inline-flex; align-items:center; gap:8px;
+    border:1px solid rgba(122,162,255,.16); border-radius:10px;
+    padding:6px 10px; background: rgba(18,26,51,.4);
+  }
+  .node .tag{
+    font-size:11px; color:var(--muted);
+    border:1px solid rgba(142,240,212,.22); border-radius:999px;
+    padding:2px 8px; background: rgba(142,240,212,.06);
+  }
+  details{
+    border: 1px solid rgba(122,162,255,.14);
+    border-radius: 12px;
+    background: rgba(11,16,32,.30);
+    padding: 8px 10px;
+    margin-top: 10px;
+  }
+  details summary{cursor:pointer; color: var(--text); font-weight:600;}
+  details p{margin:8px 0 0 0; color: var(--muted); font-size:13px; line-height:1.45;}
+  .k{color:var(--accent2); font-weight:600;}
+  .warnbox{
+    border: 1px solid rgba(255,204,102,.22);
+    background: rgba(255,204,102,.05);
+    border-radius: 12px;
+    padding: 10px 10px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Petri net → free (commutative) SMC → elementary WBS & schedules (toy: cliffside mountain refuge)</h1>
+      <p class="lede">
+        The Petri net below is the <span class="k">physical logic</span> of a cliffside mountain refuge build (halfway up a cliff): tokens are “facts” (markings), transitions are “acts” (tasks).
+Under the “interchangeable markings/tokens” assumption, the clean categorical fit is the free <span class="k">commutative</span> (hence symmetric) monoidal category presented by the net; “schedule options” are morphisms (reachability), while a WBS is a chosen <span class="k">operadic/parenthesized factorization</span> of that morphism and a time schedule is a <span class="k">copresheaf / max-plus enrichment</span> on the same causal skeleton.
+      </p>
+    </div>
+    <div class="badgebar">
+      <span class="badge"><strong>Click</strong> transitions to fire</span>
+      <span class="badge"><strong>Generate</strong> schedule options</span>
+      <span class="badge"><strong>Choose</strong> a WBS cut</span>
+      <span class="badge"><strong>See</strong> Gantt & critical path</span>
+    </div>
+  </header>
+
+  <nav>
+    <button class="tabbtn active" data-tab="tab-net">1) Petri net & markings</button>
+    <button class="tabbtn" data-tab="tab-smc">2) SMC / string-expression view</button>
+    <button class="tabbtn" data-tab="tab-wbs">3) WBS generator</button>
+    <button class="tabbtn" data-tab="tab-sched">4) Schedule / PERT / Gantt</button>
+    <button class="tabbtn" data-tab="tab-ext">5) Open nets / Σ-nets / sources</button>
+  </nav>
+
+  <!-- TAB: NET -->
+  <section id="tab-net" class="tab">
+    <div class="grid">
+      <div class="card">
+        <h2>
+          <span>Petri net for a toy “build a cliffside mountain refuge (halfway up a cliff)” project</span>
+          <span class="pill"><span id="goalDot" class="dot warn"></span><span id="goalText">Goal not yet reached</span></span>
+        </h2>
+        <div class="body">
+          <div class="svgwrap">
+            <svg id="netSvg" viewBox="0 0 1900 520" role="img" aria-label="Petri net">
+              <defs>
+                <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+                  <path d="M0,0 L9,3 L0,6 z" fill="rgba(168,178,230,.8)"></path>
+                </marker>
+              </defs>
+              <!-- drawn by JS -->
+            </svg>
+          </div>
+          <div class="caption">
+            <span class="k">How to read:</span> circles are places (“facts”), rounded rectangles are transitions (“tasks”).
+            A transition is enabled when all its input places have the required tokens; firing consumes inputs and produces outputs.
+            This net is intentionally <span class="k">acyclic</span> so “schedule options” correspond to different linearizations/parallelizations rather than looping behaviors; in this toy cliff-refuge, the “Access thread” means fixed-line rigging + ledge prep, the fork chooses helicopter vs winch/haul logistics, and both culminate in an anchored platform that enables the build.
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="row">
+            <button class="btn" id="btnReset">Reset to initial marking</button>
+            <button class="btn" id="btnRandomWalk">Random valid run (to goal)</button>
+            <button class="btn" id="btnReachable">Show reachable markings</button>
+          </div>
+
+          <div id="markingBox" class="warnbox" style="margin-top:10px;">
+            <div><b>Current marking</b> (multiset): <span class="mono" id="markingStr"></span></div>
+            <div class="small" style="margin-top:6px;">Interpretation: each marking is an object in the free monoidal category generated by this net (so “states” are first-class, not just incidental snapshots).</div>
+          </div>
+
+          <details>
+            <summary>Why “markings as schedule options” isn’t as odd as it sounds</summary>
+            <p>
+              In planning, one often wants not just “the list of actions” but the <span class="k">trace of state</span> (which literals/facts carry causal responsibility for later steps). A Petri marking is exactly that kind of trace-friendly state, and a schedule can be seen as a path in the reachability graph: a sequence of markings connected by firings.
+              Treating markings as interchangeable “for now” corresponds to working in the <span class="k">collective-token</span> setting where only multiplicities matter (no token identities).
+            </p>
+          </details>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Controls & model choices (toy but principled)</h2>
+        <div class="body">
+          <div class="help">
+            Two deliberate “project management” knobs are baked into the Petri net itself:
+            (i) a <span class="k">logistics choice</span> between helicopter lift vs winch/haul access, and
+            (ii) a <span class="k">work split</span> after the wall system goes up into roof / openings / power paths.
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="row">
+            <label class="pill" title="Choose which access/logistics branch is available in generation and explanations">
+              Access:
+              <select id="foundationMode">
+                <option value="both" selected>allow both (choice in net)</option>
+                <option value="heli">helicopter lift only</option>
+                <option value="haul">winch/haul only</option>
+              </select>
+            </label>
+            <label class="pill">
+              Enumerate up to
+              <input id="planLimit" type="number" min="1" max="60" value="18" style="width:76px"/>
+              schedules
+            </label>
+            <button class="btn" id="btnGenPlans">Generate schedule options</button>
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="help">
+            <b>What gets generated:</b> a finite list of firing sequences from the initial marking to any marking containing <span class="k">Complete</span>.
+            Think "candidate schedules" before you assign calendar dates: they’re merely lawful executions.
+          </div>
+
+          <div class="sep"></div>
+
+          <div id="plansList" class="list"></div>
+
+          <details>
+            <summary>SMC intuition in one breath</summary>
+            <p>
+              A Petri net freely generates a (very strict) symmetric/commutative monoidal category: objects are markings; morphisms are firing sequences; tensor is “doing in parallel”; composition is “doing in series”.
+              This turns “project space” into a genuine algebra: schedule options are morphisms, WBS options are factorizations of morphisms, and “milestones” are just intermediate objects you choose to cut on.
+            </p>
+          </details>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB: SMC -->
+  <section id="tab-smc" class="tab" style="display:none;">
+    <div class="grid">
+      <div class="card">
+        <h2>SMC expression of the selected schedule option</h2>
+        <div class="body">
+          <div class="help">
+            Below is a <span class="k">string-expression</span> for the selected schedule, using <span class="mono">;</span> for sequential composition and <span class="mono">⊗</span> for parallel composition (a coarse “elementary” factorization).
+            This is the “algebraic shadow” of the firing sequence.
+          </div>
+          <div class="sep"></div>
+          <div class="warnbox">
+            <div class="small">Selected schedule option:</div>
+            <div class="mono" id="smcExpr" style="font-size:13px; line-height:1.55;"></div>
+          </div>
+
+          <details>
+            <summary>What is “free” here, and why that matters for schedules/WBS</summary>
+            <p>
+              “Free” means: you haven’t imposed any equations other than those required by the symmetric/monoidal axioms and your net’s incidence data. So the category has maximal explanatory power: if two schedules become equal in this semantics, it’s because they differ only by rearrangements the axioms declare irrelevant (e.g., commutations of independent parts).
+              If you later care about “who did what token” (individual-token philosophy), you can refine the semantics (e.g. Σ-nets / symmetric strict monoidal rather than commutative) without changing the base net.
+            </p>
+          </details>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>From “plan traces” to “token traces”</h2>
+        <div class="body">
+          <div class="help">
+            Classical planners often output opaque action lists; compositional encodings instead track how facts/literals flow through the plan.
+            A marking is that flow made structural: every intermediate marking is “the trace of what’s true now,” and every morphism records which truths justified which later acts.
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="warnbox">
+            <b>Analogy:</b> literals in PDDL plans ↔ tokens in places.<br/>
+            Actions as maps between literal-sets ↔ transitions as maps between markings.
+          </div>
+
+          <details>
+            <summary>Operadic aside: why a WBS “smells like an operad algebra”</summary>
+            <p>
+              A WBS is, structurally, a typed tree of “sub-works composed into a whole.” That is exactly operadic syntax: operations compose subsystems; algebras interpret that syntax in a semantics (cost, duration, risk, etc.). In this page, the Petri net gives the generating operations; your chosen cuts/parenthesizations give the operadic decomposition tree.
+            </p>
+          </details>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB: WBS -->
+  <section id="tab-wbs" class="tab" style="display:none;">
+    <div class="grid">
+      <div class="card">
+        <h2>Elementary WBS (generated) from the Petri-legal schedule</h2>
+        <div class="body">
+          <div class="help">
+            Choose a <span class="k">cut granularity</span>: we form “phases” by grouping tasks into sequential layers (topological levels) and then presenting each layer’s tasks as parallel siblings.
+            This is deliberately “elementary”—it’s the smallest tree that still records series/parallel structure.
+          </div>
+          <div class="sep"></div>
+          <div class="row">
+            <label class="pill">
+              Cut aggressiveness:
+              <input id="layerAgg" type="range" min="0" max="100" value="45"/>
+              <span class="small" id="layerAggLabel">medium</span>
+            </label>
+            <button class="btn" id="btnRebuildWbs">Rebuild WBS</button>
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="tree" id="wbsTree"></div>
+
+          <details>
+            <summary>Coherence note (WBS vs schedule network)</summary>
+            <p>
+              One recurring complaint in practice is that WBS trees and schedule networks drift out of sync; categorically, you want them to be two views of the same underlying “atom” set of activities, related functorially rather than manually. Here, both are computed from the same Petri-derived causality, so coherence is enforced by construction.
+            </p>
+          </details>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>“Marking cuts” as WBS phase boundaries</h2>
+        <div class="body">
+          <div class="help">
+            A stronger (and more Petri-native) notion of WBS phase boundary is to pick explicit intermediate <span class="k">markings</span>.
+            Below, move the slider to choose how far along the selected firing sequence you cut: prefix vs suffix.
+          </div>
+          <div class="sep"></div>
+          <div class="row">
+            <label class="pill">
+              Cut position (step):
+              <input id="cutPos" type="range" min="0" max="10" value="0" style="width:260px;"/>
+              <span class="small mono" id="cutPosLabel">0</span>
+            </label>
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="warnbox">
+            <div class="small">Prefix tasks (work package A):</div>
+            <div class="mono" id="cutPrefix"></div>
+            <div class="sep"></div>
+            <div class="small">Suffix tasks (work package B):</div>
+            <div class="mono" id="cutSuffix"></div>
+          </div>
+
+          <details>
+            <summary>Reading this categorically</summary>
+            <p>
+              Choosing a cut marking M is choosing an object through which your schedule morphism factors:
+              <span class="mono">(Initial ⟶ M) ; (M ⟶ Goal)</span>.
+              Iterating cuts yields a WBS tree: a rooted factorization diagram whose leaves are “atomic” transitions (or bundles of commuting ones).
+            </p>
+          </details>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB: SCHEDULE -->
+  <section id="tab-sched" class="tab" style="display:none;">
+    <div class="grid">
+      <div class="card">
+        <h2>PERT-style schedule network & critical path (derived)</h2>
+        <div class="body">
+          <div class="help">
+            From the net we derive a precedence graph on transitions (a PERT chart). Assign a duration to each transition and compute earliest/latest times and slack.
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="row">
+            <label class="pill">Time unit:
+              <select id="timeUnit">
+                <option value="days" selected>days</option>
+                <option value="hours">hours (scaled)</option>
+              </select>
+            </label>
+            <label class="pill">Duration scale:
+              <input id="durScale" type="range" min="50" max="200" value="100" />
+              <span class="small mono" id="durScaleLabel">1.00×</span>
+            </label>
+            <button class="btn" id="btnRecalc">Recompute schedule</button>
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="gantt" id="ganttWrap"></div>
+
+          <div class="caption">
+            Red bars are on the computed <span class="k">critical path</span> (zero slack). This is the “tropical/enriched” view: constraints are of the form
+            <span class="mono">C(x,y) + T(x) ≤ T(y)</span> and shortest/longest path calculations become categorical closure operations.
+          </div>
+
+          <details>
+            <summary>Where “copresheaf” shows up</summary>
+            <p>
+              If you view the activity network as a category enriched in the tropical/“max-plus” style, a schedule is a (co)presheaf assigning start times to objects so that every dependency inequality holds. Earliest-start is the least such assignment; latest-start is the greatest assignment compatible with the project makespan.
+            </p>
+          </details>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Raw computed table (selected schedule)</h2>
+        <div class="body">
+          <div id="schedTable" class="help"></div>
+          <div class="sep"></div>
+          <div class="warnbox" id="schedStats"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  
+  <!-- TAB: EXTENSIONS / SOURCES -->
+  <section id="tab-ext" class="tab" style="display:none;">
+    <div class="grid">
+      <div class="card">
+        <h2>What the attached docs sharpened (and why it matters)</h2>
+        <div class="body">
+          <div class="help">
+            The earlier model already “worked”, but the literature you attached forces a more precise triangulation:
+            <ul style="margin:8px 0 0 18px; color:var(--muted);">
+              <li><b>Petri net → free algebra:</b> with collective tokens (your assumption), the right semantic target is the free <span class="k">commutative monoidal category</span> on the net (a quotient of the free SMC). This is why “markings-as-objects” is not a metaphor but the literal object set of the generated category.</li>
+              <li><b>Modularity:</b> “open Petri nets” (interfaces + cospan-style composition) are the sober way to treat project modules as composable pieces, rather than as one monolith.</li>
+              <li><b>Token philosophy:</b> Σ-nets sit between pre-nets (individual-token) and Petri nets (collective-token), remembering <span class="k">symmetry/isotropy</span>. Think “orbifold/stacky refinement” of a quotient: you retain the action of permutations even if you later decide to identify them.</li>
+              <li><b>WBS as syntax:</b> a WBS is a <span class="k">typed tree</span> (operadic syntax) whose leaves are transitions; different valid WBS trees correspond to different factorizations / parenthesizations of the same underlying morphism.</li>
+              <li><b>Schedule as semantics:</b> project calendars are not “extra structure added by hand” but a <span class="k">copresheaf/enriched functor</span> assigning times to events so that all precedence inequalities hold; critical path is a max-plus “geodesic”.</li>
+              <li><b>Planning and rewrite theory (optional upgrade path):</b> instead of markings as mere multisets, you can model “world state” as a <span class="k">copresheaf (C-set)</span> and actions as spans with an explicit <span class="k">keep</span> part (DPO rewriting). This is the natural home for persistent entities (specific boards, tools, people) and for resource arithmetic.</li>
+              <li><b>Feedback/rework:</b> if you let rework truly loop, you are pushed toward feedback/traced structures; there is a precise story relating feedback algebras of spans to open transition systems.</li>
+            </ul>
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="svgwrap">
+            <svg viewBox="0 0 1080 260" role="img" aria-label="Pipeline diagram">
+              <defs>
+                <marker id="arr2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+                  <path d="M0,0 L9,3 L0,6 z" fill="rgba(168,178,230,.85)"></path>
+                </marker>
+              </defs>
+
+              <!-- Boxes -->
+              <g>
+                <rect x="22" y="40" width="300" height="170" rx="14" ry="14" fill="rgba(142,240,212,.06)" stroke="rgba(142,240,212,.45)" stroke-width="2"/>
+                <text x="172" y="72" text-anchor="middle" fill="rgba(232,236,255,.95)" font-size="14" font-weight="700">Petri net</text>
+                <text x="172" y="98" text-anchor="middle" fill="rgba(168,178,230,.95)" font-size="12">places + transitions</text>
+                <text x="172" y="125" text-anchor="middle" fill="rgba(168,178,230,.95)" font-size="12">markings = states</text>
+                <text x="172" y="152" text-anchor="middle" fill="rgba(168,178,230,.95)" font-size="12">firings = acts</text>
+                <text x="172" y="185" text-anchor="middle" fill="rgba(168,178,230,.95)" font-size="12">“physical logic”</text>
+              </g>
+
+              <g>
+                <rect x="390" y="40" width="300" height="170" rx="14" ry="14" fill="rgba(122,162,255,.06)" stroke="rgba(122,162,255,.45)" stroke-width="2"/>
+                <text x="540" y="72" text-anchor="middle" fill="rgba(232,236,255,.95)" font-size="14" font-weight="700">Free (C)SMC</text>
+                <text x="540" y="98" text-anchor="middle" fill="rgba(168,178,230,.95)" font-size="12">objects = markings</text>
+                <text x="540" y="125" text-anchor="middle" fill="rgba(168,178,230,.95)" font-size="12">morphisms = executions</text>
+                <text x="540" y="152" text-anchor="middle" fill="rgba(168,178,230,.95)" font-size="12">⊗ = parallel, ; = serial</text>
+                <text x="540" y="185" text-anchor="middle" fill="rgba(168,178,230,.95)" font-size="12">choice/commutation = equivalence</text>
+              </g>
+
+              <g>
+                <rect x="758" y="24" width="300" height="90" rx="14" ry="14" fill="rgba(255,204,102,.05)" stroke="rgba(255,204,102,.38)" stroke-width="2"/>
+                <text x="908" y="54" text-anchor="middle" fill="rgba(232,236,255,.95)" font-size="14" font-weight="700">WBS (syntax)</text>
+                <text x="908" y="78" text-anchor="middle" fill="rgba(168,178,230,.95)" font-size="12">operadic factorization tree</text>
+                <text x="908" y="100" text-anchor="middle" fill="rgba(168,178,230,.95)" font-size="12">many trees ↔ same morphism</text>
+              </g>
+
+              <g>
+                <rect x="758" y="120" width="300" height="90" rx="14" ry="14" fill="rgba(255,107,107,.05)" stroke="rgba(255,107,107,.36)" stroke-width="2"/>
+                <text x="908" y="150" text-anchor="middle" fill="rgba(232,236,255,.95)" font-size="14" font-weight="700">Schedule (semantics)</text>
+                <text x="908" y="174" text-anchor="middle" fill="rgba(168,178,230,.95)" font-size="12">copresheaf / max-plus enrichment</text>
+                <text x="908" y="196" text-anchor="middle" fill="rgba(168,178,230,.95)" font-size="12">critical path = “geodesic”</text>
+              </g>
+
+              <!-- Arrows -->
+              <path d="M322,125 L390,125" stroke="rgba(168,178,230,.75)" stroke-width="3" fill="none" marker-end="url(#arr2)"/>
+              <path d="M690,85 L758,70" stroke="rgba(168,178,230,.75)" stroke-width="3" fill="none" marker-end="url(#arr2)"/>
+              <path d="M690,165 L758,165" stroke="rgba(168,178,230,.75)" stroke-width="3" fill="none" marker-end="url(#arr2)"/>
+
+              <text x="356" y="114" text-anchor="middle" fill="rgba(168,178,230,.95)" font-size="11">“presentations”</text>
+              <text x="724" y="62" text-anchor="middle" fill="rgba(168,178,230,.95)" font-size="11">factorize</text>
+              <text x="724" y="154" text-anchor="middle" fill="rgba(168,178,230,.95)" font-size="11">assign time</text>
+            </svg>
+          </div>
+
+          <details>
+            <summary>Less-popular but useful parallel: “Σ-nets are to Petri nets what orbifolds are to quotient spaces”</summary>
+            <p>
+              If you later regret treating tokens as indistinguishable, the usual move is not to abandon Petri nets but to lift to a setting that remembers permutation symmetries.
+              Σ-nets do exactly this: instead of collapsing all permutations, you keep track of them as structure. In project terms: “two planks” vs “plank A/B” is the same underlying feasibility logic, but a different granularity of explanation and resource accounting.
+            </p>
+          </details>
+
+          <details>
+            <summary>“Open Petri nets” as modular WBS pieces</summary>
+            <p>
+              The unglamorous reason open nets matter: WBS modules are rarely disjoint; they share boundary conditions (“permits obtained”, “materials delivered”, “anchor grout cured”).
+              Open Petri nets let you model a module as a net-with-ports and then compose modules by gluing interfaces—so your WBS decomposition becomes literally a composition in a cospan/double-category sense, not an informal grouping.
+            </p>
+          </details>
+
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Sources + concrete upgrade paths</h2>
+        <div class="body">
+          <div class="help">
+            This single-page toy is intentionally conservative: it stays in the collective-token (commutative) regime, uses a finite plan enumeration, and then applies PERT-style timing.
+            If you want to make it “real”, the docs suggest three upgrades that preserve compositionality instead of bolting on ad hoc features:
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="warnbox">
+            <b>Upgrade A — richer state than markings:</b><br/>
+            Replace “places as propositional atoms” by a schema + instance (copresheaf / C-set), and actions by DPO rewrite rules with <span class="k">input/keep/output</span> so persistence is explicit. This supports concrete resources (specific boards, crews, tools) and avoids infinite “free actions” by tracking consumables/attributes.
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="warnbox">
+            <b>Upgrade B — loops without hand-waving:</b><br/>
+            If you allow genuine rework cycles, add boundedness/termination structure (rule limits, well-founded measures, or tracelet-style constraint propagation) rather than suppressing loops in the modeling language.
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="warnbox">
+            <b>Upgrade C — semantic functors for cost/risk:</b><br/>
+            Treat the WBS tree (operadic syntax) as something you can interpret in many “semantics” functors: duration, cost, carbon, safety risk, procurement lead-time.
+            Then “choosing a schedule” becomes choosing and comparing <span class="k">algebra structures</span>, not just picking a Gantt chart by taste.
+          </div>
+
+          <details>
+            <summary>Attached items I leaned on most</summary>
+            <p>
+              <span class="mono">Open Petri net.pdf</span> (open nets + compositional semantics),<br/>
+              <span class="mono">Categories of sigma nets .pdf</span> (token philosophies + Σ-nets),<br/>
+              <span class="mono">Project Scheduling and Copresheaves | The n-Category Café.pdf</span> (schedules as copresheaves / tropical enrichment),<br/>
+              <span class="mono">Using categorical logic for AI planning – Topos Institute.pdf</span> (rewrite-rule planning in copresheaves; rule limits; hierarchy+concurrency motivation),<br/>
+              <span class="mono">Operads for complex system design specification, analysis and synthesis.pdf</span> (operadic syntax/semantics separation).
+            </p>
+          </details>
+
+          <details>
+            <summary>Two “deep cuts” you might enjoy following</summary>
+            <p>
+              (i) Tracelet theory (Behr, Kock, Kirvine) for compositional rewriting explanations, and<br/>
+              (ii) tile systems (Montanari, Bruni) relating double categories to proof search/logic programming—both feel extremely close to “project execution as proof search” once you squint.
+            </p>
+          </details>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+<footer class="small" style="margin-top:16px; color:var(--faint);">
+    Built as a self-contained HTML. No external libraries. Everything is computed from the toy Petri net in JS.
+  </footer>
+</div>
+
+<script>
+/* =========================
+   Data model: Petri net
+   ========================= */
+
+const Petri = (() => {
+
+    const places = [
+    {id:"Start", label:"Start", x:60, y:60},
+    {id:"PlanTok", label:"Planning thread", x:160, y:60},
+    {id:"SiteTok", label:"Access thread", x:160, y:170},
+
+    {id:"DesignDone", label:"Design + safety plan", x:310, y:60},
+    {id:"PermitTok", label:"Approvals thread", x:310, y:150},
+    {id:"ProcureTok", label:"Procure thread", x:310, y:240},
+
+    {id:"Heli", label:"Heli lift chosen", x:560, y:60},
+    {id:"Haul", label:"Winch/haul chosen", x:560, y:165},
+
+    {id:"PermitDone", label:"Approvals secured", x:470, y:240},
+    {id:"MatsStaged", label:"Materials staged", x:560, y:240},
+    {id:"AccessRigged", label:"Rigging & ledge prepped", x:560, y:340},
+
+    {id:"FoundDone", label:"Anchored platform done", x:760, y:110},
+    {id:"FloorDone", label:"Deck/floor done", x:900, y:110},
+    {id:"WallsFramed", label:"Walls up", x:1040, y:110},
+
+    {id:"RoofTok", label:"Roof thread", x:1130, y:40},
+    {id:"DoorTok", label:"Openings thread", x:1130, y:110},
+    {id:"ElecTok", label:"Power/light thread", x:1130, y:180},
+
+    {id:"RoofFramed", label:"Roof framed", x:1280, y:40},
+    {id:"Sheathed", label:"Roof sealed", x:1420, y:40},
+    {id:"DoorWin", label:"Door/window in", x:1280, y:110},
+    {id:"ElecRough", label:"Solar/lighting in", x:1280, y:180},
+
+    {id:"Sided", label:"Exterior sealed", x:1550, y:90},
+    {id:"Painted", label:"Interior fit-out", x:1680, y:90},
+    {id:"Complete", label:"Refuge ready", x:1810, y:90},
+  ];
+
+    const transitions = [
+    {id:"Kickoff", label:"Kickoff", dur:0.5, x:85, y:120,
+      ins:{Start:1}, outs:{PlanTok:1, SiteTok:1}
+    },
+
+    {id:"Design", label:"Survey + design + safety plan", dur:3.0, x:210, y:45,
+      ins:{PlanTok:1}, outs:{DesignDone:1}
+    },
+
+    // Exclusive “strategy” fork (logistics/access)
+    {id:"ChooseHeli", label:"Choose access: helicopter", dur:0.5, x:440, y:70,
+      ins:{DesignDone:1}, outs:{PermitTok:1, ProcureTok:1, Heli:1}
+    },
+    {id:"ChooseHaul", label:"Choose access: winch/haul", dur:0.5, x:440, y:170,
+      ins:{DesignDone:1}, outs:{ProcureTok:1, Haul:1}
+    },
+
+    {id:"Permit", label:"Secure approvals", dur:5.0, x:365, y:225,
+      ins:{PermitTok:1}, outs:{PermitDone:1}
+    },
+    {id:"BuyMats", label:"Procure + stage materials", dur:4.0, x:440, y:275,
+      ins:{ProcureTok:1}, outs:{MatsStaged:1}
+    },
+
+    {id:"RigAccess", label:"Rig access + prep ledge", dur:4.0, x:225, y:315,
+      ins:{SiteTok:1}, outs:{AccessRigged:1}
+    },
+
+    // Two alternative “foundation” realizations (anchored platform), conditioned by the strategy choice.
+    {id:"PlatformHeli", label:"Fly loads + build platform", dur:4.0, x:655, y:70,
+      ins:{AccessRigged:1, MatsStaged:1, PermitDone:1, Heli:1}, outs:{FoundDone:1}
+    },
+    {id:"PlatformHaul", label:"Winch/haul + build platform", dur:6.0, x:655, y:170,
+      ins:{AccessRigged:1, MatsStaged:1, Haul:1}, outs:{FoundDone:1}
+    },
+
+    {id:"BuildFloor", label:"Install deck/floor", dur:2.0, x:835, y:170,
+      ins:{FoundDone:1}, outs:{FloorDone:1}
+    },
+    {id:"FrameWalls", label:"Assemble walls", dur:3.0, x:975, y:170,
+      ins:{FloorDone:1}, outs:{WallsFramed:1}
+    },
+
+    // Parallelizable split of work packages
+    {id:"ForkWalls", label:"Split workstreams", dur:0.0, x:1095, y:155,
+      ins:{WallsFramed:1}, outs:{RoofTok:1, DoorTok:1, ElecTok:1}
+    },
+
+    {id:"FrameRoof", label:"Assemble roof", dur:2.0, x:1205, y:15,
+      ins:{RoofTok:1}, outs:{RoofFramed:1}
+    },
+    {id:"Sheathing", label:"Waterproof roof", dur:2.0, x:1345, y:15,
+      ins:{RoofFramed:1}, outs:{Sheathed:1}
+    },
+
+    {id:"DoorWindows", label:"Install openings", dur:1.0, x:1205, y:105,
+      ins:{DoorTok:1}, outs:{DoorWin:1}
+    },
+    {id:"RoughElec", label:"Install solar/lighting", dur:1.0, x:1205, y:195,
+      ins:{ElecTok:1}, outs:{ElecRough:1}
+    },
+
+    {id:"Siding", label:"Seal exterior", dur:2.0, x:1505, y:105,
+      ins:{Sheathed:1, DoorWin:1}, outs:{Sided:1}
+    },
+    {id:"Paint", label:"Interior fit-out + safety check", dur:2.0, x:1635, y:105,
+      ins:{Sided:1, ElecRough:1}, outs:{Painted:1}
+    },
+    {id:"Done", label:"Stock + handover", dur:0.5, x:1770, y:105,
+      ins:{Painted:1}, outs:{Complete:1}
+    },
+  ];
+
+  // initial marking
+  const initial = {
+    Start: 1
+  };
+
+  const placeById = Object.fromEntries(places.map(p => [p.id, p]));
+  const transById = Object.fromEntries(transitions.map(t => [t.id, t]));
+
+  function cloneMarking(m){ return Object.assign({}, m); }
+  function count(m,p){ return m[p] ?? 0; }
+
+  function isEnabled(m, t){
+    for (const [p,w] of Object.entries(t.ins)){
+      if (count(m,p) < w) return false;
+    }
+    return true;
+  }
+
+  function fire(m, t){
+    if (!isEnabled(m,t)) return null;
+    const n = cloneMarking(m);
+    // consume
+    for (const [p,w] of Object.entries(t.ins)){
+      n[p] = (n[p] ?? 0) - w;
+      if (n[p] === 0) delete n[p];
+    }
+    // produce
+    for (const [p,w] of Object.entries(t.outs)){
+      n[p] = (n[p] ?? 0) + w;
+    }
+    return n;
+  }
+
+  function markingKey(m){
+    const entries = Object.entries(m).filter(([,v]) => v !== 0).sort(([a],[b]) => a.localeCompare(b));
+    return entries.map(([k,v]) => `${k}:${v}`).join("|") || "∅";
+  }
+
+  function markingString(m){
+    const entries = Object.entries(m).filter(([,v]) => v !== 0).sort(([a],[b]) => a.localeCompare(b));
+    if (entries.length === 0) return "∅";
+    return entries.map(([k,v]) => v===1 ? k : `${v}${k}`).join(" ⊕ ");
+  }
+
+  function goalReached(m){ return (m.Complete ?? 0) >= 1; }
+
+    function applyFoundationMode(mode, trans){
+    // mode: both | heli | haul
+    if (mode === "heli" && trans.id === "ChooseHaul") return false;
+    if (mode === "heli" && trans.id === "PlatformHaul") return false;
+    if (mode === "haul" && trans.id === "ChooseHeli") return false;
+    if (mode === "haul" && trans.id === "PlatformHeli") return false;
+    return true;
+  }
+
+  return {
+    places, transitions, initial,
+    placeById, transById,
+    cloneMarking, markingKey, markingString, isEnabled, fire,
+    goalReached, applyFoundationMode
+  };
+})();
+
+/* =========================
+   Rendering: Petri net SVG
+   ========================= */
+
+const UI = (() => {
+  const svg = document.getElementById("netSvg");
+  const markingStrEl = document.getElementById("markingStr");
+  const goalDot = document.getElementById("goalDot");
+  const goalText = document.getElementById("goalText");
+  const plansList = document.getElementById("plansList");
+  const smcExprEl = document.getElementById("smcExpr");
+
+  let marking = Petri.cloneMarking(Petri.initial);
+  let selectedPlan = null; // {id, seq:[transition ids], markings:[...]}
+  let planCatalog = [];
+
+  function clearSvg(){
+    while (svg.lastChild && svg.lastChild.tagName !== "defs"){
+      svg.removeChild(svg.lastChild);
+    }
+    // keep defs
+    const nodes = Array.from(svg.querySelectorAll(":scope > :not(defs)"));
+    nodes.forEach(n => n.remove());
+  }
+
+  function drawNet(){
+    clearSvg();
+
+    // Draw arcs first (beneath nodes)
+    const arcs = [];
+
+    for (const t of Petri.transitions){
+      // inputs
+      for (const [p,w] of Object.entries(t.ins)){
+        const P = Petri.placeById[p];
+        arcs.push({from:P, to:t, kind:"in", w});
+      }
+      // outputs
+      for (const [p,w] of Object.entries(t.outs)){
+        const P = Petri.placeById[p];
+        arcs.push({from:t, to:P, kind:"out", w});
+      }
+    }
+
+    for (const a of arcs){
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      line.setAttribute("class","arc");
+      const x1 = a.from.x, y1 = a.from.y, x2 = a.to.x, y2 = a.to.y;
+
+      // nice-ish elbow curve
+      const dx = (x2 - x1);
+      const cx1 = x1 + dx*0.55;
+      const cy1 = y1;
+      const cx2 = x1 + dx*0.45;
+      const cy2 = y2;
+      const d = `M ${x1} ${y1} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}`;
+      line.setAttribute("d", d);
+      svg.appendChild(line);
+
+      if (a.w > 1){
+        const wText = document.createElementNS("http://www.w3.org/2000/svg","text");
+        wText.setAttribute("x", (x1+x2)/2);
+        wText.setAttribute("y", (y1+y2)/2 - 6);
+        wText.setAttribute("fill","rgba(255,204,102,.85)");
+        wText.setAttribute("font-size","11");
+        wText.textContent = `×${a.w}`;
+        svg.appendChild(wText);
+      }
+    }
+
+    // Places
+    for (const p of Petri.places){
+      const g = document.createElementNS("http://www.w3.org/2000/svg","g");
+      g.setAttribute("class","place");
+      g.setAttribute("data-id", p.id);
+
+      const c = document.createElementNS("http://www.w3.org/2000/svg","circle");
+      c.setAttribute("cx", p.x);
+      c.setAttribute("cy", p.y);
+      c.setAttribute("r", 26);
+
+      const label = document.createElementNS("http://www.w3.org/2000/svg","text");
+      label.setAttribute("x", p.x);
+      label.setAttribute("y", p.y + 44);
+      label.setAttribute("text-anchor","middle");
+      label.setAttribute("dominant-baseline","middle");
+      label.setAttribute("style","white-space:pre");
+      label.textContent = p.label;
+
+      const tok = document.createElementNS("http://www.w3.org/2000/svg","text");
+      tok.setAttribute("class","tok");
+      tok.setAttribute("x", p.x);
+      tok.setAttribute("y", p.y + 4);
+      tok.setAttribute("text-anchor","middle");
+      tok.setAttribute("dominant-baseline","middle");
+      tok.textContent = ""; // set later
+
+      g.appendChild(c);
+      g.appendChild(tok);
+      g.appendChild(label);
+      svg.appendChild(g);
+    }
+
+    // Transitions
+    for (const t of Petri.transitions){
+      const g = document.createElementNS("http://www.w3.org/2000/svg","g");
+      g.setAttribute("class","trans");
+      g.setAttribute("data-id", t.id);
+      g.style.cursor = "pointer";
+
+      const r = document.createElementNS("http://www.w3.org/2000/svg","rect");
+      r.setAttribute("x", t.x - 46);
+      r.setAttribute("y", t.y - 18);
+      r.setAttribute("width", 92);
+      r.setAttribute("height", 36);
+
+      const label = document.createElementNS("http://www.w3.org/2000/svg","text");
+      label.setAttribute("x", t.x);
+      label.setAttribute("y", t.y + 4);
+      label.setAttribute("text-anchor","middle");
+      label.setAttribute("dominant-baseline","middle");
+      label.textContent = t.label;
+
+      const dur = document.createElementNS("http://www.w3.org/2000/svg","text");
+      dur.setAttribute("x", t.x);
+      dur.setAttribute("y", t.y + 30);
+      dur.setAttribute("text-anchor","middle");
+      dur.setAttribute("dominant-baseline","middle");
+      dur.setAttribute("fill","rgba(168,178,230,.85)");
+      dur.setAttribute("font-size","11");
+      dur.textContent = t.dur > 0 ? `${t.dur}d` : "";
+
+      g.addEventListener("click", () => {
+        const mode = document.getElementById("foundationMode").value;
+        if (!Petri.applyFoundationMode(mode, t)) return;
+        const n = Petri.fire(marking, t);
+        if (n){
+          marking = n;
+          render();
+          // if a plan is selected, clicking the net should "unselect" it
+          // (the model is now off that path).
+          selectPlan(null);
+        }
+      });
+
+      g.appendChild(r);
+      g.appendChild(label);
+      g.appendChild(dur);
+      svg.appendChild(g);
+    }
+  }
+
+  function updateNetClasses(){
+    const mode = document.getElementById("foundationMode").value;
+
+    // place token labels
+    for (const p of Petri.places){
+      const g = svg.querySelector(`.place[data-id="${p.id}"]`);
+      const tok = g.querySelector(".tok");
+      const v = marking[p.id] ?? 0;
+      tok.textContent = v>0 ? String(v) : "";
+    }
+    // transition enablement
+    for (const t of Petri.transitions){
+      const g = svg.querySelector(`.trans[data-id="${t.id}"]`);
+      const allowed = Petri.applyFoundationMode(mode, t);
+      const enabled = allowed && Petri.isEnabled(marking, t);
+      g.classList.toggle("enabled", enabled);
+      g.classList.toggle("disabled", !enabled);
+      g.style.opacity = allowed ? "1" : "0.22";
+    }
+  }
+
+  function updateMarkingBox(){
+    markingStrEl.textContent = Petri.markingString(marking);
+    const reached = Petri.goalReached(marking);
+    goalDot.className = "dot " + (reached ? "ok" : "warn");
+    goalText.textContent = reached ? "Goal reached (Complete token present)" : "Goal not yet reached";
+  }
+
+  /* =========================
+     Plan enumeration / schedules
+     ========================= */
+
+  function enumeratePlans(limit=12){
+    const mode = document.getElementById("foundationMode").value;
+    const start = Petri.cloneMarking(Petri.initial);
+
+    const seqs = [];
+    const stack = [];
+    const marks = [start];
+    const seenPath = new Set();
+
+    function dfs(m){
+      if (seqs.length >= limit) return;
+      const key = Petri.markingKey(m);
+      if (seenPath.has(key)) return; // avoid cycles (shouldn't happen in this acyclic net)
+      if (Petri.goalReached(m)){
+        seqs.push({seq: [...stack], markings:[...marks]});
+        return;
+      }
+      seenPath.add(key);
+
+      // enabled transitions, stable ordering
+      const enabled = Petri.transitions
+        .filter(t => Petri.applyFoundationMode(mode,t))
+        .filter(t => Petri.isEnabled(m,t));
+
+      // heuristic: prefer "progress" transitions first
+      enabled.sort((a,b) => a.id.localeCompare(b.id));
+
+      for (const t of enabled){
+        const n = Petri.fire(m,t);
+        if (!n) continue;
+        stack.push(t.id);
+        marks.push(n);
+        dfs(n);
+        marks.pop();
+        stack.pop();
+        if (seqs.length >= limit) break;
+      }
+      seenPath.delete(key);
+    }
+
+    dfs(start);
+    return seqs;
+  }
+
+  function computePrecedenceFromNet(){
+    // precedence edges: producer transition -> consumer transition if a produced place is consumed
+    const producers = {}; // place -> set of transitions producing it
+    const consumers = {}; // place -> set of transitions consuming it
+
+    for (const t of Petri.transitions){
+      for (const p of Object.keys(t.outs)){
+        producers[p] = producers[p] || new Set();
+        producers[p].add(t.id);
+      }
+      for (const p of Object.keys(t.ins)){
+        consumers[p] = consumers[p] || new Set();
+        consumers[p].add(t.id);
+      }
+    }
+
+    const edges = new Set();
+    for (const p of Object.keys(producers)){
+      if (!consumers[p]) continue;
+      for (const a of producers[p]){
+        for (const b of consumers[p]){
+          if (a !== b) edges.add(`${a}->${b}`);
+        }
+      }
+    }
+    return Array.from(edges).map(s => {
+      const [u,v] = s.split("->");
+      return [u,v];
+    });
+  }
+
+  function topoSort(nodes, edges){
+    const inDeg = Object.fromEntries(nodes.map(n => [n,0]));
+    const out = Object.fromEntries(nodes.map(n => [n,[]]));
+    for (const [u,v] of edges){
+      if (!(u in inDeg) || !(v in inDeg)) continue;
+      inDeg[v] += 1;
+      out[u].push(v);
+    }
+    const q = nodes.filter(n => inDeg[n]===0).sort();
+    const order = [];
+    while(q.length){
+      const u = q.shift();
+      order.push(u);
+      for (const v of out[u]){
+        inDeg[v] -= 1;
+        if (inDeg[v]===0) q.push(v);
+      }
+      q.sort();
+    }
+    return order;
+  }
+
+  function scheduleFromEdges(nodes, edges, durations){
+    // forward pass
+    const preds = Object.fromEntries(nodes.map(n => [n,[]]));
+    const succs = Object.fromEntries(nodes.map(n => [n,[]]));
+    for (const [u,v] of edges){
+      if (!(u in preds) || !(v in preds)) continue;
+      preds[v].push(u);
+      succs[u].push(v);
+    }
+
+    const order = topoSort(nodes, edges);
+
+    const ES = {}, EF = {};
+    for (const n of order){
+      const es = preds[n].length ? Math.max(...preds[n].map(p => EF[p])) : 0;
+      ES[n] = es;
+      EF[n] = es + (durations[n] ?? 0);
+    }
+    const makespan = Math.max(...nodes.map(n => EF[n]));
+
+    // backward pass
+    const LS = {}, LF = {};
+    const rev = [...order].reverse();
+    for (const n of rev){
+      const lf = succs[n].length ? Math.min(...succs[n].map(s => LS[s])) : makespan;
+      LF[n] = lf;
+      LS[n] = lf - (durations[n] ?? 0);
+    }
+
+    const slack = {};
+    const critical = {};
+    for (const n of nodes){
+      slack[n] = LS[n] - ES[n];
+      critical[n] = Math.abs(slack[n]) < 1e-9;
+    }
+    return {ES, EF, LS, LF, slack, critical, makespan, order, preds, succs};
+  }
+
+  function buildSmcExprFromLayers(layers){
+    // layers: array of arrays of transition IDs (parallel inside layer)
+    const layerTerms = layers.map(layer => {
+      if (layer.length === 1) return layer[0];
+      // a ⊗ b ⊗ c (commutative-ish so order doesn't matter; show stable sort)
+      const xs = [...layer].sort();
+      return "(" + xs.join(" ⊗ ") + ")";
+    });
+    return layerTerms.join(" ; ");
+  }
+
+  function layersFromPrecedence(nodes, edges){
+    // greedy topological layering (Kahn levels)
+    const inDeg = Object.fromEntries(nodes.map(n => [n,0]));
+    const out = Object.fromEntries(nodes.map(n => [n,[]]));
+    for (const [u,v] of edges){
+      if (!(u in inDeg) || !(v in inDeg)) continue;
+      inDeg[v] += 1;
+      out[u].push(v);
+    }
+    const layers = [];
+    let frontier = nodes.filter(n => inDeg[n]===0).sort();
+    while(frontier.length){
+      layers.push(frontier);
+      const next = [];
+      for (const u of frontier){
+        for (const v of out[u]){
+          inDeg[v] -= 1;
+          if (inDeg[v]===0) next.push(v);
+        }
+      }
+      frontier = next.sort();
+    }
+    return layers;
+  }
+
+  function filterNodesForSelectedPlan(){
+    // if no selected plan, use all transitions reachable under chosen mode (best effort)
+    const mode = document.getElementById("foundationMode").value;
+    const allowedTransitions = Petri.transitions.filter(t => Petri.applyFoundationMode(mode,t)).map(t => t.id);
+    if (!selectedPlan) return allowedTransitions;
+    return selectedPlan.seq;
+  }
+
+  function planDurationMap(){
+    const scale = parseInt(document.getElementById("durScale").value, 10)/100;
+    const unit = document.getElementById("timeUnit").value;
+    const base = Object.fromEntries(Petri.transitions.map(t => [t.id, t.dur]));
+    // Convert to hours if requested (arbitrary: 1 day = 8 hours)
+    const factor = (unit === "hours") ? 8 : 1;
+    const d = {};
+    for (const [k,v] of Object.entries(base)){
+      d[k] = v * scale * factor;
+    }
+    return d;
+  }
+
+  function explainPlan(plan){
+    const seq = plan.seq;
+    const nice = (id) => Petri.transById[id].label;
+    return seq.map(id => nice(id));
+  }
+
+  function renderPlans(){
+    plansList.innerHTML = "";
+    if (!planCatalog.length){
+      plansList.innerHTML = `<div class="help">No schedules generated yet. Click <b>Generate schedule options</b>.</div>`;
+      return;
+    }
+    for (let i=0; i<planCatalog.length; i++){
+      const p = planCatalog[i];
+      const div = document.createElement("div");
+      div.className = "seqitem" + ((selectedPlan && selectedPlan.id===p.id) ? " active" : "");
+      const title = document.createElement("div");
+      title.className = "seqtitle";
+      title.innerHTML = `<b>Option ${i+1}</b><span class="small">steps: ${p.seq.length}</span>`;
+      div.appendChild(title);
+
+      const steps = document.createElement("div");
+      steps.className = "seqsteps";
+      // compress by grouping obvious parallelizable blocks via precedence layers
+      const layers = wbsLayersForPlan(p.seq);
+      for (const layer of layers){
+        if (layer.length===0) continue;
+        const chip = document.createElement("span");
+        chip.className = "chip" + (layer.length>1 ? " par" : "");
+        chip.textContent = layer.map(x => Petri.transById[x].label).join(layer.length>1 ? " ∥ " : "");
+        steps.appendChild(chip);
+      }
+
+      div.appendChild(steps);
+
+      const pick = document.createElement("div");
+      pick.className = "row";
+      pick.style.marginTop = "10px";
+      pick.innerHTML = `<button class="btn">Select</button><span class="small">Updates SMC/WBS/Schedule tabs.</span>`;
+      pick.querySelector("button").addEventListener("click", () => selectPlan(p.id));
+      div.appendChild(pick);
+
+      plansList.appendChild(div);
+    }
+  }
+
+  function selectPlan(planId){
+    if (planId === null){
+      selectedPlan = null;
+    } else {
+      selectedPlan = planCatalog.find(p => p.id===planId) || null;
+    }
+    // rerender list highlights
+    renderPlans();
+    // update other views
+    updateSmcTab();
+    updateWbsTab();
+    updateScheduleTab();
+  }
+
+  function wbsLayersForPlan(seq){
+    // compute precedence restricted to tasks in seq
+    const nodes = [...new Set(seq)];
+    const edges = computePrecedenceFromNet().filter(([u,v]) => nodes.includes(u) && nodes.includes(v));
+    // heuristic: remove edges via "choice" transitions not taken
+    const layers = layersFromPrecedence(nodes, edges);
+    return layers;
+  }
+
+  function updateSmcTab(){
+    const nodes = filterNodesForSelectedPlan();
+    const edges = computePrecedenceFromNet().filter(([u,v]) => nodes.includes(u) && nodes.includes(v));
+    const layers = layersFromPrecedence(nodes, edges);
+
+    const expr = buildSmcExprFromLayers(layers);
+    smcExprEl.textContent = expr || "(select a schedule option to see an expression)";
+  }
+
+  function layerLabelFromAgg(val){
+    if (val < 30) return "fine";
+    if (val < 60) return "medium";
+    return "coarse";
+  }
+
+  function buildWbsTreeFromLayers(layers, aggressiveness){
+    // aggressiveness: 0..100, higher merges more layers
+    const merge = (aggressiveness < 30) ? 1 : (aggressiveness < 60) ? 2 : 3;
+    const merged = [];
+    for (let i=0; i<layers.length; i+=merge){
+      const chunk = layers.slice(i, i+merge).flat();
+      merged.push(chunk);
+    }
+
+    const root = {
+      name: "Build cliffside mountain refuge",
+      tag: "WBS root",
+      kids: merged.map((chunk, idx) => ({
+        name: `Phase ${idx+1}`,
+        tag: chunk.length>1 ? "parallel bundle" : "single",
+        kids: chunk.sort().map(tid => ({
+          name: Petri.transById[tid].label,
+          tag: `dur ${Petri.transById[tid].dur}d`,
+          kids: []
+        }))
+      }))
+    };
+    return root;
+  }
+
+  function treeToHtml(node){
+    const li = document.createElement("li");
+    const box = document.createElement("span");
+    box.className = "node";
+    box.innerHTML = `<span>${node.name}</span> <span class="tag">${node.tag}</span>`;
+    li.appendChild(box);
+    if (node.kids && node.kids.length){
+      const ul = document.createElement("ul");
+      for (const k of node.kids){
+        ul.appendChild(treeToHtml(k));
+      }
+      li.appendChild(ul);
+    }
+    return li;
+  }
+
+  function updateWbsTab(){
+    const nodes = filterNodesForSelectedPlan();
+    const edges = computePrecedenceFromNet().filter(([u,v]) => nodes.includes(u) && nodes.includes(v));
+    const layers = layersFromPrecedence(nodes, edges);
+
+    const agg = parseInt(document.getElementById("layerAgg").value,10);
+    document.getElementById("layerAggLabel").textContent = layerLabelFromAgg(agg);
+
+    const tree = buildWbsTreeFromLayers(layers, agg);
+    const holder = document.getElementById("wbsTree");
+    holder.innerHTML = "";
+    const ul = document.createElement("ul");
+    ul.style.borderLeft = "none";
+    ul.style.marginLeft = "0";
+    ul.appendChild(treeToHtml(tree));
+    holder.appendChild(ul);
+
+    // marking cuts slider
+    const cut = document.getElementById("cutPos");
+    const max = selectedPlan ? selectedPlan.seq.length : nodes.length;
+    cut.max = String(Math.max(0, max));
+    cut.value = String(Math.min(parseInt(cut.value,10), max));
+    updateCutBox();
+  }
+
+  function updateCutBox(){
+    const cut = parseInt(document.getElementById("cutPos").value,10);
+    document.getElementById("cutPosLabel").textContent = String(cut);
+    const seq = selectedPlan ? selectedPlan.seq : filterNodesForSelectedPlan();
+    const prefix = seq.slice(0, cut).map(id => Petri.transById[id].label);
+    const suffix = seq.slice(cut).map(id => Petri.transById[id].label);
+
+    document.getElementById("cutPrefix").textContent = prefix.length ? prefix.join(" ; ") : "∅";
+    document.getElementById("cutSuffix").textContent = suffix.length ? suffix.join(" ; ") : "∅";
+  }
+
+  function updateScheduleTab(){
+    // build schedule for selected plan (or full graph if none)
+    const durs = planDurationMap();
+    const nodes = filterNodesForSelectedPlan();
+
+    // only keep edges among those nodes
+    const edgesAll = computePrecedenceFromNet();
+    const edges = edgesAll.filter(([u,v]) => nodes.includes(u) && nodes.includes(v));
+
+    // compute schedule
+    const S = scheduleFromEdges(nodes, edges, durs);
+
+    // render table
+    const unit = document.getElementById("timeUnit").value;
+    const fmt = (x) => (Math.round(x*100)/100).toFixed(2);
+
+    const rows = S.order.map(id => {
+      const name = Petri.transById[id].label;
+      const dur = durs[id] ?? 0;
+      const es = S.ES[id], ef = S.EF[id], ls = S.LS[id], lf = S.LF[id], slack = S.slack[id];
+      const crit = S.critical[id];
+      return {id, name, dur, es, ef, ls, lf, slack, crit};
+    });
+
+    const tableHtml = `
+      <div class="small">Times in <b>${unit}</b> (duration scale ${document.getElementById("durScaleLabel").textContent}).</div>
+      <div class="sep"></div>
+      <div style="overflow:auto; border:1px solid rgba(122,162,255,.12); border-radius:12px;">
+        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+          <thead style="background: rgba(15,22,48,.65); color: var(--muted);">
+            <tr>
+              <th style="text-align:left; padding:10px; border-bottom:1px solid rgba(122,162,255,.12);">Task</th>
+              <th style="text-align:right; padding:10px; border-bottom:1px solid rgba(122,162,255,.12);">Dur</th>
+              <th style="text-align:right; padding:10px; border-bottom:1px solid rgba(122,162,255,.12);">ES</th>
+              <th style="text-align:right; padding:10px; border-bottom:1px solid rgba(122,162,255,.12);">EF</th>
+              <th style="text-align:right; padding:10px; border-bottom:1px solid rgba(122,162,255,.12);">LS</th>
+              <th style="text-align:right; padding:10px; border-bottom:1px solid rgba(122,162,255,.12);">LF</th>
+              <th style="text-align:right; padding:10px; border-bottom:1px solid rgba(122,162,255,.12);">Slack</th>
+              <th style="text-align:center; padding:10px; border-bottom:1px solid rgba(122,162,255,.12);">Crit</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r => `
+              <tr style="border-bottom:1px solid rgba(122,162,255,.08); background: ${r.crit ? "rgba(255,107,107,.06)" : "transparent"};">
+                <td style="padding:10px;">${r.name}</td>
+                <td style="padding:10px; text-align:right;" class="mono">${fmt(r.dur)}</td>
+                <td style="padding:10px; text-align:right;" class="mono">${fmt(r.es)}</td>
+                <td style="padding:10px; text-align:right;" class="mono">${fmt(r.ef)}</td>
+                <td style="padding:10px; text-align:right;" class="mono">${fmt(r.ls)}</td>
+                <td style="padding:10px; text-align:right;" class="mono">${fmt(r.lf)}</td>
+                <td style="padding:10px; text-align:right;" class="mono">${fmt(r.slack)}</td>
+                <td style="padding:10px; text-align:center;">${r.crit ? "✅" : ""}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+    document.getElementById("schedTable").innerHTML = tableHtml;
+
+    const critTasks = rows.filter(r => r.crit).map(r => r.name);
+    document.getElementById("schedStats").innerHTML = `
+      <div><b>Makespan:</b> <span class="mono">${fmt(S.makespan)}</span> ${unit}</div>
+      <div class="sep"></div>
+      <div class="small"><b>Critical path tasks</b> (zero slack):</div>
+      <div class="mono" style="margin-top:6px; line-height:1.55;">${critTasks.length ? critTasks.join(" ; ") : "∅"}</div>
+    `;
+
+    // render gantt
+    renderGantt(rows, S.makespan, unit);
+  }
+
+  function renderGantt(rows, makespan, unit){
+    const wrap = document.getElementById("ganttWrap");
+    wrap.innerHTML = "";
+
+    const W = 980, left = 210, top = 26, rowH = 26, barH = 16, axisH = 24;
+    const H = top + axisH + rows.length*rowH + 16;
+    const innerW = W - left - 20;
+
+    const svgG = document.createElementNS("http://www.w3.org/2000/svg","svg");
+    svgG.setAttribute("viewBox", `0 0 ${W} ${H}`);
+
+    // grid + axis ticks
+    const ticks = 8;
+    for (let i=0;i<=ticks;i++){
+      const x = left + (innerW * i / ticks);
+      const line = document.createElementNS("http://www.w3.org/2000/svg","line");
+      line.setAttribute("x1", x); line.setAttribute("x2", x);
+      line.setAttribute("y1", top); line.setAttribute("y2", H-10);
+      line.setAttribute("class","gridline");
+      svgG.appendChild(line);
+
+      const t = document.createElementNS("http://www.w3.org/2000/svg","text");
+      t.setAttribute("x", x);
+      t.setAttribute("y", top + 16);
+      t.setAttribute("text-anchor","middle");
+      t.setAttribute("class","axis");
+      t.textContent = (Math.round((makespan * i / ticks)*100)/100).toFixed(0);
+      t.setAttribute("fill","rgba(168,178,230,.85)");
+      t.setAttribute("font-size","11");
+      svgG.appendChild(t);
+    }
+    const axisLabel = document.createElementNS("http://www.w3.org/2000/svg","text");
+    axisLabel.setAttribute("x", left);
+    axisLabel.setAttribute("y", 14);
+    axisLabel.setAttribute("fill","rgba(168,178,230,.85)");
+    axisLabel.setAttribute("font-size","12");
+    axisLabel.textContent = `time (${unit})`;
+    svgG.appendChild(axisLabel);
+
+    // bars
+    rows.forEach((r, idx) => {
+      const y = top + axisH + idx*rowH + 6;
+
+      const name = document.createElementNS("http://www.w3.org/2000/svg","text");
+      name.setAttribute("x", 10);
+      name.setAttribute("y", y + 10);
+      name.setAttribute("class","barlabel");
+      name.textContent = r.name;
+      svgG.appendChild(name);
+
+      const x = left + innerW * (r.es / makespan);
+      const w = Math.max(2, innerW * (r.dur / makespan));
+
+      const bar = document.createElementNS("http://www.w3.org/2000/svg","rect");
+      bar.setAttribute("x", x);
+      bar.setAttribute("y", y);
+      bar.setAttribute("width", w);
+      bar.setAttribute("height", barH);
+      bar.setAttribute("rx", 7);
+      bar.setAttribute("ry", 7);
+      bar.setAttribute("class", "bar" + (r.crit ? " crit" : ""));
+      svgG.appendChild(bar);
+
+      const lab = document.createElementNS("http://www.w3.org/2000/svg","text");
+      lab.setAttribute("x", x + w + 6);
+      lab.setAttribute("y", y + 12);
+      lab.setAttribute("fill","rgba(168,178,230,.9)");
+      lab.setAttribute("font-size","11");
+      lab.textContent = `${(Math.round(r.es*100)/100).toFixed(1)}→${(Math.round(r.ef*100)/100).toFixed(1)}`;
+      svgG.appendChild(lab);
+    });
+
+    wrap.appendChild(svgG);
+  }
+
+  /* =========================
+     Reachability exploration (markings)
+     ========================= */
+  function reachableMarkings(maxNodes=60){
+    const mode = document.getElementById("foundationMode").value;
+    const start = Petri.cloneMarking(Petri.initial);
+
+    const q = [start];
+    const seen = new Set([Petri.markingKey(start)]);
+    const out = [start];
+
+    while(q.length && out.length < maxNodes){
+      const m = q.shift();
+      const enabled = Petri.transitions
+        .filter(t => Petri.applyFoundationMode(mode,t))
+        .filter(t => Petri.isEnabled(m,t));
+      for (const t of enabled){
+        const n = Petri.fire(m,t);
+        const k = Petri.markingKey(n);
+        if (!seen.has(k)){
+          seen.add(k);
+          q.push(n);
+          out.push(n);
+          if (out.length >= maxNodes) break;
+        }
+      }
+    }
+    return out;
+  }
+
+  /* =========================
+     Wiring: tabs + buttons
+     ========================= */
+
+  function render(){
+    updateNetClasses();
+    updateMarkingBox();
+  }
+
+  function initTabs(){
+    const btns = Array.from(document.querySelectorAll(".tabbtn"));
+    btns.forEach(b => b.addEventListener("click", () => {
+      btns.forEach(x => x.classList.remove("active"));
+      b.classList.add("active");
+      const tabId = b.dataset.tab;
+      Array.from(document.querySelectorAll(".tab")).forEach(t => t.style.display = "none");
+      document.getElementById(tabId).style.display = "block";
+    }));
+  }
+
+  function initControls(){
+    document.getElementById("btnReset").addEventListener("click", () => {
+      marking = Petri.cloneMarking(Petri.initial);
+      render();
+      selectPlan(null);
+    });
+
+    document.getElementById("btnRandomWalk").addEventListener("click", () => {
+      const mode = document.getElementById("foundationMode").value;
+      let m = Petri.cloneMarking(Petri.initial);
+      const visited = new Set();
+      let guard = 0;
+      while(!Petri.goalReached(m) && guard++ < 400){
+        const enabled = Petri.transitions
+          .filter(t => Petri.applyFoundationMode(mode,t))
+          .filter(t => Petri.isEnabled(m,t));
+        if (!enabled.length) break;
+        // random
+        const t = enabled[Math.floor(Math.random()*enabled.length)];
+        m = Petri.fire(m,t);
+        const k = Petri.markingKey(m);
+        if (visited.has(k) && guard>40) break;
+        visited.add(k);
+      }
+      marking = m;
+      render();
+      selectPlan(null);
+    });
+
+    document.getElementById("btnReachable").addEventListener("click", () => {
+      const ms = reachableMarkings(80);
+      const items = ms.map(m => `<div class="mono" style="margin:6px 0;">${Petri.markingString(m)}</div>`).join("");
+      const w = window.open("", "_blank");
+      w.document.write(`
+        <title>Reachable markings</title>
+        <style>body{font-family:system-ui; padding:16px;} .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;}</style>
+        <h2>Reachable markings (sampled, bounded)</h2>
+        <p>These are the objects in the reachability graph under the current mode. Each edge is a transition firing.</p>
+        ${items}
+      `);
+      w.document.close();
+    });
+
+    document.getElementById("btnGenPlans").addEventListener("click", () => {
+      const limit = Math.max(1, Math.min(60, parseInt(document.getElementById("planLimit").value,10) || 12));
+      const raw = enumeratePlans(limit);
+      planCatalog = raw.map((p,idx) => ({id:`p${idx}`, seq:p.seq, markings:p.markings}));
+      renderPlans();
+      selectPlan(planCatalog[0]?.id ?? null);
+    });
+
+    document.getElementById("foundationMode").addEventListener("change", () => {
+      render();
+      // plans likely stale
+      planCatalog = [];
+      selectedPlan = null;
+      renderPlans();
+      updateSmcTab();
+      updateWbsTab();
+      updateScheduleTab();
+    });
+
+    document.getElementById("btnRebuildWbs").addEventListener("click", updateWbsTab);
+    document.getElementById("layerAgg").addEventListener("input", () => {
+      document.getElementById("layerAggLabel").textContent = layerLabelFromAgg(parseInt(document.getElementById("layerAgg").value,10));
+    });
+    document.getElementById("layerAgg").addEventListener("change", updateWbsTab);
+
+    document.getElementById("cutPos").addEventListener("input", updateCutBox);
+
+    document.getElementById("durScale").addEventListener("input", () => {
+      const s = parseInt(document.getElementById("durScale").value,10)/100;
+      document.getElementById("durScaleLabel").textContent = `${s.toFixed(2)}×`;
+    });
+    document.getElementById("btnRecalc").addEventListener("click", updateScheduleTab);
+    document.getElementById("durScale").addEventListener("change", updateScheduleTab);
+    document.getElementById("timeUnit").addEventListener("change", updateScheduleTab);
+  }
+
+  function bootstrap(){
+    drawNet();
+    initTabs();
+    initControls();
+    render();
+
+    // initial placeholder for plans list, and compute schedule for full graph
+    renderPlans();
+    updateSmcTab();
+    updateWbsTab();
+    updateScheduleTab();
+  }
+
+  return {bootstrap};
+
+})();
+
+UI.bootstrap();
+</script>
+</body>
+</html>
