@@ -291,6 +291,12 @@
           <span class="help" data-explain="cr07">?</span>
         </div>
 
+        <div class="row" style="margin-top:12px;">
+          <button class="btnAccent" data-explain="whatIsThis">What is this</button>
+          <button class="btnGood" data-explain="details">Details</button>
+          <button class="btnWarn" data-explain="whyWorksChangeRequests">Why it works for change requests</button>
+        </div>
+
         <div class="kpi" id="kpiGrid">
           <div class="box">
             <div class="label">Gluing status <span class="help" data-explain="gluing">?</span></div>
@@ -388,6 +394,26 @@
 <script>
 // ---------- Explainers ----------
 const EXPLAIN = {
+  whatIsThis: {
+    title: "What is this",
+    body: `
+      <p>Treating project change requests as sheafification steps (each change is a new topology (new cover / new overlaps), and “impact” as the induced map on global sections).</p>
+    `
+  },
+  details: {
+    title: "Details",
+    body: `
+      <p>It turns “change control” into a clean local-to-global recomputation: a change request updates either (a) the coverage (what counts as an overlap/interface between WBS elements) or (b) the local data/restrictions (constraints, estimates, handoff conditions), and then sheafification/re-gluing gives a canonical way to enforce “whatever is locally consistent on overlaps should assemble into a coherent global plan,” or else to surface exactly where the change creates incompatibilities at interfaces.</p>
+      <p>Framing “impact” as the induced map on global sections is then precise: it tells you how the space of feasible global plans (and any derived global metric) changes when you propagate the local edit through the restriction maps—so you can quantify “what changed globally” and localize “why it changed” in the overlaps.</p>
+    `
+  },
+  whyWorksChangeRequests: {
+    title: "Why it works for change requests",
+    body: `
+      <p>A change request is exactly the kind of “local edit that can break (or reshape) global consistency”: it changes what you consider the relevant local views (new tasks, refined tasks, new interfaces/overlaps), and sheafification is the principled way to turn whatever local data you now have into something that does satisfy the overlap-agreement/gluing rules again.</p>
+      <p>Once you treat “the project plan” (risk profile, resource curve, schedule, etc.) as a global section, then “impact” becomes a clean induced action on global sections: you can measure precisely how the global plan must change (or whether no global section exists without further mitigation), instead of relying on ad‑hoc rollups.</p>
+    `
+  },
   controls: {
     title: "How to use this prototype",
     body: `
@@ -988,7 +1014,7 @@ function updatePlanTag(){
 }
 
 function bindExplainers(){
-  document.querySelectorAll(".help").forEach(btn=>{
+  document.querySelectorAll("[data-explain]").forEach(btn=>{
     btn.addEventListener("click", (e)=>{
       const key = btn.getAttribute("data-explain");
       if(!key || !EXPLAIN[key]) return;
