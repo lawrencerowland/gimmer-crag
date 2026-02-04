@@ -1,0 +1,1082 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Mountain Refuge — Change Requests as Sheafification (Prototype)</title>
+<style>
+  :root{
+    --bg:#0b0f14;
+    --panel:#121a23;
+    --panel2:#0f1720;
+    --text:#e8eef7;
+    --muted:#a9b7c6;
+    --accent:#5cc8ff;
+    --good:#3ddc97;
+    --warn:#ffcc66;
+    --bad:#ff6b6b;
+    --line:#273445;
+    --shadow: 0 8px 30px rgba(0,0,0,.35);
+    --radius: 14px;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  }
+  body{
+    margin:0; background:linear-gradient(180deg,#070a0f 0%, #0b0f14 55%, #070a0f 100%);
+    color:var(--text); font-family:var(--sans);
+  }
+  header{
+    padding:18px 22px;
+    position:sticky; top:0; z-index:3;
+    background:rgba(11,15,20,.9);
+    backdrop-filter: blur(8px);
+    border-bottom:1px solid var(--line);
+  }
+  header h1{ margin:0; font-size:18px; letter-spacing:.2px; font-weight:650;}
+  header .subtitle{ margin-top:6px; color:var(--muted); font-size:13px; line-height:1.4;}
+  .wrap{ max-width:1160px; margin:0 auto; padding:18px 18px 60px; }
+  .grid{
+    display:grid;
+    grid-template-columns: 420px 1fr;
+    gap:16px;
+    align-items:start;
+  }
+  @media (max-width: 980px){
+    .grid{ grid-template-columns: 1fr; }
+  }
+  .card{
+    background: linear-gradient(180deg, rgba(18,26,35,1) 0%, rgba(13,18,26,1) 100%);
+    border:1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow:hidden;
+  }
+  .card .hd{
+    padding:14px 14px 12px;
+    border-bottom:1px solid rgba(39,52,69,.9);
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px;
+  }
+  .card .hd h2{
+    margin:0; font-size:14px; font-weight:700;
+    display:flex; align-items:center; gap:10px;
+  }
+  .pill{
+    font-size:12px; color:var(--muted);
+    border:1px solid var(--line);
+    padding:4px 9px; border-radius:999px;
+    background: rgba(15,23,32,.7);
+  }
+  .card .bd{ padding:14px; }
+  .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  button, .btn{
+    appearance:none; border:1px solid var(--line);
+    background: rgba(15,23,32,.6);
+    color: var(--text);
+    padding:9px 11px;
+    border-radius: 12px;
+    cursor:pointer;
+    font-weight:650;
+    font-size:13px;
+    transition: transform .03s ease, border-color .15s ease, background .15s ease;
+  }
+  button:hover{ border-color:#39506a; background: rgba(18,30,44,.75); }
+  button:active{ transform: translateY(1px); }
+  .btnAccent{ border-color: rgba(92,200,255,.45); }
+  .btnGood{ border-color: rgba(61,220,151,.45); }
+  .btnWarn{ border-color: rgba(255,204,102,.45); }
+  .btnBad{ border-color: rgba(255,107,107,.45); }
+  .tiny{
+    font-size:12px; padding:6px 9px; border-radius: 10px; font-weight:700;
+  }
+  .help{
+    width:26px; height:26px; border-radius: 9px;
+    display:inline-flex; align-items:center; justify-content:center;
+    font-family: var(--mono);
+    color: var(--accent);
+    border:1px solid rgba(92,200,255,.35);
+    background: rgba(92,200,255,.06);
+    cursor:pointer;
+    user-select:none;
+    font-weight:800;
+  }
+  .help:hover{ background: rgba(92,200,255,.11); }
+  .muted{ color: var(--muted); }
+  .mono{ font-family: var(--mono); }
+  .kpi{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:10px;
+    margin-top:12px;
+  }
+  .kpi .box{
+    border:1px solid var(--line);
+    border-radius: 14px;
+    padding:10px 12px;
+    background: rgba(9,14,20,.35);
+  }
+  .kpi .label{ font-size:11px; color: var(--muted); }
+  .kpi .val{ font-size:18px; font-weight:800; margin-top:6px; letter-spacing:.2px; }
+  .ok{ color: var(--good); }
+  .warn{ color: var(--warn); }
+  .bad{ color: var(--bad); }
+  .hr{ height:1px; background: var(--line); margin:14px 0; opacity:.85; }
+  .table{
+    width:100%;
+    border-collapse: collapse;
+    font-size:12.5px;
+    margin-top:8px;
+  }
+  .table th, .table td{
+    border-bottom:1px solid rgba(39,52,69,.7);
+    padding:8px 6px;
+    vertical-align: top;
+  }
+  .table th{ color: var(--muted); font-weight:700; text-align:left; font-size:11px; letter-spacing:.25px; text-transform: uppercase; }
+  .tag{
+    font-size:11px; padding:3px 8px; border-radius:999px; border:1px solid var(--line);
+    background: rgba(15,23,32,.6);
+    color: var(--muted);
+    display:inline-block;
+  }
+  .chip{
+    display:inline-flex; align-items:center; gap:6px;
+    border:1px solid rgba(39,52,69,.8);
+    border-radius:999px;
+    padding:4px 10px;
+    background: rgba(9,14,20,.35);
+    font-size:12px; color: var(--muted);
+  }
+  .chip b{ color: var(--text); }
+  .legend{
+    display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+    margin-top:10px;
+  }
+  .swatch{
+    width:10px; height:10px; border-radius: 3px; display:inline-block;
+    margin-right:6px; border:1px solid rgba(255,255,255,.15);
+  }
+  .svgWrap{
+    width:100%;
+    overflow:hidden;
+    border-radius: 14px;
+    border:1px solid rgba(39,52,69,.9);
+    background: rgba(9,14,20,.35);
+  }
+  .svgWrap svg{ width:100%; height:auto; display:block; }
+  .note{
+    font-size:12.5px;
+    color: var(--muted);
+    line-height:1.45;
+  }
+  .callout{
+    border:1px solid rgba(92,200,255,.25);
+    background: rgba(92,200,255,.06);
+    padding:10px 12px;
+    border-radius: 14px;
+    font-size:12.5px;
+    line-height:1.45;
+    color: #d6f2ff;
+  }
+  /* Modal */
+  .modalOverlay{
+    position:fixed; inset:0;
+    background: rgba(0,0,0,.55);
+    display:none;
+    align-items:center; justify-content:center;
+    padding:20px;
+    z-index:10;
+  }
+  .modal{
+    width:min(860px, 96vw);
+    background: linear-gradient(180deg, rgba(18,26,35,1) 0%, rgba(11,15,20,1) 100%);
+    border:1px solid rgba(92,200,255,.25);
+    border-radius: 18px;
+    box-shadow: 0 16px 60px rgba(0,0,0,.55);
+    overflow:hidden;
+  }
+  .modal .mhd{
+    padding:14px 14px 12px;
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    border-bottom:1px solid rgba(39,52,69,.85);
+  }
+  .modal .mhd h3{ margin:0; font-size:14px; font-weight:800; letter-spacing:.2px; }
+  .modal .mbd{ padding:14px; font-size:13.5px; line-height:1.55; color: var(--text);}
+  .modal .mbd p{ margin:0 0 10px 0; }
+  .modal .mbd code{ font-family: var(--mono); font-size: 12.5px; }
+  .modal .mbd .math{
+    font-family: var(--mono);
+    background: rgba(9,14,20,.55);
+    border: 1px solid rgba(39,52,69,.85);
+    padding:10px 12px;
+    border-radius: 14px;
+    margin: 10px 0;
+    overflow:auto;
+  }
+  .xClose{
+    border:1px solid rgba(255,255,255,.14);
+    background: rgba(9,14,20,.35);
+    padding:7px 10px;
+    border-radius: 12px;
+    cursor:pointer;
+    font-weight:850;
+  }
+  .xClose:hover{ border-color: rgba(255,255,255,.2); background: rgba(9,14,20,.5); }
+  .footer{
+    margin-top:18px;
+    font-size:12px;
+    color: var(--muted);
+    text-align:center;
+  }
+  .toggle{
+    display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+    margin-top:10px;
+  }
+  .toggle label{
+    display:flex; gap:8px; align-items:center;
+    padding:6px 10px;
+    border-radius: 999px;
+    border:1px solid rgba(39,52,69,.9);
+    background: rgba(9,14,20,.35);
+    font-size:12px; color: var(--muted);
+    cursor:pointer;
+    user-select:none;
+  }
+  input[type="checkbox"]{ accent-color: var(--accent); }
+  .smallPrint{ font-size:11.5px; color: var(--muted); line-height:1.4; }
+  .stickyKpis{
+    position: sticky;
+    top: 84px;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Mountain refuge build — treating change requests as <span style="color:var(--accent)">sheafification</span> steps</h1>
+  <div class="subtitle">
+    A tiny, self-contained prototype: local phase-level “helicopter flights/day” plans are patched into a single project-wide curve (a <span class="mono">global section</span>).
+    A change request modifies the cover/overlaps, then we re-sheafify and inspect the induced change in the global curve.
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="grid">
+
+    <!-- LEFT: Controls & data -->
+    <div class="card stickyKpis">
+      <div class="hd">
+        <h2>Controls <span class="help" data-explain="controls">?</span></h2>
+        <span id="planTag" class="pill">Plan: Baseline</span>
+      </div>
+      <div class="bd">
+        <div class="row">
+          <button id="btnBaseline" class="btnGood">Baseline</button>
+          <button id="btnChange" class="btnWarn">Apply change request</button>
+          <button id="btnSheafify" class="btnAccent">Sheafify (re-glue)</button>
+        </div>
+        <div class="toggle">
+          <label><input type="checkbox" id="chkShowRaw" checked> Show raw local inputs</label>
+          <label><input type="checkbox" id="chkShowSheafified" checked> Show sheafified locals</label>
+          <label><input type="checkbox" id="chkShowOverlaps" checked> Highlight overlaps</label>
+          <label><input type="checkbox" id="chkShowImpact" checked> Show impact curve</label>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="callout">
+          <b>Change request (CR-07):</b> Add a <b>communications mast</b> delivery+install window that overlaps the roof and utilities phases.
+          The mast requires <b>4 helicopter flights/day</b> on days 10–11 (heavy steel + concrete).
+          <span class="help" data-explain="cr07">?</span>
+        </div>
+
+        <div class="kpi" id="kpiGrid">
+          <div class="box">
+            <div class="label">Gluing status <span class="help" data-explain="gluing">?</span></div>
+            <div class="val" id="kpiStatus">—</div>
+          </div>
+          <div class="box">
+            <div class="label">Peak flights/day <span class="help" data-explain="peak">?</span></div>
+            <div class="val" id="kpiPeak">—</div>
+          </div>
+          <div class="box">
+            <div class="label">Total flights (sum) <span class="help" data-explain="total">?</span></div>
+            <div class="val" id="kpiTotal">—</div>
+          </div>
+          <div class="box">
+            <div class="label">Δ cost vs baseline <span class="help" data-explain="impact">?</span></div>
+            <div class="val" id="kpiDeltaCost">—</div>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="note">
+          <b>Interpretation in this demo:</b> each phase submits a local “best guess” for the <i>single global helicopter schedule</i> on its own time window.
+          If two phases overlap, they must agree on that overlap for the locals to glue into one consistent global schedule. This is exactly the “agreement on overlaps → gluing”
+          idea used in the resource-allocation draft paper you shared.
+          <span class="help" data-explain="interpretation">?</span>
+        </div>
+
+        <div class="hr"></div>
+
+        <div id="conflictBox" class="smallPrint"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Visuals -->
+    <div class="card">
+      <div class="hd">
+        <h2>Visual model <span class="help" data-explain="model">?</span></h2>
+        <span class="pill mono" id="topologyTag">Cover U = {phases…}</span>
+      </div>
+      <div class="bd">
+        <div class="row" style="justify-content:space-between; align-items:flex-end;">
+          <div class="legend" id="legend"></div>
+          <div class="chip"><b class="mono">F</b>: “flights/day” presheaf <span class="help" data-explain="presheaf">?</span></div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="svgWrap">
+          <svg id="svgTimeline" viewBox="0 0 960 360" role="img" aria-label="Timeline and overlaps"></svg>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="svgWrap">
+          <svg id="svgGlobal" viewBox="0 0 960 260" role="img" aria-label="Global section plot"></svg>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="svgWrap" id="impactWrap">
+          <svg id="svgImpact" viewBox="0 0 960 220" role="img" aria-label="Impact curve"></svg>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="row" style="gap:8px;">
+          <span class="tag">Click a phase bar to inspect its local data</span>
+          <span class="tag">Click a day tick to see overlap details</span>
+          <span class="tag">Try: Baseline → Sheafify → Apply change → Sheafify</span>
+        </div>
+
+        <div id="detailPanel" class="callout" style="margin-top:12px; display:none;"></div>
+
+        <div class="footer">
+          This is a prototype “local-to-global” view, not a full PM tool.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modalOverlay" id="modalOverlay">
+  <div class="modal">
+    <div class="mhd">
+      <h3 id="modalTitle">Explainer</h3>
+      <button class="xClose" id="modalClose">Close</button>
+    </div>
+    <div class="mbd" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+// ---------- Explainers ----------
+const EXPLAIN = {
+  controls: {
+    title: "How to use this prototype",
+    body: `
+      <p><b>Baseline</b> loads the initial plan (a set of phase-level local flight schedules).</p>
+      <p><b>Apply change request</b> adds a new phase (CR-07) that overlaps others — this changes the <i>cover</i> and the <i>overlap pattern</i>.</p>
+      <p><b>Sheafify (re-glue)</b> computes a <b>single</b> project-wide schedule (a global section) and then forces each phase’s local schedule to equal its restriction. That makes all overlaps agree.</p>
+      <p>Use the checkboxes to show/hide raw locals, sheafified locals, and overlap highlighting.</p>
+    `
+  },
+  model: {
+    title: "What is being modelled?",
+    body: `
+      <p>We model the project on a 1D base space: <b>days</b> (0…16). Each phase is an “open set” (an interval of days).</p>
+      <p>A <b>presheaf</b> <span class="mono">F</span> assigns to each phase a local “helicopter flights/day” function. If two phases overlap, restrictions are just “look at the same days”.</p>
+      <p>If the locals agree on every overlap, they <b>glue</b> uniquely to a single project-wide flights/day curve — a <b>global section</b>.</p>
+    `
+  },
+  presheaf: {
+    title: "Presheaf vs sheaf (in this PM framing)",
+    body: `
+      <p><b>Presheaf:</b> phase-level teams can submit local flight schedules without guaranteeing they match on overlaps. That’s “local data” that may be inconsistent.</p>
+      <p><b>Sheaf:</b> a situation where overlap-agreement is enforced, so there really is a single, well-defined global schedule whose restrictions are exactly the locals.</p>
+      <div class="math">F(U) = { flight schedules on phase U }<br/>res_{U,V}: F(U) → F(V) (restriction to overlap V⊆U)</div>
+      <p>This is the same structural pattern used in the resource-allocation and risk drafts: objects=tasks/phases, restriction maps=interface constraints, and a global section=coherent project-wide plan.</p>
+    `
+  },
+  gluing: {
+    title: "Gluing status",
+    body: `
+      <p><b>Green</b> means: all local schedules agree on every overlap, so a global schedule exists and is unique.</p>
+      <p><b>Red</b> means: some overlap days have conflicting local numbers, so locals do not glue.</p>
+      <p>In practice, those red overlap-days are exactly where a change request “bites” — it creates or changes interfaces, and that’s where contradictions show up.</p>
+    `
+  },
+  interpretation: {
+    title: "Why equality on overlaps makes sense here",
+    body: `
+      <p>We interpret each phase’s local schedule as a <i>partial view of the single project helicopter plan</i>, not as an independent per-team requirement.</p>
+      <p>That’s why overlaps require equality: if two phases overlap in time, they are talking about the same helicopter operations on those days, so their local views should match.</p>
+      <p>This is exactly the “functions on intervals + restrictions to overlaps + gluing” picture in the resource-allocation sheaf example.</p>
+    `
+  },
+  cr07: {
+    title: "CR-07 as a topology / cover change",
+    body: `
+      <p>CR-07 adds a new phase <b>Comms mast delivery+install</b> on days 10–12. In the “open-set” picture, this is a <b>new open set</b> U_new that overlaps existing opens (Roof, Utilities).</p>
+      <p>So the cover changes from U to U′ = U ∪ {U_new}, and the overlap graph gains new edges. That is a concrete “new topology / new overlaps” event.</p>
+      <p>When you re-run gluing under the new cover, the global schedule must satisfy the new overlaps too.</p>
+    `
+  },
+  impact: {
+    title: "Impact = induced change on global sections",
+    body: `
+      <p>Before the change, sheafification produces a global schedule <span class="mono">g₀</span>. After the change, it produces <span class="mono">g₁</span>.</p>
+      <p>The <b>impact function</b> is the day-by-day difference: <span class="mono">Δg(t) = g₁(t) − g₀(t)</span>.</p>
+      <p>In categorical language, if the change refines the site / cover, there is a canonical map between the resulting sheaves, and therefore a map between their global sections. Here we show that map concretely as “baseline global curve ↦ updated global curve”.</p>
+    `
+  },
+  peak: {
+    title: "Peak flights/day",
+    body: `
+      <p>The peak is the maximum value of the global schedule. In a capacity-constrained setting (helicopter, crane, specialist crew), peak often dominates cost/risk.</p>
+    `
+  },
+  total: {
+    title: "Total flights (sum)",
+    body: `
+      <p>We sum the global flights/day over the project horizon to get a simple “total flights” metric. This is a toy metric — you could swap in cost, CO₂, risk, or earned value.</p>
+    `
+  }
+};
+
+// ---------- Data ----------
+const COLORS = ["#5cc8ff","#a78bfa","#34d399","#fb7185","#fbbf24","#60a5fa","#f472b6","#c084fc","#22c55e","#38bdf8"];
+const COST_PER_FLIGHT = 1500; // £ per flight (toy number)
+
+function deepCopy(x){ return JSON.parse(JSON.stringify(x)); }
+
+const BASELINE_RAW = {
+  name: "Baseline",
+  horizon: 17, // days 0..16
+  tasks: [
+    {id:"A", name:"Site prep & survey", start:0, end:2, req:2},
+    {id:"B", name:"Foundations", start:2, end:6, req:3},
+    {id:"C", name:"Frame & walls", start:5, end:10, req:3},
+    {id:"D", name:"Roof & weatherproofing", start:9, end:12, req:3},
+    {id:"E", name:"Utilities (solar/water)", start:10, end:14, req:2},
+    {id:"F", name:"Interior fit-out", start:12, end:16, req:1},
+    {id:"G", name:"Inspection & handover", start:16, end:17, req:1},
+  ]
+};
+
+const CHANGED_RAW = {
+  name: "After CR-07",
+  horizon: 17,
+  tasks: [
+    ...deepCopy(BASELINE_RAW.tasks),
+    {id:"H", name:"CR-07: Comms mast delivery+install", start:10, end:12, req:4},
+  ]
+};
+
+// ---------- State ----------
+let state = {
+  planRaw: deepCopy(BASELINE_RAW),
+  planSheaf: null,      // computed sheafified locals
+  global: null,         // global section
+  baselineGlobal: null, // for impact
+  changedGlobal: null,  // for impact
+  mode: "baseline",     // 'baseline' or 'changed'
+  selectedTaskId: null,
+  selectedDay: null
+};
+
+// ---------- Core functions ----------
+function taskDays(task){
+  const days = [];
+  for(let t=task.start; t<task.end; t++) days.push(t);
+  return days;
+}
+
+function buildRawLocalFunctions(plan){
+  // Represent each task's local function as an array of length horizon, with null outside interval.
+  const locals = {};
+  for(const task of plan.tasks){
+    const arr = Array(plan.horizon).fill(null);
+    for(let t=task.start; t<task.end; t++) arr[t] = task.req;
+    locals[task.id] = arr;
+  }
+  return locals;
+}
+
+function computeConflicts(plan, locals){
+  // Find overlap-days where two tasks disagree (both non-null and unequal).
+  const conflicts = [];
+  const tasks = plan.tasks;
+  for(let i=0;i<tasks.length;i++){
+    for(let j=i+1;j<tasks.length;j++){
+      const a = tasks[i], b = tasks[j];
+      for(let t=0;t<plan.horizon;t++){
+        const va = locals[a.id][t], vb = locals[b.id][t];
+        if(va!==null && vb!==null && va!==vb){
+          conflicts.push({day:t, a:a.id, b:b.id, va, vb});
+        }
+      }
+    }
+  }
+  return conflicts;
+}
+
+function glueIfConsistent(plan, locals){
+  // If consistent, produce a global schedule g(t) by reading any task value covering t.
+  const conflicts = computeConflicts(plan, locals);
+  if(conflicts.length>0){
+    return {ok:false, conflicts, global:null};
+  }
+  const g = Array(plan.horizon).fill(null);
+  for(let t=0;t<plan.horizon;t++){
+    for(const task of plan.tasks){
+      const v = locals[task.id][t];
+      if(v!==null){ g[t]=v; break; }
+    }
+    if(g[t]===null) g[t]=0; // uncovered day => 0 flights/day
+  }
+  return {ok:true, conflicts:[], global:g};
+}
+
+function sheafify(plan, locals){
+  // A practical "sheafification" rule: compute a single global envelope by taking max over tasks on each day.
+  // Then define sheafified locals as restrictions of that global schedule.
+  const g = Array(plan.horizon).fill(0);
+  for(let t=0;t<plan.horizon;t++){
+    let m = 0;
+    for(const task of plan.tasks){
+      const v = locals[task.id][t];
+      if(v!==null) m = Math.max(m, v);
+    }
+    g[t] = m;
+  }
+  const sheafLocals = {};
+  for(const task of plan.tasks){
+    const arr = Array(plan.horizon).fill(null);
+    for(let t=task.start; t<task.end; t++) arr[t] = g[t];
+    sheafLocals[task.id] = arr;
+  }
+  const conflicts = computeConflicts(plan, sheafLocals); // should be none
+  return {global:g, locals:sheafLocals, conflicts};
+}
+
+function sum(arr){ return arr.reduce((a,b)=>a+(b||0),0); }
+function max(arr){ return Math.max(...arr); }
+
+function formatMoneyGBP(x){
+  // integer pounds formatting
+  const sign = x<0 ? "-" : "";
+  const n = Math.abs(Math.round(x));
+  return sign + "£" + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+// ---------- Drawing ----------
+function clearSVG(svg){
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+}
+
+function el(name, attrs={}, text=null){
+  const e = document.createElementNS("http://www.w3.org/2000/svg", name);
+  for(const k of Object.keys(attrs)) e.setAttribute(k, attrs[k]);
+  if(text!==null) e.textContent = text;
+  return e;
+}
+
+function drawTimeline(){
+  const svg = document.getElementById("svgTimeline");
+  clearSVG(svg);
+
+  const plan = state.planRaw;
+  const tasks = plan.tasks;
+  const showRaw = document.getElementById("chkShowRaw").checked;
+  const showSheaf = document.getElementById("chkShowSheafified").checked;
+  const showOverlaps = document.getElementById("chkShowOverlaps").checked;
+
+  const w = 960, h = 360;
+  const padL = 60, padR = 20, padT = 32, rowH = 36;
+  const x0 = padL, x1 = w - padR;
+  const days = plan.horizon;
+
+  const xScale = t => x0 + (x1-x0) * (t/(days-1));
+  const xScale2 = t => x0 + (x1-x0) * (t/(days)); // for interval ends
+
+  // background grid
+  svg.appendChild(el("rect",{x:0,y:0,width:w,height:h,fill:"rgba(9,14,20,.35)"}));
+
+  // day axis
+  for(let t=0;t<days;t++){
+    const x = xScale(t);
+    const isMajor = (t%2===0);
+    svg.appendChild(el("line",{x1:x,y1:padT-6,x2:x,y2:h-18,stroke:"rgba(39,52,69,.55)","stroke-width":isMajor?1.2:0.8}));
+    svg.appendChild(el("text",{x:x,y:h-6,fill:"rgba(169,183,198,.85)","font-size":"11","text-anchor":"middle","font-family":"var(--mono)"}, String(t)));
+    // click target
+    const hit = el("rect",{x:x-7,y:padT-10,width:14,height:h-(padT)+2,fill:"transparent",cursor:"pointer"});
+    hit.addEventListener("click", ()=>{ state.selectedDay = t; state.selectedTaskId = null; renderDetailPanel(); drawTimeline(); });
+    svg.appendChild(hit);
+  }
+  svg.appendChild(el("text",{x:12,y:16,fill:"rgba(169,183,198,.95)","font-size":"12","font-family":"var(--mono)"}, "days"));
+
+  // compute overlaps per day: which tasks cover day
+  const coverByDay = Array(days).fill(0).map(()=>[]);
+  for(const task of tasks){
+    for(let t=task.start; t<task.end; t++) coverByDay[t].push(task.id);
+  }
+
+  // Overlap shading
+  if(showOverlaps){
+    for(let t=0;t<days;t++){
+      if(coverByDay[t].length>=2){
+        const x = xScale(t);
+        svg.appendChild(el("rect",{x:x-0.5,y:padT-6,width:1.0,height:h-(padT)+2,fill:"rgba(92,200,255,.22)"}));
+      }
+    }
+  }
+
+  // draw task bars
+  tasks.forEach((task, idx)=>{
+    const y = padT + idx*rowH;
+    const color = COLORS[idx % COLORS.length];
+    const barX = xScale2(task.start);
+    const barW = xScale2(task.end) - xScale2(task.start);
+    const barH = 20;
+
+    // bar
+    const rect = el("rect",{x:barX,y:y,width:barW,height:barH,rx:8,fill:color,opacity:0.9,stroke:"rgba(0,0,0,.2)","stroke-width":1.2,cursor:"pointer"});
+    if(state.selectedTaskId===task.id) rect.setAttribute("stroke","rgba(255,255,255,.55)");
+    rect.addEventListener("click", ()=>{ state.selectedTaskId = task.id; state.selectedDay = null; renderDetailPanel(); drawTimeline(); });
+
+    svg.appendChild(rect);
+
+    // label
+    svg.appendChild(el("text",{x:barX-8,y:y+14,fill:"rgba(232,238,247,.95)","font-size":"12","text-anchor":"end"}, task.id));
+    svg.appendChild(el("text",{x:barX+10,y:y+14,fill:"rgba(232,238,247,.95)","font-size":"12"}, task.name));
+
+    // raw local number label
+    if(showRaw){
+      svg.appendChild(el("text",{x:barX+barW-10,y:y+14,fill:"rgba(0,0,0,.75)","font-size":"12","font-family":"var(--mono)","text-anchor":"end"}, "raw "+task.req));
+    }
+
+    // sheafified local mini-values
+    if(showSheaf && state.planSheaf){
+      const sheafLocal = state.planSheaf.locals[task.id];
+      // display as small ticks along the bar
+      for(let t=task.start; t<task.end; t++){
+        const v = sheafLocal[t];
+        const x = xScale(t);
+        const tickH = 3 + (v*2); // small encoding
+        svg.appendChild(el("rect",{x:x-2,y:y+barH+2,width:4,height:tickH,rx:2,fill:"rgba(232,238,247,.75)"}));
+      }
+      svg.appendChild(el("text",{x:barX+barW-10,y:y+barH+16,fill:"rgba(169,183,198,.95)","font-size":"11","font-family":"var(--mono)","text-anchor":"end"}, "sheaf"));
+    }
+  });
+
+  // title
+  svg.appendChild(el("text",{x:14,y:36,fill:"rgba(232,238,247,.95)","font-size":"13","font-weight":"700"}, "Phase cover (intervals) + overlaps"));
+
+  // highlight selected day
+  if(state.selectedDay!==null){
+    const x = xScale(state.selectedDay);
+    svg.appendChild(el("rect",{x:x-10,y:padT-10,width:20,height:h-(padT)+8,fill:"rgba(255,255,255,.06)",stroke:"rgba(255,255,255,.25)","stroke-width":1}));
+  }
+}
+
+function drawGlobal(){
+  const svg = document.getElementById("svgGlobal");
+  clearSVG(svg);
+  const plan = state.planRaw;
+  const w=960,h=260;
+  const padL=60,padR=20,padT=28,padB=38;
+  const x0=padL,x1=w-padR,y0=padT,y1=h-padB;
+  const days=plan.horizon;
+  const g = state.global || Array(days).fill(0);
+
+  const vmax = Math.max(4, max(g));
+  const xScale = t => x0 + (x1-x0)*(t/(days-1));
+  const yScale = v => y1 - (y1-y0)*(v/vmax);
+
+  // bg
+  svg.appendChild(el("rect",{x:0,y:0,width:w,height:h,fill:"rgba(9,14,20,.35)"}));
+
+  // axes
+  svg.appendChild(el("line",{x1:x0,y1:y1,x2:x1,y2:y1,stroke:"rgba(169,183,198,.55)","stroke-width":1}));
+  svg.appendChild(el("line",{x1:x0,y1:y0,x2:x0,y2:y1,stroke:"rgba(169,183,198,.55)","stroke-width":1}));
+
+  // y ticks
+  for(let v=0; v<=vmax; v++){
+    const y = yScale(v);
+    svg.appendChild(el("line",{x1:x0,y1:y,x2:x1,y2:y,stroke:"rgba(39,52,69,.55)","stroke-width":0.9}));
+    svg.appendChild(el("text",{x:x0-10,y:y+4,fill:"rgba(169,183,198,.85)","font-size":"11","font-family":"var(--mono)","text-anchor":"end"}, String(v)));
+  }
+
+  // step path
+  let d = "";
+  for(let t=0;t<days;t++){
+    const x = xScale(t);
+    const y = yScale(g[t]||0);
+    if(t===0){
+      d += `M ${x} ${y} `;
+    }else{
+      // horizontal from prev x to current x at prev y
+      const prevY = yScale(g[t-1]||0);
+      d += `L ${x} ${prevY} L ${x} ${y} `;
+    }
+  }
+  svg.appendChild(el("path",{d:d.trim(),fill:"none",stroke:"rgba(92,200,255,.95)","stroke-width":3,"stroke-linejoin":"round"}));
+
+  // points
+  for(let t=0;t<days;t++){
+    const x = xScale(t);
+    const y = yScale(g[t]||0);
+    const c = el("circle",{cx:x,cy:y,r:4,fill:"rgba(232,238,247,.95)",stroke:"rgba(0,0,0,.25)","stroke-width":1,cursor:"pointer"});
+    c.addEventListener("click", ()=>{ state.selectedDay=t; state.selectedTaskId=null; renderDetailPanel(); drawTimeline(); });
+    svg.appendChild(c);
+  }
+
+  // labels
+  svg.appendChild(el("text",{x:14,y:24,fill:"rgba(232,238,247,.95)","font-size":"13","font-weight":"700"}, "Global section (project-wide helicopter schedule)"));
+  svg.appendChild(el("text",{x:14,y:44,fill:"rgba(169,183,198,.95)","font-size":"12"}, "Step curve g(t): flights/day. Click points to inspect day overlaps."));
+
+  // x ticks
+  for(let t=0;t<days;t++){
+    if(t%2!==0) continue;
+    const x = xScale(t);
+    svg.appendChild(el("text",{x:x,y:h-12,fill:"rgba(169,183,198,.85)","font-size":"11","font-family":"var(--mono)","text-anchor":"middle"}, String(t)));
+  }
+  svg.appendChild(el("text",{x:x1,y:h-12,fill:"rgba(169,183,198,.85)","font-size":"11","text-anchor":"end"}, "days"));
+}
+
+function drawImpact(){
+  const wrap = document.getElementById("impactWrap");
+  const show = document.getElementById("chkShowImpact").checked;
+  wrap.style.display = show ? "block" : "none";
+  if(!show) return;
+
+  const svg = document.getElementById("svgImpact");
+  clearSVG(svg);
+
+  const w=960,h=220;
+  const padL=60,padR=20,padT=26,padB=38;
+  const x0=padL,x1=w-padR,y0=padT,y1=h-padB;
+
+  const g0 = state.baselineGlobal || Array(state.planRaw.horizon).fill(0);
+  const g1 = state.changedGlobal || g0;
+  const days = Math.min(g0.length, g1.length);
+  const diff = Array(days).fill(0).map((_,t)=>(g1[t]||0)-(g0[t]||0));
+  const maxAbs = Math.max(1, ...diff.map(d=>Math.abs(d)));
+  const xScale = t => x0 + (x1-x0)*(t/(days-1));
+  const yMid = (y0+y1)/2;
+  const yScale = d => yMid - (y1-y0)/2 * (d/maxAbs);
+
+  svg.appendChild(el("rect",{x:0,y:0,width:w,height:h,fill:"rgba(9,14,20,.35)"}));
+
+  // midline
+  svg.appendChild(el("line",{x1:x0,y1:yMid,x2:x1,y2:yMid,stroke:"rgba(169,183,198,.45)","stroke-width":1}));
+
+  // bars
+  for(let t=0;t<days;t++){
+    const x = xScale(t);
+    const d = diff[t];
+    const y = yScale(d);
+    const y0b = yScale(0);
+    const barH = Math.abs(y - y0b);
+    const barY = Math.min(y, y0b);
+    const bar = el("rect",{x:x-6,y:barY,width:12,height:barH,rx:4,fill: d>=0 ? "rgba(61,220,151,.85)" : "rgba(255,107,107,.85)", cursor:"pointer"});
+    bar.addEventListener("click", ()=>{ state.selectedDay=t; state.selectedTaskId=null; renderDetailPanel(); drawTimeline(); });
+    svg.appendChild(bar);
+  }
+
+  // labels
+  svg.appendChild(el("text",{x:14,y:24,fill:"rgba(232,238,247,.95)","font-size":"13","font-weight":"700"}, "Impact curve Δg(t) = g₁(t) − g₀(t)"));
+  svg.appendChild(el("text",{x:14,y:44,fill:"rgba(169,183,198,.95)","font-size":"12"}, "Positive bars mean the change increases flights/day on that day."));
+
+  // x ticks
+  for(let t=0;t<days;t++){
+    if(t%2!==0) continue;
+    const x = xScale(t);
+    svg.appendChild(el("text",{x:x,y:h-12,fill:"rgba(169,183,198,.85)","font-size":"11","font-family":"var(--mono)","text-anchor":"middle"}, String(t)));
+  }
+  svg.appendChild(el("text",{x:x1,y:h-12,fill:"rgba(169,183,198,.85)","font-size":"11","text-anchor":"end"}, "days"));
+}
+
+function renderLegend(){
+  const div = document.getElementById("legend");
+  div.innerHTML = "";
+  const tasks = state.planRaw.tasks;
+  tasks.forEach((t,idx)=>{
+    const c = COLORS[idx % COLORS.length];
+    const item = document.createElement("div");
+    item.className = "chip";
+    const sw = document.createElement("span");
+    sw.className = "swatch";
+    sw.style.background = c;
+    item.appendChild(sw);
+    const txt = document.createElement("span");
+    txt.innerHTML = `<b class="mono">${t.id}</b> ${t.name}`;
+    item.appendChild(txt);
+    div.appendChild(item);
+  });
+}
+
+function renderKPIs(){
+  const kStatus = document.getElementById("kpiStatus");
+  const kPeak = document.getElementById("kpiPeak");
+  const kTotal = document.getElementById("kpiTotal");
+  const kDeltaCost = document.getElementById("kpiDeltaCost");
+
+  const rawLocals = buildRawLocalFunctions(state.planRaw);
+  const rawConflicts = computeConflicts(state.planRaw, rawLocals);
+
+  // global is from sheafification if available else attempt glue raw
+  let global = state.global;
+  if(!global){
+    const attempt = glueIfConsistent(state.planRaw, rawLocals);
+    global = attempt.global || Array(state.planRaw.horizon).fill(0);
+  }
+
+  const peak = max(global);
+  const totalFlights = sum(global);
+  kPeak.textContent = String(peak);
+  kTotal.textContent = String(totalFlights);
+
+  if(rawConflicts.length===0){
+    kStatus.textContent = "Raw glues";
+    kStatus.className = "val ok";
+  }else{
+    kStatus.textContent = state.planSheaf ? "Sheafified" : "Raw conflicts";
+    kStatus.className = "val " + (state.planSheaf ? "ok" : "bad");
+  }
+
+  // delta cost vs baseline global
+  const base = state.baselineGlobal;
+  const current = (state.mode==="changed") ? state.changedGlobal : state.baselineGlobal;
+  if(base && current){
+    const deltaFlights = sum(current) - sum(base);
+    const deltaCost = deltaFlights * COST_PER_FLIGHT;
+    kDeltaCost.textContent = formatMoneyGBP(deltaCost);
+    kDeltaCost.className = "val " + (deltaCost===0 ? "muted" : (deltaCost>0 ? "warn" : "ok"));
+  }else{
+    kDeltaCost.textContent = "—";
+    kDeltaCost.className = "val muted";
+  }
+}
+
+function renderConflictBox(){
+  const box = document.getElementById("conflictBox");
+  const rawLocals = buildRawLocalFunctions(state.planRaw);
+  const rawConflicts = computeConflicts(state.planRaw, rawLocals);
+
+  if(rawConflicts.length===0){
+    box.innerHTML = `<span class="ok">Raw locals already agree on overlaps.</span>`;
+    return;
+  }
+  // Show first few
+  const show = rawConflicts.slice(0,6);
+  const taskById = Object.fromEntries(state.planRaw.tasks.map(t=>[t.id,t]));
+  const lines = show.map(c=>{
+    return `day <b class="mono">${c.day}</b>: <b class="mono">${c.a}</b>(${c.va}) ≠ <b class="mono">${c.b}</b>(${c.vb})`;
+  }).join("<br/>");
+  const extra = rawConflicts.length>show.length ? `<br/><span class="muted">…and ${rawConflicts.length-show.length} more overlap conflicts.</span>` : "";
+  box.innerHTML = `<div><span class="bad"><b>Raw overlap conflicts</b></span> <span class="help" data-explain="gluing">?</span></div>
+                   <div style="margin-top:8px; line-height:1.5;">${lines}${extra}</div>`;
+  // rebind explainers in conflict box
+  bindExplainers();
+}
+
+function renderDetailPanel(){
+  const panel = document.getElementById("detailPanel");
+  const plan = state.planRaw;
+  const rawLocals = buildRawLocalFunctions(plan);
+  const sheafLocals = state.planSheaf ? state.planSheaf.locals : null;
+
+  // if nothing selected, hide
+  if(state.selectedTaskId===null && state.selectedDay===null){
+    panel.style.display = "none";
+    panel.innerHTML = "";
+    return;
+  }
+
+  panel.style.display = "block";
+
+  if(state.selectedTaskId!==null){
+    const task = plan.tasks.find(t=>t.id===state.selectedTaskId);
+    const days = taskDays(task);
+    const rawVals = days.map(d=>rawLocals[task.id][d]);
+    const sheafVals = sheafLocals ? days.map(d=>sheafLocals[task.id][d]) : null;
+
+    const rows = days.map((d,idx)=>{
+      const r = rawVals[idx];
+      const s = sheafVals ? sheafVals[idx] : null;
+      const changed = (s!==null && r!==s);
+      return `<tr>
+        <td class="mono">${d}</td>
+        <td class="mono">${r}</td>
+        <td class="mono">${sheafVals? s : "—"}</td>
+        <td>${changed ? "<span class='warn'><b>updated</b></span>" : "<span class='muted'>—</span>"}</td>
+      </tr>`;
+    }).join("");
+
+    panel.innerHTML = `
+      <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+        <div>
+          <div style="font-weight:850; font-size:14px;">Phase <span class="mono">${task.id}</span>: ${task.name}</div>
+          <div class="muted" style="margin-top:4px;">Interval: days ${task.start}–${task.end-1}</div>
+        </div>
+        <div class="chip"><b>raw</b> req=${task.req} flights/day</div>
+      </div>
+      <table class="table">
+        <thead><tr><th>day</th><th>raw</th><th>sheafified</th><th>note</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="smallPrint">Sheafified locals are just <span class="mono">g(t)</span> restricted to this interval — so overlaps automatically agree.</div>
+    `;
+    return;
+  }
+
+  if(state.selectedDay!==null){
+    const d = state.selectedDay;
+    const covering = plan.tasks.filter(t => t.start <= d && d < t.end);
+    const coverList = covering.map(t=>`<b class="mono">${t.id}</b> ${t.name} (raw ${t.req})`).join("<br/>") || "<span class='muted'>none</span>";
+
+    // values
+    const rawVals = covering.map(t=>t.req);
+    const rawAgree = rawVals.every(v=>v===rawVals[0]);
+    const sheafVal = state.global ? state.global[d] : null;
+
+    panel.innerHTML = `
+      <div style="font-weight:850; font-size:14px;">Day <span class="mono">${d}</span></div>
+      <div class="muted" style="margin-top:6px;">Covering phases (overlap set) <span class="help" data-explain="overlap">?</span></div>
+      <div style="margin-top:8px; line-height:1.5;">${coverList}</div>
+      <div class="hr"></div>
+      <div class="row">
+        <div class="chip"><b>raw overlap</b> ${rawAgree ? "<span class='ok'><b>agrees</b></span>" : "<span class='bad'><b>conflicts</b></span>"}</div>
+        <div class="chip"><b>sheafified g(d)</b> <span class="mono">${sheafVal!==null ? sheafVal : "—"}</span></div>
+      </div>
+      <div class="smallPrint" style="margin-top:10px;">
+        If raw locals conflict on this day, there is no global schedule that restricts to them without adjustment — that’s the “local-to-global” failure point.
+      </div>
+    `;
+    bindExplainers();
+    return;
+  }
+}
+
+function updateTopologyTag(){
+  const tag = document.getElementById("topologyTag");
+  const ids = state.planRaw.tasks.map(t=>t.id).join(", ");
+  tag.textContent = `Cover U = { ${ids} }`;
+}
+
+function updatePlanTag(){
+  const tag = document.getElementById("planTag");
+  tag.textContent = `Plan: ${state.planRaw.name}`;
+}
+
+function bindExplainers(){
+  document.querySelectorAll(".help").forEach(btn=>{
+    btn.addEventListener("click", (e)=>{
+      const key = btn.getAttribute("data-explain");
+      if(!key || !EXPLAIN[key]) return;
+      openModal(EXPLAIN[key].title, EXPLAIN[key].body);
+    });
+  });
+}
+
+function openModal(title, bodyHTML){
+  document.getElementById("modalTitle").textContent = title;
+  document.getElementById("modalBody").innerHTML = bodyHTML;
+  document.getElementById("modalOverlay").style.display = "flex";
+}
+function closeModal(){
+  document.getElementById("modalOverlay").style.display = "none";
+}
+document.getElementById("modalClose").addEventListener("click", closeModal);
+document.getElementById("modalOverlay").addEventListener("click", (e)=>{
+  if(e.target.id==="modalOverlay") closeModal();
+});
+
+// additional explainer
+EXPLAIN.overlap = {
+  title: "Overlap sets",
+  body: `
+    <p>An <b>overlap</b> is where two phase-intervals intersect in time. In sheaf language, overlaps are where restrictions must match.</p>
+    <div class="math">If U and V are phases (intervals), overlap is U∩V.<br/>
+    Agreement: f_U|_{U∩V} = f_V|_{U∩V}.</div>
+    <p>Change requests often matter because they introduce <i>new overlaps</i> (new interfaces), or change what counts as an overlap (new sequencing / concurrency).</p>
+  `
+};
+
+// ---------- Main render pipeline ----------
+function renderAll(){
+  updatePlanTag();
+  updateTopologyTag();
+  renderLegend();
+  renderConflictBox();
+  renderKPIs();
+  drawTimeline();
+  drawGlobal();
+  drawImpact();
+  renderDetailPanel();
+}
+
+// ---------- Buttons ----------
+document.getElementById("btnBaseline").addEventListener("click", ()=>{
+  state.mode = "baseline";
+  state.planRaw = deepCopy(BASELINE_RAW);
+  state.planSheaf = null;
+  state.global = null;
+  state.selectedTaskId = null;
+  state.selectedDay = null;
+  renderAll();
+});
+
+document.getElementById("btnChange").addEventListener("click", ()=>{
+  state.mode = "changed";
+  state.planRaw = deepCopy(CHANGED_RAW);
+  state.planSheaf = null;
+  state.global = null;
+  state.selectedTaskId = null;
+  state.selectedDay = null;
+  renderAll();
+});
+
+document.getElementById("btnSheafify").addEventListener("click", ()=>{
+  const locals = buildRawLocalFunctions(state.planRaw);
+  const result = sheafify(state.planRaw, locals);
+  state.planSheaf = result;
+  state.global = result.global;
+
+  // record baselines for impact
+  if(state.mode==="baseline"){
+    state.baselineGlobal = result.global;
+  }else{
+    state.changedGlobal = result.global;
+  }
+  renderAll();
+});
+
+// checkbox changes
+["chkShowRaw","chkShowSheafified","chkShowOverlaps","chkShowImpact"].forEach(id=>{
+  document.getElementById(id).addEventListener("change", ()=> renderAll());
+});
+
+// initial
+bindExplainers();
+renderAll();
+
+</script>
+</body>
+</html>
