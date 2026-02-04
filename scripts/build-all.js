@@ -22,6 +22,10 @@ for (const app of apps) {
   if (existsSync(join(appPath, 'src'))) {
     console.log(`Building ${app} with Vite...`);
     execSync('vite build', { stdio: 'inherit', cwd: root, env: { ...process.env, APP: app } });
+    const staticFallback = join(appPath, 'static.html');
+    if (existsSync(staticFallback)) {
+      cpSync(staticFallback, join(outDir, 'static.html'));
+    }
   } else {
     console.log(`Copying static ${app}...`);
     cpSync(appPath, outDir, { recursive: true });
@@ -33,4 +37,3 @@ cpSync(join(root, 'app-index.html'), join(docsDir, 'app-index.html'));
 cpSync(join(root, 'app-index.csv'), join(docsDir, 'app-index.csv'));
 cpSync(join(root, 'pics'), join(docsDir, 'pics'), { recursive: true });
 cpSync(join(root, 'common.css'), join(docsDir, 'common.css'));
-
