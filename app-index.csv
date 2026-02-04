@@ -17,3 +17,4 @@
 16,petri-net-checks,Petri net workflow demo with checks and explainers,Assistant,HTML/JS,"petri net, checks, workflow",,
 18,cliff-refuge-mini-generator,Cliff-refuge reachability mini-generator,Assistant,HTML/JS,"petri net, cliff refuge, reachability",,
 17,build-a-shed-petri-net-split-materials,Build-a-shed Petri net with split materials and parallel prep tasks,Assistant,HTML/JS,"petri net, concurrency, materials",,
+19,operadic-composition-complex-systems,Operadic composition for complex systems (and shed + Petri net + WBS),Assistant,HTML/JS,"operads, petri net, wbs",,
