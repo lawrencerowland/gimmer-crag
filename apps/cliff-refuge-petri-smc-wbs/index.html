@@ -662,14 +662,14 @@ const Petri = (() => {
     {id:"SiteTok", label:"Access thread", x:160, y:170},
 
     {id:"DesignDone", label:"Design + safety plan", x:310, y:60},
-    {id:"PermitTok", label:"Approvals thread", x:310, y:150},
-    {id:"ProcureTok", label:"Procure thread", x:310, y:240},
+    {id:"PermitTok", label:"Approvals thread", x:480, y:150},
+    {id:"ProcureTok", label:"Procure thread", x:480, y:240},
 
     {id:"Heli", label:"Heli lift chosen", x:560, y:60},
     {id:"Haul", label:"Winch/haul chosen", x:560, y:165},
 
-    {id:"PermitDone", label:"Approvals secured", x:470, y:240},
-    {id:"MatsStaged", label:"Materials staged", x:560, y:240},
+    {id:"PermitDone", label:"Approvals secured", x:620, y:240},
+    {id:"MatsStaged", label:"Materials staged", x:620, y:300},
     {id:"AccessRigged", label:"Rigging & ledge prepped", x:560, y:340},
 
     {id:"FoundDone", label:"Anchored platform done", x:760, y:110},
@@ -707,10 +707,10 @@ const Petri = (() => {
       ins:{DesignDone:1}, outs:{ProcureTok:1, Haul:1}
     },
 
-    {id:"Permit", label:"Secure approvals", dur:5.0, x:365, y:225,
+    {id:"Permit", label:"Secure approvals", dur:5.0, x:540, y:225,
       ins:{PermitTok:1}, outs:{PermitDone:1}
     },
-    {id:"BuyMats", label:"Procure + stage materials", dur:4.0, x:440, y:275,
+    {id:"BuyMats", label:"Procure + stage materials", dur:4.0, x:540, y:275,
       ins:{ProcureTok:1}, outs:{MatsStaged:1}
     },
 
