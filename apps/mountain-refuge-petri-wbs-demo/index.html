@@ -261,7 +261,9 @@
           <div class="row">
             <button class="btn ghost small" id="btnReset">Reset marking</button>
             <button class="btn small" id="btnStepAuto">Auto-step (random)</button>
+            <button class="btn secondary small" id="btnAutoRoute" title="Run a known-good sequence from kickoff to open.">Auto-run example route</button>
             <button class="btn bad small" id="btnResetAll">Reset + defaults</button>
+            <span class="muted smalltxt" id="autoRouteStatus"></span>
           </div>
         </header>
 
@@ -1252,6 +1254,51 @@ document.getElementById("btnStepAuto").addEventListener("click", ()=>{
   if(enabled.length===0) return;
   const tr = enabled[Math.floor(Math.random()*enabled.length)];
   fireTransition(tr.id);
+});
+
+const autoRouteBtn = document.getElementById("btnAutoRoute");
+const autoRouteStatus = document.getElementById("autoRouteStatus");
+const exampleRoute = [
+  "kickoff",
+  "permits",
+  "liftMaterials",
+  "access",
+  "siteprep",
+  "foundation",
+  "frame",
+  "walls",
+  "roof",
+  "utilities",
+  "interior",
+  "safety",
+  "inspect",
+  "open"
+];
+let autoRouteRunning = false;
+
+function sleep(ms){ return new Promise(resolve=>setTimeout(resolve, ms)); }
+
+autoRouteBtn.addEventListener("click", async ()=>{
+  if(autoRouteRunning) return;
+  autoRouteRunning = true;
+  autoRouteBtn.disabled = true;
+  autoRouteStatus.textContent = "Running example route…";
+  resetMarking(false);
+
+  for(const step of exampleRoute){
+    await sleep(350);
+    const ok = fireTransition(step);
+    if(!ok){
+      autoRouteStatus.textContent = "Stopped: transition not enabled.";
+      autoRouteBtn.disabled = false;
+      autoRouteRunning = false;
+      return;
+    }
+  }
+
+  autoRouteStatus.textContent = "Completed example route.";
+  autoRouteBtn.disabled = false;
+  autoRouteRunning = false;
 });
 
 document.getElementById("btnApplyResources").addEventListener("click", ()=>{
