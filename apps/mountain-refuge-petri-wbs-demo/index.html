@@ -1052,12 +1052,18 @@ function renderGantt(schedule){
   const measureCtx = measureCanvas.getContext("2d");
   measureCtx.font = `12px ${fontFamily}`;
   const maxLabelWidth = schedule.reduce((max, s)=>Math.max(max, measureCtx.measureText(s.label).width), 0);
-  const marginLeft = Math.min(220, Math.max(110, Math.ceil(maxLabelWidth) + 24));
+  const containerWidth = ganttSvg.clientWidth
+    || (ganttSvg.parentElement ? ganttSvg.parentElement.clientWidth : 0)
+    || 1000;
+  const width = Math.max(360, containerWidth);
+  const marginLeft = Math.min(
+    Math.round(width * 0.35),
+    Math.max(90, Math.ceil(maxLabelWidth) + 16)
+  );
   const top = 20;
   const rowH = 24;
   const barH = 14;
   const maxEnd = Math.max(...schedule.map(s=>s.end??0), 0);
-  const width = 1000;
   const height = Math.max(340, top + rowH*schedule.length + 40);
 
   ganttSvg.setAttribute("viewBox", `0 0 ${width} ${height}`);
