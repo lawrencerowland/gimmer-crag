@@ -572,8 +572,8 @@ const net = {
       post:{roofDone:1, crew:1, tools:1, lift:1}},
 
     {id:"utilities", label:"Install Utilities", x:1040, y:260, duration:3,
-      pre:{wallsDone:1, roofDone:1, mUtil:1, crew:1, tools:1},
-      post:{utilDone:1, crew:1, tools:1}},
+     pre:{wallsDone:1, roofDone:1, mUtil:1, crew:1, tools:1},
+     post:{utilDone:2, crew:1, tools:1}},
 
     {id:"interior", label:"Interior Fit-Out", x:1040, y:200, duration:4,
       pre:{utilDone:1, mInt:1, crew:1},
@@ -1283,7 +1283,7 @@ autoRouteBtn.addEventListener("click", async ()=>{
   autoRouteRunning = true;
   autoRouteBtn.disabled = true;
   autoRouteStatus.textContent = "Running example route…";
-  resetMarking(false);
+  resetMarking(true);
 
   for(const step of exampleRoute){
     await sleep(350);
