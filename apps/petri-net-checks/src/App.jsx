@@ -10,6 +10,10 @@ export default function App() {
           app, or open it directly in a new tab.
         </p>
       </header>
+      <section className="petri-net-note" aria-label="Usage tips">
+        <strong>Quick tip:</strong> Use the static fallback in a separate tab to
+        compare flow states side-by-side while you explore the embedded view.
+      </section>
       <div className="petri-net-actions">
         <a className="btn" href="./static.html">Open static fallback</a>
         <a className="btn" href="../../index.html">Back to app index</a>
