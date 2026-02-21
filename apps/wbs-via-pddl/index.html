@@ -250,6 +250,56 @@
       margin-bottom: 8px;
     }
     .out .meta .pill{padding:6px 10px}
+    .miniCard{
+      border:1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(10,14,20,.35);
+      padding: 10px;
+      margin-top: 10px;
+    }
+    .miniCard h3{margin:0 0 8px; font-size:13px; color:#d9e6f6;}
+    .miniPre{
+      margin:0;
+      padding:8px;
+      border-radius:10px;
+      border:1px solid rgba(34,50,70,.8);
+      background:rgba(3,7,12,.55);
+      max-height:220px;
+      overflow:auto;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height:1.4;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    #pnmlNet svg{width:100%; height:220px; display:block;}
+    .ganttRow{
+      display:grid;
+      grid-template-columns: 180px 1fr;
+      gap:10px;
+      align-items:center;
+      margin-bottom:8px;
+    }
+    .ganttLabel{font-size:12px; color:#d9e6f6;}
+    .ganttTrack{height:26px; position:relative; border-radius:8px; border:1px solid rgba(34,50,70,.8); background:rgba(3,7,12,.5);}
+    .ganttBar{
+      position:absolute;
+      top:3px;
+      height:18px;
+      border-radius:6px;
+      background:linear-gradient(90deg, rgba(121,192,255,.85), rgba(140,233,154,.8));
+      color:#02111f;
+      font-size:11px;
+      font-weight:700;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      padding:0 6px;
+      border:1px solid rgba(121,192,255,.95);
+    }
     .table{
       width:100%;
       border-collapse: collapse;
@@ -535,6 +585,7 @@
         <div class="tab active" data-tab="wbs">WBS (tree)</div>
         <div class="tab" data-tab="plan">Plan (actions)</div>
         <div class="tab" data-tab="why">Explain (causal links)</div>
+        <div class="tab" data-tab="pnml">PNML → Tasks → Gantt</div>
       </div>
 
       <div id="tab_wbs">
@@ -564,6 +615,64 @@
           Causal links show <b>support edges</b>: which earlier action (or initial state) established each precondition for each step.
         </div>
         <div class="out mono" id="causalOut"></div>
+      </div>
+
+      <div id="tab_pnml" style="display:none">
+        <div class="hint">
+          Micro demo: parse a constrained PNML subset, unfold colors into a P/T instance, emit task JSON/CSV with predecessors, and render a lightweight in-browser Gantt with PNML trace IDs.
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="primary" id="runPnmlBtn">Run PNML pipeline</button>
+          <a id="pnmlCsvLink" style="display:none" class="pill" download="pnml_tasks.csv">Download task CSV</a>
+          <span class="pill" id="pnmlStatus">Idle</span>
+        </div>
+
+        <div class="miniCard">
+          <h3>1) PNML input</h3>
+          <pre class="miniPre" id="pnmlInput">&lt;pnml&gt;
+  &lt;net id="demo" type="http://www.pnml.org/version-2009/grammar/pnml"&gt;
+    &lt;page id="page1"&gt;
+      &lt;place id="pReady"&gt;&lt;name&gt;&lt;text&gt;Ready&lt;/text&gt;&lt;/name&gt;&lt;/place&gt;
+      &lt;place id="pPrepared"&gt;&lt;name&gt;&lt;text&gt;Prepared&lt;/text&gt;&lt;/name&gt;&lt;/place&gt;
+      &lt;place id="pDone"&gt;&lt;name&gt;&lt;text&gt;Done&lt;/text&gt;&lt;/name&gt;&lt;/place&gt;
+      &lt;transition id="tPrepare"&gt;
+        &lt;name&gt;&lt;text&gt;Prepare&lt;/text&gt;&lt;/name&gt;
+        &lt;toolspecific tool="color" version="0.1"&gt;&lt;colorSet&gt;teamA,teamB&lt;/colorSet&gt;&lt;/toolspecific&gt;
+        &lt;toolspecific tool="weight" version="0.1"&gt;2d&lt;/toolspecific&gt;
+      &lt;/transition&gt;
+      &lt;transition id="tExecute"&gt;
+        &lt;name&gt;&lt;text&gt;Execute&lt;/text&gt;&lt;/name&gt;
+        &lt;toolspecific tool="color" version="0.1"&gt;&lt;colorSet&gt;teamA,teamB&lt;/colorSet&gt;&lt;/toolspecific&gt;
+        &lt;toolspecific tool="weight" version="0.1"&gt;3d&lt;/toolspecific&gt;
+      &lt;/transition&gt;
+      &lt;arc id="a1" source="pReady" target="tPrepare"/&gt;
+      &lt;arc id="a2" source="tPrepare" target="pPrepared"/&gt;
+      &lt;arc id="a3" source="pPrepared" target="tExecute"/&gt;
+      &lt;arc id="a4" source="tExecute" target="pDone"/&gt;
+    &lt;/page&gt;
+  &lt;/net&gt;
+&lt;/pnml&gt;</pre>
+        </div>
+
+        <div class="miniCard">
+          <h3>2) Symbolic net view</h3>
+          <div id="pnmlNet"></div>
+        </div>
+
+        <div class="miniCard">
+          <h3>3) P/T instance after unfolding</h3>
+          <pre class="miniPre" id="pnmlPtOut">{}</pre>
+        </div>
+
+        <div class="miniCard">
+          <h3>4) Task list (JSON)</h3>
+          <pre class="miniPre" id="pnmlTaskOut">[]</pre>
+        </div>
+
+        <div class="miniCard">
+          <h3>5) Lightweight Gantt (traceable)</h3>
+          <div id="pnmlGantt"></div>
+        </div>
       </div>
     </div>
 
@@ -1128,10 +1237,19 @@
     tab_wbs: document.getElementById("tab_wbs"),
     tab_plan: document.getElementById("tab_plan"),
     tab_why: document.getElementById("tab_why"),
+    tab_pnml: document.getElementById("tab_pnml"),
     explainerBtn: document.getElementById("explainerBtn"),
     promptBtn: document.getElementById("promptBtn"),
     aboutOutput: document.getElementById("aboutOutput"),
-    aboutTitle: document.getElementById("aboutTitle")
+    aboutTitle: document.getElementById("aboutTitle"),
+    runPnmlBtn: document.getElementById("runPnmlBtn"),
+    pnmlInput: document.getElementById("pnmlInput"),
+    pnmlStatus: document.getElementById("pnmlStatus"),
+    pnmlPtOut: document.getElementById("pnmlPtOut"),
+    pnmlTaskOut: document.getElementById("pnmlTaskOut"),
+    pnmlNet: document.getElementById("pnmlNet"),
+    pnmlGantt: document.getElementById("pnmlGantt"),
+    pnmlCsvLink: document.getElementById("pnmlCsvLink")
   };
 
   // Local working model (mutable).
@@ -1270,6 +1388,178 @@
     els.tab_wbs.style.display = name === "wbs" ? "" : "none";
     els.tab_plan.style.display = name === "plan" ? "" : "none";
     els.tab_why.style.display = name === "why" ? "" : "none";
+    els.tab_pnml.style.display = name === "pnml" ? "" : "none";
+  }
+
+  function parseDurationDays(raw){
+    const m = String(raw || "").trim().match(/(\d+)\s*d/i);
+    return m ? Number(m[1]) : 1;
+  }
+
+  function parsePnml(xmlStr){
+    const doc = new DOMParser().parseFromString(xmlStr, "text/xml");
+    const page = doc.querySelector("page");
+    if (!page){
+      throw new Error("PNML parse failed: missing <page>.");
+    }
+    const places = Array.from(page.querySelectorAll("place")).map((p)=>({
+      id: p.getAttribute("id"),
+      name: p.querySelector("name > text")?.textContent || p.getAttribute("id")
+    }));
+    const transitions = Array.from(page.querySelectorAll("transition")).map((t)=>{
+      const colorNode = t.querySelector('toolspecific[tool="color"] colorSet');
+      const weightNode = t.querySelector('toolspecific[tool="weight"]');
+      return {
+        id: t.getAttribute("id"),
+        name: t.querySelector("name > text")?.textContent || t.getAttribute("id"),
+        colorSet: (colorNode?.textContent || "").split(",").map(x=>x.trim()).filter(Boolean),
+        weight: (weightNode?.textContent || "1d").trim()
+      };
+    });
+    const arcs = Array.from(page.querySelectorAll("arc")).map((a)=>({
+      id: a.getAttribute("id"),
+      source: a.getAttribute("source"),
+      target: a.getAttribute("target")
+    }));
+    return { places, transitions, arcs };
+  }
+
+  function unfoldPnml(modelPnml){
+    const prep = modelPnml.transitions.find(t => t.name === "Prepare");
+    const exec = modelPnml.transitions.find(t => t.name === "Execute");
+    if (!prep || !exec){
+      throw new Error("Expected transitions named Prepare and Execute in this micro demo.");
+    }
+    const colors = Array.from(new Set([...(prep.colorSet || []), ...(exec.colorSet || [])]));
+    const normalized = colors.length ? colors : ["default"];
+    const strands = normalized.map((color)=>{
+      const prepare = {
+        id: `${prep.id}_${color}`,
+        name: `Prepare_${color}`,
+        durationDays: parseDurationDays(prep.weight),
+        trace: { transitionId: prep.id, color }
+      };
+      const execute = {
+        id: `${exec.id}_${color}`,
+        name: `Execute_${color}`,
+        durationDays: parseDurationDays(exec.weight),
+        trace: { transitionId: exec.id, color }
+      };
+      return {
+        color,
+        transitions: [prepare, execute],
+        edges: [[prepare.id, execute.id]]
+      };
+    });
+    return { colors: normalized, strands };
+  }
+
+  function ptToTraceTasks(pt){
+    const tasks = [];
+    const predecessorMap = new Map();
+    pt.strands.forEach((strand)=>{
+      let cursor = 0;
+      strand.transitions.forEach((transition)=>{
+        tasks.push({
+          id: transition.id,
+          name: transition.name.replace("_", " "),
+          startDay: cursor,
+          durationDays: transition.durationDays,
+          predecessors: [],
+          trace: transition.trace
+        });
+        cursor += transition.durationDays;
+      });
+      strand.edges.forEach(([fromId, toId])=>{
+        const preds = predecessorMap.get(toId) || [];
+        preds.push(fromId);
+        predecessorMap.set(toId, preds);
+      });
+    });
+    tasks.forEach((t)=>{ t.predecessors = predecessorMap.get(t.id) || []; });
+
+    const csvHeader = ["id","title","start_day","duration_days","predecessors","trace_transition","trace_color"];
+    const csvRows = tasks.map((t)=>[
+      t.id,
+      t.name,
+      t.startDay,
+      t.durationDays,
+      t.predecessors.join(" "),
+      t.trace.transitionId,
+      t.trace.color
+    ]);
+    const csv = [csvHeader.join(","), ...csvRows.map(r=>r.map(v=>`"${String(v)}"`).join(","))].join("\n");
+    return { tasks, csv };
+  }
+
+  function renderPnmlNet(modelPnml){
+    const svg = `
+      <svg viewBox="0 0 760 220" aria-label="PNML symbolic net">
+        <defs>
+          <marker id="pnmlArrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" viewBox="0 0 8 8">
+            <path d="M0,0 L8,4 L0,8 z" fill="#7aa2c7"></path>
+          </marker>
+        </defs>
+        <line x1="80" y1="110" x2="250" y2="110" stroke="#7aa2c7" stroke-width="2" marker-end="url(#pnmlArrow)" />
+        <line x1="270" y1="110" x2="430" y2="110" stroke="#7aa2c7" stroke-width="2" marker-end="url(#pnmlArrow)" />
+        <line x1="450" y1="110" x2="620" y2="110" stroke="#7aa2c7" stroke-width="2" marker-end="url(#pnmlArrow)" />
+        <line x1="640" y1="110" x2="720" y2="110" stroke="#7aa2c7" stroke-width="2" marker-end="url(#pnmlArrow)" />
+        <circle cx="55" cy="110" r="22" fill="#163128" stroke="#8ce99a" stroke-width="2"></circle>
+        <text x="55" y="84" fill="#d8fbe3" text-anchor="middle" font-size="12">${escapeHtml(modelPnml.places[0]?.name || "Ready")}</text>
+        <rect x="250" y="85" width="20" height="50" rx="3" fill="#dbeafe"></rect>
+        <text x="260" y="72" fill="#cde3ff" text-anchor="middle" font-size="12">Prepare</text>
+        <circle cx="430" cy="110" r="22" fill="#163128" stroke="#8ce99a" stroke-width="2"></circle>
+        <text x="430" y="84" fill="#d8fbe3" text-anchor="middle" font-size="12">${escapeHtml(modelPnml.places[1]?.name || "Prepared")}</text>
+        <rect x="620" y="85" width="20" height="50" rx="3" fill="#dbeafe"></rect>
+        <text x="630" y="72" fill="#cde3ff" text-anchor="middle" font-size="12">Execute</text>
+        <circle cx="742" cy="110" r="16" fill="#163128" stroke="#8ce99a" stroke-width="2"></circle>
+        <text x="742" y="84" fill="#d8fbe3" text-anchor="middle" font-size="12">${escapeHtml(modelPnml.places[2]?.name || "Done")}</text>
+      </svg>
+    `;
+    els.pnmlNet.innerHTML = svg;
+  }
+
+  function renderPnmlGantt(tasks){
+    if (!tasks.length){
+      els.pnmlGantt.innerHTML = '<div class="hint">No tasks to render.</div>';
+      return;
+    }
+    const totalDays = Math.max(...tasks.map(t => t.startDay + t.durationDays));
+    const minWidth = 360;
+    const pxPerDay = Math.max(26, Math.floor(minWidth / Math.max(totalDays, 1)));
+    const rows = tasks.map((task)=>{
+      const left = task.startDay * pxPerDay;
+      const width = Math.max(32, task.durationDays * pxPerDay);
+      const title = `${task.name} | preds: ${task.predecessors.join(" ") || "none"} | trace: ${task.trace.transitionId}/${task.trace.color}`;
+      return `
+        <div class="ganttRow">
+          <div class="ganttLabel">${escapeHtml(task.name)}<div class="mini">${escapeHtml(task.trace.transitionId)} · ${escapeHtml(task.trace.color)}</div></div>
+          <div class="ganttTrack" title="${escapeHtml(title)}">
+            <div class="ganttBar" style="left:${left}px; width:${width}px">d${task.startDay}→d${task.startDay + task.durationDays}</div>
+          </div>
+        </div>`;
+    }).join("");
+    els.pnmlGantt.innerHTML = `${rows}<div class="hint">Dependencies are preserved from place-mediated arcs and each bar is traceable to PNML transition/color IDs.</div>`;
+  }
+
+  function runPnmlPipeline(){
+    try {
+      const source = els.pnmlInput.textContent;
+      const parsed = parsePnml(source);
+      const pt = unfoldPnml(parsed);
+      const { tasks, csv } = ptToTraceTasks(pt);
+      renderPnmlNet(parsed);
+      renderPnmlGantt(tasks);
+      els.pnmlPtOut.textContent = JSON.stringify(pt, null, 2);
+      els.pnmlTaskOut.textContent = JSON.stringify(tasks, null, 2);
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      els.pnmlCsvLink.href = url;
+      els.pnmlCsvLink.style.display = "inline-flex";
+      els.pnmlStatus.textContent = `Pipeline ran: ${tasks.length} tasks`;
+    } catch (err) {
+      els.pnmlStatus.textContent = `Error: ${err.message}`;
+    }
   }
 
   function renderPlan(actionSeq, expansions){
@@ -1471,6 +1761,7 @@
   els.resetBtn.addEventListener("click", reset);
   els.explainerBtn.addEventListener("click", ()=>setAbout("Explainer", EXPLAINER_TEXT));
   els.promptBtn.addEventListener("click", ()=>setAbout("Prompt used", PROMPT_TEXT));
+  els.runPnmlBtn.addEventListener("click", runPnmlPipeline);
   document.addEventListener("keydown", (e)=>{
     if ((e.ctrlKey || e.metaKey) && e.key === "Enter"){
       run();
@@ -1481,6 +1772,7 @@
   renderDomain();
   renderFacts();
   reset(); // render placeholders
+  runPnmlPipeline();
 
 })();
 </script>
