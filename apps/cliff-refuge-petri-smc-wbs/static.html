@@ -200,6 +200,7 @@ Under the “interchangeable markings/tokens” assumption, the clean categorica
     <button class="tabbtn" data-tab="tab-wbs">3) WBS generator</button>
     <button class="tabbtn" data-tab="tab-sched">4) Schedule / PERT / Gantt</button>
     <button class="tabbtn" data-tab="tab-ext">5) Open nets / Σ-nets / sources</button>
+    <button class="tabbtn" data-tab="tab-stack">6) Lightweight browser stack</button>
   </nav>
 
   <!-- TAB: NET -->
@@ -622,6 +623,80 @@ Under the “interchangeable markings/tokens” assumption, the clean categorica
             </p>
           </details>
 
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- TAB: LIGHTWEIGHT BROWSER STACK -->
+  <section id="tab-stack" class="tab" style="display:none;">
+    <div class="grid">
+      <div class="card">
+        <h2>A lightweight in-browser Petri-net stack is practical today</h2>
+        <div class="body">
+          <div class="help">
+            I’m sharing this because the pieces you’re thinking about for a lightweight in-browser Petri net stack are real and have existing ecosystems you can build on, not just ideas in isolation.
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="warnbox">
+            At the core is <span class="k">PNML</span>, the standardized XML interchange format for Petri nets (ISO/IEC 15909): the neutral format that lets editors, analyzers, and simulators exchange models unambiguously.
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="help">
+            For a browser-first JavaScript flow, the path is straightforward:
+            <ul style="margin:8px 0 0 18px; color:var(--muted);">
+              <li><b>Parse PNML in JS:</b> <a href="https://www.npmjs.com/package/pnml-moddle-converter" target="_blank" rel="noopener noreferrer">pnml-moddle-converter</a> maps PNML ↔ Moddle.js objects and keeps dependencies lightweight.</li>
+              <li><b>Simulate/visualize PT nets:</b> <a href="https://github.com/kyouko-taiga/petri-js" target="_blank" rel="noopener noreferrer">petri-js</a> gives simple net objects, SVG rendering, and token-semantic execution in JavaScript.</li>
+              <li><b>Render execution traces:</b> <a href="https://frappe.io/gantt" target="_blank" rel="noopener noreferrer">Frappe-Gantt</a> provides dependency-light in-browser Gantt timelines for firing sequences/schedules.</li>
+            </ul>
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="warnbox">
+            <b>Practical pipeline:</b><br/>
+            PNML → color/type enumeration in JS → petri-js simulation → JSON/CSV trace export → Frappe-Gantt timeline.
+          </div>
+
+          <details>
+            <summary>Why this fits this app's architecture</summary>
+            <p>
+              This page is already a browser-only, dependency-light prototype that treats Petri nets as the execution core and schedules as derived semantics. The stack above extends that exact approach using mature open-source components before moving to heavier academic/CLI tooling.
+            </p>
+          </details>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Reference snapshots and links</h2>
+        <div class="body">
+          <div class="help">
+            The visuals below show representative PNML/editor/simulation contexts and a modern browser timeline view.
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="grid" style="grid-template-columns:1fr 1fr; gap:10px;">
+            <a href="https://pnml.lip6.fr/images/png/proprio2Pnml.png" target="_blank" rel="noopener noreferrer"><img src="https://pnml.lip6.fr/images/png/proprio2Pnml.png" alt="PNML conversion diagram" style="width:100%; border-radius:10px; border:1px solid rgba(255,255,255,.15);"></a>
+            <a href="https://codesandbox.io/api/v1/sandboxes/nqkb8/screenshot.png" target="_blank" rel="noopener noreferrer"><img src="https://codesandbox.io/api/v1/sandboxes/nqkb8/screenshot.png" alt="Browser Petri net sandbox screenshot" style="width:100%; border-radius:10px; border:1px solid rgba(255,255,255,.15);"></a>
+            <a href="https://wiki.eclipse.org/images/thumb/a/a3/VIATRA2_Examples_A2PN_Activity.png/500px-VIATRA2_Examples_A2PN_Activity.png" target="_blank" rel="noopener noreferrer"><img src="https://wiki.eclipse.org/images/thumb/a/a3/VIATRA2_Examples_A2PN_Activity.png/500px-VIATRA2_Examples_A2PN_Activity.png" alt="Activity to Petri-net transformation example" style="width:100%; border-radius:10px; border:1px solid rgba(255,255,255,.15);"></a>
+            <a href="https://cdn.prod.website-files.com/6308b9e1771b56be92fe7491/636416a672f13fa441c4e7e6_petri-nets-preview.jpg" target="_blank" rel="noopener noreferrer"><img src="https://cdn.prod.website-files.com/6308b9e1771b56be92fe7491/636416a672f13fa441c4e7e6_petri-nets-preview.jpg" alt="Petri net timeline style preview" style="width:100%; border-radius:10px; border:1px solid rgba(255,255,255,.15);"></a>
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="small">
+            Primary references: <a href="https://www.pnml.org/" target="_blank" rel="noopener noreferrer">PNML</a>,
+            <a href="https://www.npmjs.com/package/pnml-moddle-converter" target="_blank" rel="noopener noreferrer">pnml-moddle-converter</a>,
+            <a href="https://github.com/kyouko-taiga/petri-js" target="_blank" rel="noopener noreferrer">petri-js</a>,
+            <a href="https://frappe.io/gantt" target="_blank" rel="noopener noreferrer">Frappe-Gantt</a>,
+            <a href="https://www.npmjs.com/package/%40pseuco/colored-petri-nets" target="_blank" rel="noopener noreferrer">@pseuco/colored-petri-nets</a>.
+          </div>
         </div>
       </div>
     </div>
