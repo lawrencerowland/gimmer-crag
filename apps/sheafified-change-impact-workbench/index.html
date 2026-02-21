@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sheafified Change Impact Workbench</title>
+  <link rel="stylesheet" href="../../common.css" />
+  <style>
+    :root { --ok:#116329; --bad:#8f1d1d; --ink:#0f172a; --muted:#475569; --panel:#f8fafc; }
+    body { margin: 0; color: var(--ink); }
+    main { padding: 1rem; display: grid; gap: 1rem; }
+    .layout { display: grid; grid-template-columns: 320px 1fr 360px; gap: 1rem; }
+    .panel { border: 1px solid #dbe4ef; border-radius: 12px; background: var(--panel); padding: 0.9rem; }
+    h1 { margin-bottom: 0.3rem; }
+    h2 { margin-top: 0; font-size: 1rem; }
+    .controls { display: grid; gap: 0.6rem; }
+    label { font-weight: 600; font-size: 0.92rem; }
+    input, select, button, textarea { font: inherit; }
+    button { border: 1px solid #c1cfdf; border-radius: 8px; background: white; padding: 0.45rem 0.7rem; cursor: pointer; }
+    button:hover { background: #eef5ff; }
+    .row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .status { padding: 0.45rem 0.6rem; border-radius: 8px; background: #eef2f7; }
+    .kpis { display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap: 0.7rem; }
+    .kpi { border: 1px solid #d7e0ea; border-radius: 10px; background: white; padding: 0.6rem; }
+    .kpi b { display: block; font-size: 1.2rem; }
+    .ok { color: var(--ok); font-weight: 700; }
+    .bad { color: var(--bad); font-weight: 700; }
+    #graph { width: 100%; min-height: 380px; border: 1px solid #dbe4ef; border-radius: 10px; background: white; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { border: 1px solid #d9e2ec; padding: 0.35rem; text-align: left; }
+    .small { font-size: 0.85rem; color: var(--muted); }
+    .metric-bars { display: grid; gap: 0.45rem; }
+    .barline { display: grid; grid-template-columns: 170px 1fr; gap: 0.6rem; align-items: center; }
+    .track { height: 16px; background: #e7edf5; border-radius: 999px; position: relative; overflow: hidden; }
+    .baseline, .post { position: absolute; top: 0; height: 100%; }
+    .baseline { background: #6b8bb4; opacity: 0.65; }
+    .post { background: #194b8f; }
+    dialog { max-width: 680px; border: 1px solid #cfd8e3; border-radius: 12px; }
+    @media (max-width: 1200px) { .layout { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <p><a href="../../index.html">Back to app index</a></p>
+  <main>
+    <header>
+      <h1>Sheafified Change Impact Workbench (SCIW)</h1>
+      <p class="small">Model change requests as coverage refinements and overlap constraints. Red overlaps identify integration obligations that block gluing.</p>
+    </header>
+
+    <section class="layout" aria-label="Main workbench">
+      <aside class="panel">
+        <h2>CR + topology controls</h2>
+        <div class="controls">
+          <label for="importFile">Import WBS-like JSON</label>
+          <input id="importFile" type="file" accept="application/json" />
+          <div class="row">
+            <button id="loadSample">Load sample</button>
+            <button id="compute">Compute</button>
+          </div>
+
+          <label for="crType">Change request action</label>
+          <select id="crType">
+            <option value="split">Split node</option>
+            <option value="edge">Add overlap edge</option>
+            <option value="constraint">Tighten overlap fields</option>
+          </select>
+
+          <label for="crPayload">CR payload (JSON)</label>
+          <textarea id="crPayload" rows="8">{"nodeId":"build","children":["build-rough","build-fitout"]}</textarea>
+          <div class="row">
+            <button id="applyCr">Apply CR</button>
+            <button id="exportObligations">Export obligations JSON</button>
+          </div>
+          <label for="policy">Policy</label>
+          <select id="policy">
+            <option value="least-change">Least-change</option>
+            <option value="max-safety">Max-safety</option>
+          </select>
+          <div id="status" class="status" role="status">Ready.</div>
+          <div class="row">
+            <button class="openExplainer" data-kind="theory">Theory</button>
+            <button class="openExplainer" data-kind="howto">How-to</button>
+            <button class="openExplainer" data-kind="director">Director view</button>
+          </div>
+        </div>
+      </aside>
+
+      <section class="panel" aria-label="Overlap graph and accessible table">
+        <h2>Overlap graph</h2>
+        <svg id="graph" viewBox="0 0 900 420" role="img" aria-label="Nodes and overlap edges with glue status"></svg>
+        <h3>Navigable overlap list</h3>
+        <table id="overlapTable">
+          <thead><tr><th>Overlap</th><th>Fields</th><th>Status</th><th>Difference</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <aside class="panel">
+        <h2>Impact details</h2>
+        <div class="kpis">
+          <div class="kpi"><span>Global sections</span><b id="kGlobal">0</b></div>
+          <div class="kpi"><span>Broken overlaps</span><b id="kBroken">0</b></div>
+          <div class="kpi"><span>Δ cost proxy</span><b id="kCost">0</b></div>
+          <div class="kpi"><span>Δ peak resource</span><b id="kResource">0</b></div>
+        </div>
+        <h3>Baseline vs post-CR</h3>
+        <div class="metric-bars" id="metricBars"></div>
+        <h3>Integration obligations</h3>
+        <table id="obligationTable">
+          <thead><tr><th>Rank</th><th>Overlap</th><th>Owner pair</th><th>Issue</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </aside>
+    </section>
+  </main>
+
+  <dialog id="explainer" aria-modal="true">
+    <h2 id="explainerTitle"></h2>
+    <p id="explainerBody"></p>
+    <button id="closeExplainer">Close</button>
+  </dialog>
+
+<script>
+const explainers = {
+  theory: `A project can be treated as overlapping partial views (“opens”) rather than one monolithic plan. Each open carries local data (cost assumptions, ownership, acceptance gates, resource curves). Where opens overlap, the two views talk about the same interface, so their restricted interface values must agree; when they do, the locals glue into a coherent project-wide plan (a global section). A change request is a refinement of the cover: it splits scope and introduces new overlaps, so it can destroy previously valid global sections—revealing an obstruction to integration that is localisable to specific interfaces.`,
+  howto: `Import a WBS (or load the sample). 2) Click “Compute” to see whether the current locals glue; red edges are overlaps that fail. 3) Apply a change request: refine/split nodes, add edges, and choose which fields must agree on each overlap. 4) Recompute: if gluing fails, open the ranked conflict list and assign an owner/date to each broken overlap. 5) Switch policy (e.g., least-change vs max-safety) to see how different governance choices change the feasible global section(s). Export the obligation list as JSON to seed tickets.`,
+  director: `Treat “red overlaps” as integration obligations, not “noise”: each red edge is an interface where two parts of the organisation disagree about the same reality (definition of done, acceptance authority, schedule window, resource peak). The headline KPIs show how the change perturbs the feasible global plan (Δ cost proxy, Δ peak resource, Δ schedule risk), but the governing value is localisation: you can ask, “Which three interfaces must be renegotiated for this CR to become implementable?” If no global section exists under current constraints, the CR is not “approved but risky”; it is mathematically incoherent until specific interfaces are repaired—which is precisely the point of change control.`
+};
+
+const sample = {
+  nodes: [
+    { id: 'design', owner: 'PMO', acceptance_gate: 'G1', cost: 10, resource: 4, schedule_risk: 2 },
+    { id: 'build', owner: 'Site', acceptance_gate: 'G2', cost: 30, resource: 8, schedule_risk: 5 },
+    { id: 'inspect', owner: 'QA', acceptance_gate: 'G2', cost: 12, resource: 3, schedule_risk: 4 }
+  ],
+  overlaps: [
+    { id: 'o1', left: 'design', right: 'build', fields: ['acceptance_gate'] },
+    { id: 'o2', left: 'build', right: 'inspect', fields: ['acceptance_gate'] },
+    { id: 'o3', left: 'design', right: 'inspect', fields: ['owner'] }
+  ]
+};
+
+let baseline = structuredClone(sample);
+let model = structuredClone(sample);
+let obligations = [];
+
+const $ = (id) => document.getElementById(id);
+
+function byId(nodes) { return Object.fromEntries(nodes.map(n => [n.id, n])); }
+function checkOverlap(overlap, map) {
+  const l = map[overlap.left];
+  const r = map[overlap.right];
+  const diff = overlap.fields.filter(f => l?.[f] !== r?.[f]);
+  return { ok: diff.length === 0, diff };
+}
+function computeState() {
+  const map = byId(model.nodes);
+  const checks = model.overlaps.map(o => ({ ...o, ...checkOverlap(o, map) }));
+  const broken = checks.filter(c => !c.ok);
+  obligations = broken.map((b, i) => ({ rank: i + 1, overlap: b.id, owner_pair: `${map[b.left]?.owner || '?'} ↔ ${map[b.right]?.owner || '?'}`, issue: `Mismatch on ${b.diff.join(', ')}` }));
+
+  const baselineMetrics = aggregateMetrics(baseline.nodes);
+  const postMetrics = aggregateMetrics(model.nodes);
+  const policy = $('policy').value;
+  const globalSections = broken.length === 0 ? (policy === 'least-change' ? 1 : 2) : 0;
+
+  renderGraph(checks);
+  renderTables(checks);
+  renderMetrics(baselineMetrics, postMetrics, globalSections, broken.length);
+  $('status').innerHTML = broken.length === 0
+    ? `<span class="ok">Gluing succeeds.</span> Local data admit a coherent global section.`
+    : `<span class="bad">Gluing fails.</span> ${broken.length} overlap(s) are broken and require interface negotiation.`;
+}
+function aggregateMetrics(nodes) {
+  return {
+    cost: nodes.reduce((s,n) => s + (n.cost || 0), 0),
+    resource: Math.max(...nodes.map(n => n.resource || 0), 0),
+    risk: nodes.reduce((s,n) => s + (n.schedule_risk || 0), 0)
+  };
+}
+function renderGraph(checks) {
+  const svg = $('graph');
+  svg.innerHTML = '';
+  const coords = {};
+  model.nodes.forEach((n, i) => {
+    const x = 140 + (i % 4) * 220;
+    const y = 110 + Math.floor(i / 4) * 180;
+    coords[n.id] = { x, y };
+  });
+  checks.forEach(c => {
+    const a = coords[c.left], b = coords[c.right];
+    if (!a || !b) return;
+    const color = c.ok ? '#116329' : '#8f1d1d';
+    svg.insertAdjacentHTML('beforeend', `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${color}" stroke-width="3" stroke-dasharray="${c.ok ? '0' : '7 4'}" />`);
+    svg.insertAdjacentHTML('beforeend', `<text x="${(a.x+b.x)/2}" y="${(a.y+b.y)/2 - 8}" font-size="12" fill="${color}">${c.id}</text>`);
+  });
+  model.nodes.forEach(n => {
+    const {x,y} = coords[n.id];
+    svg.insertAdjacentHTML('beforeend', `<circle cx="${x}" cy="${y}" r="34" fill="#f8fbff" stroke="#27496d" stroke-width="2" />`);
+    svg.insertAdjacentHTML('beforeend', `<text x="${x}" y="${y-2}" text-anchor="middle" font-size="12">${n.id}</text>`);
+    svg.insertAdjacentHTML('beforeend', `<text x="${x}" y="${y+14}" text-anchor="middle" font-size="10" fill="#3b4c60">${n.owner || ''}</text>`);
+  });
+}
+function renderTables(checks) {
+  const overlapRows = checks.map(c => `<tr><td>${c.left} ↔ ${c.right} (${c.id})</td><td>${c.fields.join(', ')}</td><td class="${c.ok ? 'ok':'bad'}">${c.ok ? 'glues':'broken'}</td><td>${c.diff.join(', ') || '—'}</td></tr>`).join('');
+  $('overlapTable').querySelector('tbody').innerHTML = overlapRows;
+  $('obligationTable').querySelector('tbody').innerHTML = obligations.map(o => `<tr><td>${o.rank}</td><td>${o.overlap}</td><td>${o.owner_pair}</td><td>${o.issue}</td></tr>`).join('') || '<tr><td colspan="4">No current obligations.</td></tr>';
+}
+function renderMetrics(base, post, globals, broken) {
+  $('kGlobal').textContent = String(globals);
+  $('kBroken').textContent = String(broken);
+  $('kCost').textContent = String(post.cost - base.cost);
+  $('kResource').textContent = String(post.resource - base.resource);
+  const max = Math.max(base.cost, post.cost, base.resource, post.resource, base.risk, post.risk, 1);
+  const bar = (label, b, p) => `<div class="barline"><span>${label}: ${b} → ${p}</span><div class="track"><span class="baseline" style="width:${(b/max)*100}%"></span><span class="post" style="width:${(p/max)*100}%"></span></div></div>`;
+  $('metricBars').innerHTML = [bar('Cost proxy', base.cost, post.cost), bar('Peak resource', base.resource, post.resource), bar('Schedule risk', base.risk, post.risk)].join('');
+}
+function applyCr() {
+  let payload;
+  try { payload = JSON.parse($('crPayload').value); } catch { $('status').textContent = 'CR payload must be valid JSON.'; return; }
+  const type = $('crType').value;
+  if (type === 'split') {
+    const target = model.nodes.find(n => n.id === payload.nodeId);
+    if (!target || !Array.isArray(payload.children) || payload.children.length < 2) return;
+    model.nodes = model.nodes.filter(n => n.id !== payload.nodeId);
+    const half = Math.round((target.cost || 0) / payload.children.length);
+    payload.children.forEach((id, i) => model.nodes.push({ ...target, id, cost: half + (i===0 ? (target.cost || 0) - half*payload.children.length : 0) }));
+    model.overlaps = model.overlaps.flatMap(o => {
+      if (o.left === payload.nodeId) return payload.children.map(ch => ({ ...o, id: `${o.id}-${ch}`, left: ch }));
+      if (o.right === payload.nodeId) return payload.children.map(ch => ({ ...o, id: `${o.id}-${ch}`, right: ch }));
+      return [o];
+    });
+  }
+  if (type === 'edge') {
+    if (payload.id && payload.left && payload.right && Array.isArray(payload.fields)) model.overlaps.push(payload);
+  }
+  if (type === 'constraint') {
+    const edge = model.overlaps.find(o => o.id === payload.id);
+    if (edge && Array.isArray(payload.fields)) edge.fields = payload.fields;
+  }
+  computeState();
+}
+
+$('loadSample').addEventListener('click', () => { baseline = structuredClone(sample); model = structuredClone(sample); computeState(); });
+$('compute').addEventListener('click', computeState);
+$('applyCr').addEventListener('click', applyCr);
+$('policy').addEventListener('change', computeState);
+$('importFile').addEventListener('change', async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const text = await file.text();
+  try {
+    const data = JSON.parse(text);
+    if (!Array.isArray(data.nodes) || !Array.isArray(data.overlaps)) throw new Error('shape');
+    baseline = structuredClone(data); model = structuredClone(data); computeState();
+  } catch {
+    $('status').textContent = 'Import failed: expected { nodes:[], overlaps:[] } JSON.';
+  }
+});
+$('exportObligations').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify({ obligations, exported_at: new Date().toISOString() }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'integration-obligations.json'; a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+const dlg = $('explainer');
+document.querySelectorAll('.openExplainer').forEach(btn => btn.addEventListener('click', () => {
+  const kind = btn.dataset.kind;
+  $('explainerTitle').textContent = btn.textContent;
+  $('explainerBody').textContent = explainers[kind];
+  dlg.showModal();
+}));
+$('closeExplainer').addEventListener('click', () => dlg.close());
+
+computeState();
+</script>
+</body>
+</html>
