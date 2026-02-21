@@ -23,4 +23,5 @@
 22,project-change-requests-as-sheafification,Project change requests as sheafification one-file demo,Assistant,HTML/JS,"change request, sheafification, demo",,
 23,cliff-refuge-petri-smc-wbs,Petri net → CMC/SMC → WBS/Schedule demo for a cliffside mountain refuge,Assistant,HTML/JS,"petri net, smc, wbs, cliff refuge",,
 24,constraint-to-plan-studio-minimal-demo,Constraint-to-Plan Studio minimal demo (Petri → WBS → timeline),Assistant,HTML/JS,"petri net, wbs, timeline, planning",,
+26,sheafified-change-impact-workbench,Sheafified Change Impact Workbench for CR topology edits and glue analysis,Assistant,HTML/JS,"sheafification, change impact, overlaps, obligations",,
 25,sheaf-change-control-workbench,Sheaf Change Control Workbench for interface-driven change requests,Assistant,HTML/JS,"change control, sheafification, interfaces, governance",,
