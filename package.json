@@ -27,7 +27,8 @@
     "start": "BROWSER=none WDS_SOCKET_PORT=0 vite --port 3000",
     "build": "node scripts/build-all.js",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "check:app-links": "node scripts/check-app-links.js"
   },
   "eslintConfig": {
     "extends": [
