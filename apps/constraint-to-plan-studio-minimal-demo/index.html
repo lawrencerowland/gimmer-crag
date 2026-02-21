@@ -3,613 +3,347 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Constraint-to-Plan Studio — Minimal Demo (Petri → WBS → Timeline)</title>
+  <title>Constraint-to-Plan Studio</title>
   <link rel="stylesheet" href="../../common.css" />
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
   <style>
-    :root{
-      --bg:#0b1220; --panel:#101c33; --panel2:#0f1a30; --text:#e7eefc; --muted:#9db0d6;
-      --accent:#6ee7ff; --good:#37d67a; --warn:#ffcc66; --bad:#ff6b6b; --line:rgba(255,255,255,.12);
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      --sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-    }
-    *{box-sizing:border-box}
-    body{margin:0; font-family:var(--sans); background:var(--bg); color:var(--text);}
-    .back-link { padding: 10px 16px; }
-    .back-link a { color: var(--accent); }
-    header{
-      padding:14px 16px;
-      border-bottom:1px solid var(--line);
-      background:linear-gradient(180deg, rgba(16,28,51,.9), rgba(11,18,32,.35));
-      position:sticky; top:0; z-index:10; backdrop-filter: blur(8px);
-    }
-    header h1{margin:0 0 6px; font-size:16px}
-    header p{margin:0; color:var(--muted); font-size:12.5px; line-height:1.35}
-    .wrap{display:grid; grid-template-columns: 390px 1fr; gap:12px; padding:12px; max-width:1200px; margin:0 auto;}
-    .card{
-      background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
-      border:1px solid var(--line);
-      border-radius:14px;
-      box-shadow:0 10px 30px rgba(0,0,0,.25);
-      overflow:hidden;
-    }
-    .hd{padding:10px 12px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; gap:10px;}
-    .hd .title{font-weight:800}
-    .bd{padding:12px}
-    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
-    .btn{
-      appearance:none; border:1px solid var(--line);
-      background:rgba(255,255,255,.04);
-      color:var(--text);
-      padding:9px 10px; border-radius:10px;
-      cursor:pointer; font-weight:700;
-    }
-    .btn:hover{border-color: rgba(255,255,255,.2)}
-    .btn.primary{border-color: rgba(110,231,255,.45); background:rgba(110,231,255,.10)}
-    .btn.good{border-color: rgba(55,214,122,.45); background:rgba(55,214,122,.08)}
-    .btn.warn{border-color: rgba(255,204,102,.45); background:rgba(255,204,102,.08)}
-    .pill{
-      display:inline-flex; align-items:center; gap:8px;
-      padding:6px 10px; border:1px solid var(--line);
-      border-radius:999px; color:var(--muted); font-size:12px; font-weight:700;
-      background:rgba(255,255,255,.03);
-    }
-    .pill .dot{width:8px; height:8px; border-radius:99px; background:var(--muted)}
-    .pill.ok .dot{background:var(--good)}
-    .pill.bad .dot{background:var(--bad)}
-    .pill.warn .dot{background:var(--warn)}
-    label{font-size:12px; color:var(--muted); font-weight:700}
-    textarea, input, select{
-      width:100%;
-      background:rgba(255,255,255,.03);
-      border:1px solid var(--line);
-      border-radius:10px;
-      padding:8px 10px;
-      color:var(--text);
-      font-family:var(--mono);
-      font-size:12px;
-      outline:none;
-    }
-    textarea{min-height:120px; resize:vertical}
-    .hint{font-size:12px; color:var(--muted); line-height:1.35; margin-top:8px}
-    .grid2{display:grid; grid-template-columns: 1fr 1fr; gap:10px}
-    .k{font-family:var(--mono); font-size:11px; padding:2px 6px; border:1px solid var(--line); border-radius:8px; background:rgba(0,0,0,.25)}
-    .list{display:grid; gap:8px}
-    .cand{
-      border:1px solid var(--line); border-radius:12px; padding:10px;
-      background:rgba(0,0,0,.18);
-      cursor:pointer;
-    }
-    .cand:hover{border-color: rgba(110,231,255,.35)}
-    .cand.active{outline:2px solid rgba(110,231,255,.45)}
-    .mono{font-family:var(--mono)}
-    .wbs{
-      border:1px solid var(--line);
-      border-radius:12px;
-      padding:10px;
-      background:rgba(0,0,0,.18);
-      max-height: 340px;
-      overflow:auto;
-    }
-    .node{margin:6px 0; padding-left:16px; position:relative}
-    .node:before{content:""; position:absolute; left:6px; top:0; bottom:0; width:1px; background:rgba(255,255,255,.10)}
-    .node > .line{display:flex; gap:8px; align-items:flex-start}
-    .toggle{
-      width:18px; height:18px; border:1px solid var(--line); border-radius:6px;
-      display:flex; align-items:center; justify-content:center;
-      background:rgba(255,255,255,.03); flex:0 0 18px; cursor:pointer; user-select:none;
-      font-weight:900; color:var(--muted);
-      margin-top:2px;
-    }
-    .leaf .toggle{opacity:.35; cursor:default}
-    .children{margin-left:6px; padding-left:10px}
-    .children.hidden{display:none}
-    .title{font-weight:900}
-    .why{margin-top:4px; color:var(--muted); font-size:12px; line-height:1.35}
-    .timeline{
-      margin-top:10px;
-      border:1px solid var(--line);
-      border-radius:12px;
-      padding:10px;
-      background:rgba(0,0,0,.18);
-    }
-    .bar{
-      display:grid;
-      grid-template-columns: 170px 1fr;
-      gap:10px;
-      align-items:center;
-      margin:8px 0;
-    }
-    .track{height:12px; border-radius:99px; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03); position:relative}
-    .fill{height:100%; border-radius:99px; background:rgba(110,231,255,.45)}
-    .footer{padding:10px 12px; border-top:1px solid var(--line); color:var(--muted); font-size:12px}
-    @media (max-width: 980px){
-      .wrap{grid-template-columns: 1fr; }
-    }
+    :root{--bg:#091224;--panel:#0f1f39;--line:rgba(255,255,255,.16);--text:#e8f0ff;--muted:#9db4df;--accent:#68e1ff;--good:#38d57b;--warn:#ffc967;--bad:#ff6f7f;--mono:ui-monospace,Menlo,Consolas,monospace}
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}
+    .back-link{padding:8px 12px}.back-link a{color:var(--accent)}
+    header{padding:12px;border-bottom:1px solid var(--line)} h1{margin:0;font-size:18px} p{margin:6px 0 0;color:var(--muted);font-size:13px}
+    .layout{display:grid;grid-template-columns:320px 1fr 1fr;gap:10px;padding:10px;max-width:1500px;margin:0 auto}
+    .card{border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.01));overflow:hidden}
+    .hd{padding:10px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px}.bd{padding:10px}
+    .title{font-weight:800}.mono{font-family:var(--mono)} .hint{color:var(--muted);font-size:12px}
+    .btn,.pill{border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--text);border-radius:8px;padding:8px 10px;font-weight:700;cursor:pointer}
+    .btn:hover,.pill:hover{border-color:rgba(255,255,255,.34)} .btn.primary{border-color:rgba(104,225,255,.45)} .btn.good{border-color:rgba(56,213,123,.5)}
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.grid{display:grid;gap:8px} .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    input,textarea,select{width:100%;background:rgba(255,255,255,.03);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px;font-family:var(--mono);font-size:12px}
+    textarea{min-height:95px;resize:vertical}
+    .pill.active{outline:2px solid rgba(104,225,255,.55)}
+    .cands{display:grid;gap:8px;max-height:290px;overflow:auto} .cand{border:1px solid var(--line);border-radius:10px;padding:8px;cursor:pointer;background:rgba(0,0,0,.2)}
+    .cand.active{outline:2px solid rgba(104,225,255,.5)}
+    .tabs{display:flex;gap:6px;flex-wrap:wrap}.tab{border:1px solid var(--line);padding:6px 9px;border-radius:999px;cursor:pointer;font-size:12px}.tab.active{background:rgba(104,225,255,.16)}
+    .panel{border:1px solid var(--line);border-radius:10px;padding:8px;min-height:310px;background:rgba(0,0,0,.16)}
+    .tree ul{margin:4px 0 4px 18px;padding:0} .tree li{margin:3px 0}
+    .timeline-row{display:grid;grid-template-columns:160px 1fr;gap:10px;align-items:center;margin:8px 0}.track{height:13px;border:1px solid var(--line);border-radius:99px;position:relative}
+    .bar{position:absolute;height:100%;border-radius:99px;background:rgba(104,225,255,.52)}
+    .kanban{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.col{border:1px solid var(--line);border-radius:10px;padding:8px}.tag{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:2px 7px;font-size:11px;margin-bottom:6px}
+    .activity{border:1px solid var(--line);border-radius:8px;padding:7px;margin:6px 0;background:rgba(255,255,255,.03)} .activity h4{margin:0 0 5px;font-size:13px}
+    .explain{font-size:11px;color:var(--muted);line-height:1.3}
+    .compare{display:grid;grid-template-columns:1fr 1fr;gap:8px}.warn{color:var(--warn)}
+    svg{width:100%;height:220px;border:1px solid var(--line);border-radius:10px;background:rgba(0,0,0,.2)}
+    @media (max-width:1200px){.layout{grid-template-columns:1fr}.compare{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
 <div class="back-link"><a href="../../index.html">Back to app index</a></div>
 <header>
-  <h1>Constraint-to-Plan Studio — Minimal Demo</h1>
-  <p>
-    Tiny Petri net → generate feasible plan candidates (bounded reachability) → compile to WBS-ish tree + ordinal timeline.
-    This is intentionally “toy-sized” but demonstrates the interaction pattern the full prototype should scale up.
-  </p>
+  <h1>Constraint-to-Plan Studio</h1>
+  <p>Petri net → candidate trace generation → compiled WBS, dependency graph, timeline, kanban, and decision log with explanation cards.</p>
 </header>
 
-<div class="wrap">
-  <!-- Left: model -->
-  <section class="card" aria-label="Model and controls">
-    <div class="hd">
-      <div class="title">Model</div>
-      <div id="status" class="pill ok"><span class="dot"></span><span>Ready</span></div>
-    </div>
-    <div class="bd">
+<div class="layout">
+  <section class="card">
+    <div class="hd"><div class="title">Model & constraints</div><div id="status" class="hint">Ready</div></div>
+    <div class="bd grid">
       <div class="grid2">
-        <div>
-          <label for="maxDepth">Search depth bound</label>
-          <input id="maxDepth" type="number" min="1" max="30" value="10" />
-        </div>
-        <div>
-          <label for="maxStates">State bound</label>
-          <input id="maxStates" type="number" min="50" max="20000" value="4000" />
-        </div>
+        <label>Search depth<input id="maxDepth" type="number" min="1" max="30" value="10"></label>
+        <label>Max states<input id="maxStates" type="number" min="10" max="20000" value="4000"></label>
       </div>
-
-      <div style="height:10px"></div>
-
-      <label for="goal">Goal marking (JSON)</label>
-      <textarea id="goal" spellcheck="false">{ "complete": 1 }</textarea>
-      <div class="hint">
-        Use place ids as keys. In this toy: <span class="k">permit</span>, <span class="k">crew</span>, <span class="k">site_ready</span>,
-        <span class="k">materials</span>, <span class="k">built</span>, <span class="k">complete</span>.
-      </div>
-
-      <div style="height:10px"></div>
-
+      <label>Goal marking JSON<textarea id="goal">{"complete":1}</textarea></label>
+      <label>Petri net JSON (editable)<textarea id="netEditor"></textarea></label>
       <div class="row">
-        <button class="btn primary" id="btnGen">Generate candidates</button>
-        <button class="btn warn" id="btnExplain">Explainer</button>
-        <button class="btn" id="btnExport">Export selected artefact JSON</button>
+        <button id="btnValidate" class="btn">Validate invariants</button>
+        <button id="btnReach" class="btn">Run reachability</button>
+        <button id="btnGenerate" class="btn primary">Generate candidates</button>
+        <button id="btnExport" class="btn good">Export artefacts</button>
       </div>
-
-      <div id="explainer" class="hint" style="display:none; margin-top:10px">
-        <div><b>Theory:</b> A marking is “what’s true” (token multiset). A plan candidate is a transition sequence whose firing reaches the goal marking.</div>
-        <div style="margin-top:6px"><b>How‑to:</b> Click “Generate candidates”, pick a candidate trace, then inspect WBS + timeline on the right.</div>
-        <div style="margin-top:6px"><b>Director mode:</b> Treat each candidate as an option. Compare: where are the gates (permit/materials), where is parallelism, what’s the earliest “complete”.</div>
+      <div class="row">
+        <button class="pill" data-layer="theory">Theory</button>
+        <button class="pill" data-layer="howto">How-to</button>
+        <button class="pill" data-layer="director">Project-director practical</button>
       </div>
-
-      <div class="footer">
-        Assumptions: ordinal time (each step = 1 unit); concurrency is approximated by grouping steps with disjoint resource prerequisites (toy heuristic).
-      </div>
+      <div id="explainer" class="hint"></div>
+      <div class="hint">Petri net diagram</div>
+      <svg id="netSvg" aria-label="Petri net diagram"></svg>
     </div>
   </section>
 
-  <!-- Right: candidates + artefacts -->
-  <section class="card" aria-label="Candidates and artefacts">
-    <div class="hd">
-      <div class="title">Candidates → artefacts</div>
-      <div class="pill"><span class="dot"></span><span class="mono" id="meta">0 candidates</span></div>
-    </div>
-    <div class="bd">
-      <div class="grid2">
-        <div>
-          <div class="mono" style="font-weight:900; margin-bottom:6px">Plan candidates</div>
-          <div id="candidates" class="list" aria-label="Candidate list"></div>
-        </div>
-        <div>
-          <div class="mono" style="font-weight:900; margin-bottom:6px">WBS-ish tree</div>
-          <div id="wbs" class="wbs" aria-label="WBS tree output"></div>
-
-          <div class="mono" style="font-weight:900; margin:10px 0 6px">Timeline (ordinal)</div>
-          <div id="timeline" class="timeline" aria-label="Timeline output"></div>
+  <section class="card">
+    <div class="hd"><div class="title">Candidate plans</div><div id="meta" class="mono hint">0 candidates</div></div>
+    <div class="bd grid">
+      <div class="cands" id="candidateList"></div>
+      <div class="card" style="border-radius:10px">
+        <div class="hd"><div class="title">Branch explorer</div></div>
+        <div class="bd">
+          <label>Fork from candidate<select id="branchCandidate"></select></label>
+          <label>Step index<select id="branchStep"></select></label>
+          <label>Choose next enabled transition<select id="branchTransition"></select></label>
+          <div class="row"><button id="btnFork" class="btn">Fork candidate</button></div>
+          <div id="branchHint" class="hint"></div>
         </div>
       </div>
+      <div class="hint">Reachability mini-map</div>
+      <svg id="miniMap" aria-label="reachability map"></svg>
+      <div class="compare" id="compare"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="hd"><div class="title">Artefacts</div></div>
+    <div class="bd grid">
+      <div class="tabs" id="tabs"></div>
+      <div class="panel" id="artefactPanel"></div>
     </div>
   </section>
 </div>
 
 <script>
-/**
- * Minimal Petri-net reachability + compilation demo.
- * Net interpretation:
- * - places: conditions/resources
- * - transitions: tasks
- * - marking: current token counts
- */
-
-const net = {
-  places: [
-    { id: "permit", label: "Permit approved", tokens: 1 },
-    { id: "crew", label: "Crew available", tokens: 2 },
-    { id: "site_ready", label: "Site ready", tokens: 0 },
-    { id: "materials", label: "Materials on site", tokens: 0 },
-    { id: "built", label: "Built", tokens: 0 },
-    { id: "complete", label: "Complete", tokens: 0 }
+const defaultNet = {
+  places:[
+    {id:"permit",label:"Permit",kind:"condition",tokens:1,wipLimit:1},
+    {id:"crew",label:"Crew",kind:"resource",tokens:2,wipLimit:2},
+    {id:"site_ready",label:"Site Ready",kind:"deliverable",tokens:0},
+    {id:"materials",label:"Materials",kind:"resource",tokens:0,wipLimit:1},
+    {id:"built",label:"Built",kind:"deliverable",tokens:0},
+    {id:"complete",label:"Complete",kind:"goal",tokens:0}
   ],
-  transitions: [
-    { id: "tPrepSite", label: "Prepare site", pre: { permit: 1, crew: 1 }, post: { site_ready: 1, permit: 1, crew: 1 }, wp: "Worksite readiness" },
-    { id: "tDeliver",  label: "Deliver materials", pre: { permit: 1, crew: 1 }, post: { materials: 1, permit: 1, crew: 1 }, wp: "Logistics" },
-    { id: "tBuild",    label: "Build", pre: { site_ready: 1, materials: 1, crew: 1 }, post: { built: 1, crew: 1 }, wp: "Construction" },
-    { id: "tClose",    label: "Commission", pre: { built: 1 }, post: { complete: 1 }, wp: "Commissioning" }
-  ]
+  transitions:[
+    {id:"prep",label:"Prepare site",pre:{permit:1,crew:1},post:{site_ready:1,permit:1,crew:1},annotations:{workPackage:"Readiness",cost:2,risk:1}},
+    {id:"deliver",label:"Deliver materials",pre:{permit:1,crew:1},post:{materials:1,permit:1,crew:1},annotations:{workPackage:"Logistics",cost:3,risk:1}},
+    {id:"build",label:"Build shelter",pre:{site_ready:1,materials:1,crew:1},post:{built:1,crew:1},annotations:{workPackage:"Construction",cost:8,risk:3}},
+    {id:"inspect",label:"Inspect",pre:{built:1},post:{complete:1},annotations:{workPackage:"Governance",cost:1,risk:1}}
+  ],
+  goals:[{"complete":1}]
 };
 
-const placeIds = net.places.map(p => p.id);
-const placeIndex = Object.fromEntries(placeIds.map((id,i)=>[id,i]));
+const state = {net:structuredClone(defaultNet), candidates:[], selected:0, tab:"WBS", decisionLog:[], graph:null};
+const tabs = ["WBS","Timeline","Kanban","Dependencies","Decision log"];
 
-function initialMarking(){
-  const m = {};
-  for (const p of net.places) m[p.id] = p.tokens || 0;
-  return m;
+function keyOf(m){ return state.net.places.map(p=>m[p.id]||0).join(","); }
+function parseGoal(){ return JSON.parse(document.getElementById("goal").value); }
+function initialMarking(){ const m={}; state.net.places.forEach(p=>m[p.id]=p.tokens||0); return m; }
+function enabledTransitions(m){ return state.net.transitions.filter(t=>Object.entries(t.pre).every(([k,v])=>(m[k]||0)>=v)); }
+function fire(m,t){ const n=structuredClone(m); Object.entries(t.pre).forEach(([k,v])=>n[k]-=v); Object.entries(t.post).forEach(([k,v])=>n[k]=(n[k]||0)+v); return n; }
+function meetsGoal(m,g){ return Object.entries(g).every(([k,v])=>(m[k]||0)>=v); }
+
+function validateNet(){
+  try {
+    const parsed = JSON.parse(document.getElementById("netEditor").value);
+    if(!Array.isArray(parsed.places) || !Array.isArray(parsed.transitions)) throw new Error("Need places[] and transitions[]");
+    state.net = parsed;
+    const pSet = new Set(parsed.places.map(p=>p.id));
+    parsed.transitions.forEach(t=>{
+      [...Object.keys(t.pre||{}),...Object.keys(t.post||{})].forEach(pid=>{ if(!pSet.has(pid)) throw new Error(`Transition ${t.id} references unknown place ${pid}`); });
+    });
+    setStatus("Net valid", "ok");
+    drawNet();
+    return true;
+  } catch (e){ setStatus("Validation failed: "+e.message, "bad"); return false; }
 }
 
-const M0 = initialMarking();
-
-function enabledTransitions(m){
-  return net.transitions.filter(t => Object.entries(t.pre).every(([pid,w]) => (m[pid]||0) >= w));
-}
-
-function fire(m, t){
-  const m2 = structuredClone(m);
-  for (const [pid,w] of Object.entries(t.pre)) m2[pid] -= w;
-  for (const [pid,w] of Object.entries(t.post)) m2[pid] = (m2[pid]||0) + w;
-  return m2;
-}
-
-function keyOf(m){
-  return placeIds.map(pid => m[pid]||0).join(",");
-}
-
-function parseGoal(text){
-  const obj = JSON.parse(text);
-  if (typeof obj !== "object" || obj === null || Array.isArray(obj)) throw new Error("Goal must be a JSON object.");
-  for (const [k,v] of Object.entries(obj)){
-    if (!(k in placeIndex)) throw new Error(`Unknown place id "${k}".`);
-    if (!Number.isInteger(v) || v < 0) throw new Error(`Bad token count for "${k}".`);
-  }
-  return obj;
-}
-
-function meetsGoal(m, goal){
-  return Object.entries(goal).every(([pid,n]) => (m[pid]||0) === n);
-}
-
-/**
- * Enumerate multiple witness traces (bounded).
- * Strategy: BFS until bounds; record any hits; also record parent pointers for reconstruction.
- */
-function enumerateCandidates(goal, bounds){
-  const start = structuredClone(M0);
-  const startKey = keyOf(start);
-
-  const seen = new Map(); // key -> { m, depth, prevKey, viaTid }
-  seen.set(startKey, { m: start, depth: 0, prevKey: null, viaTid: null });
-
-  const q = [startKey];
-  const hits = [];
-
-  while (q.length){
-    const k = q.shift();
-    const node = seen.get(k);
-    if (!node) continue;
-
-    if (meetsGoal(node.m, goal)){
-      hits.push(k);
-      // Keep going to get other hits (until bounds).
-    }
-
-    if (node.depth >= bounds.maxDepth) continue;
-
-    const enabled = enabledTransitions(node.m);
-    for (const t of enabled){
-      const m2 = fire(node.m, t);
-      const k2 = keyOf(m2);
-      if (!seen.has(k2)){
-        if (seen.size >= bounds.maxStates) return { truncated: true, hits, seen };
-        seen.set(k2, { m: m2, depth: node.depth + 1, prevKey: k, viaTid: t.id });
-        q.push(k2);
-      }
+function enumerateCandidates(goal,{maxDepth,maxStates}){
+  const M0 = initialMarking(), k0 = keyOf(M0), seen = new Map([[k0,{m:M0,depth:0,prev:null,via:null}]]), q=[k0], edges=[], hits=[];
+  while(q.length){
+    const k=q.shift(), n=seen.get(k); if(!n) continue;
+    if(meetsGoal(n.m,goal)) hits.push(k);
+    if(n.depth>=maxDepth) continue;
+    for(const t of enabledTransitions(n.m)){
+      const m2=fire(n.m,t), k2=keyOf(m2); edges.push({source:k,target:k2,label:t.id});
+      if(!seen.has(k2)){ if(seen.size>=maxStates) return {seen,edges,hits,truncated:true}; seen.set(k2,{m:m2,depth:n.depth+1,prev:k,via:t.id}); q.push(k2); }
     }
   }
-  return { truncated: false, hits, seen };
+  return {seen,edges,hits,truncated:false};
 }
 
-function reconstructTrace(hitKey, seen){
-  const seq = [];
-  const markings = [];
-  let k = hitKey;
-  while (k !== null){
-    const n = seen.get(k);
-    markings.push(n.m);
-    if (n.viaTid) seq.push(n.viaTid);
-    k = n.prevKey;
-  }
-  seq.reverse();
-  markings.reverse();
-  return { seq, markings };
+function reconstruct(k, seen){
+  const seq=[], markings=[]; let cur=k;
+  while(cur){ const n=seen.get(cur); markings.push(n.m); if(n.via) seq.push(n.via); cur=n.prev; }
+  return {traceId:crypto.randomUUID(), sequence:seq.reverse(), markings:markings.reverse()};
 }
 
-/**
- * Compile a trace to a WBS-ish tree:
- * - group transitions by work package (wp)
- * - each task node carries a "why" (preconditions + what it enables)
- */
-function compileWBS(trace){
-  const transById = Object.fromEntries(net.transitions.map(t => [t.id, t]));
-  const wpOrder = [];
+function compileTrace(trace){
+  const tBy = Object.fromEntries(state.net.transitions.map(t=>[t.id,t]));
+  const deps=[];
+  for(let i=0;i<trace.sequence.length;i++){ for(let j=i+1;j<trace.sequence.length;j++){ deps.push([trace.sequence[i],trace.sequence[j]]); }}
   const wpMap = new Map();
-
-  // Build quick “enables” map: which later steps require tokens produced by this step
-  // (toy heuristic: compare post tokens to later pre tokens by place id).
-  const enables = new Map(); // tid -> Set(placeId)
-  trace.seq.forEach((tid, i) => {
-    const t = transById[tid];
-    const produced = new Set(Object.keys(t.post));
-    const laterNeeds = new Set();
-    for (let j=i+1;j<trace.seq.length;j++){
-      const tj = transById[trace.seq[j]];
-      for (const pid of Object.keys(tj.pre)){
-        if (produced.has(pid)) laterNeeds.add(pid);
-      }
-    }
-    enables.set(tid, laterNeeds);
-  });
-
-  for (const tid of trace.seq){
-    const t = transById[tid];
-    const wp = t.wp || "Ungrouped";
-    if (!wpMap.has(wp)){
-      wpMap.set(wp, []);
-      wpOrder.push(wp);
-    }
-    wpMap.get(wp).push(tid);
-  }
-
-  const root = {
-    id: "ROOT",
-    title: "Plan option (compiled)",
-    why: "Groups tasks into work packages; each task shows preconditions and what it enables downstream.",
-    children: []
+  trace.sequence.forEach(tid=>{ const t=tBy[tid], wp=t.annotations?.workPackage||"General"; if(!wpMap.has(wp)) wpMap.set(wp,[]); wpMap.get(wp).push(t); });
+  const wbs = {id:"root",title:"Plan candidate",type:"deliverable",children:[...wpMap.entries()].map(([wp,list])=>({id:wp,title:wp,type:"workPackage",children:list.map(t=>({id:t.id,title:t.label,type:"task",evidence:buildEvidence(t,trace.sequence,tBy)}))}))};
+  const schedule = trace.sequence.map((tid,i)=>({id:tid,title:tBy[tid].label,start:i,end:i+1,dependsOn:i?[trace.sequence[i-1]]:[],resourcesUsed:Object.keys(tBy[tid].pre)}));
+  const kanban = {Backlog:schedule.slice(1).map(t=>t.title), "In Progress":schedule.slice(0,1).map(t=>t.title), Done:[]};
+  const metrics = {
+    steps: trace.sequence.length,
+    parallelismScore: Math.max(1, new Set(trace.sequence.map(id=>Object.keys(tBy[id].pre).sort().join("|"))).size),
+    resourceSlack: (initialMarking().crew||0)-1,
+    riskProxy: trace.sequence.reduce((s,id)=>s+(tBy[id].annotations?.risk||1),0),
+    cost: trace.sequence.reduce((s,id)=>s+(tBy[id].annotations?.cost||1),0)
   };
-
-  for (const wp of wpOrder){
-    const tids = wpMap.get(wp);
-    const wpNode = {
-      id: "WP:" + wp,
-      title: wp,
-      why: `Contains ${tids.length} tasks from the selected trace.`,
-      children: []
-    };
-
-    tids.forEach((tid, idx) => {
-      const t = transById[tid];
-      const pre = Object.entries(t.pre).map(([p,w]) => `${p}:${w}`).join(", ") || "(none)";
-      const post = Object.entries(t.post).map(([p,w]) => `${p}:${w}`).join(", ") || "(none)";
-      const en = Array.from(enables.get(tid) || []);
-      const why = `Pre: ${pre} | Post: ${post}` + (en.length ? ` | Enables later via: ${en.join(", ")}` : "");
-      wpNode.children.push({
-        id: `${tid}`,
-        title: `${idx+1}. ${t.label}`,
-        why,
-        children: []
-      });
-    });
-
-    root.children.push(wpNode);
-  }
-
-  return root;
+  return {trace, wbs, dependencies:deps, schedule, kanban, metrics};
 }
 
-/**
- * Render helpers
- */
-function setStatus(text, kind){
-  const st = document.getElementById("status");
-  st.querySelector("span:nth-child(2)").textContent = text;
-  st.classList.remove("ok","bad","warn");
-  st.classList.add(kind);
-}
-
-function renderCandidates(candidateTraces){
-  const el = document.getElementById("candidates");
-  el.innerHTML = "";
-  candidateTraces.forEach((c, idx) => {
-    const div = document.createElement("div");
-    div.className = "cand";
-    div.dataset.idx = String(idx);
-    div.innerHTML = `
-      <div style="font-weight:900">${idx+1}) ${c.seq.join(" → ") || "(already at goal)"}</div>
-      <div class="hint">steps: ${c.seq.length} · final: <span class="mono">${keyOf(c.markings[c.markings.length-1])}</span></div>
-    `;
-    div.addEventListener("click", () => selectCandidate(idx));
-    el.appendChild(div);
-  });
-}
-
-function renderTree(container, node, collapseLarge=false){
-  container.innerHTML = "";
-  container.appendChild(buildNode(node, true, collapseLarge));
-}
-
-function buildNode(n, isRoot, collapseLarge){
-  const wrap = document.createElement("div");
-  wrap.className = "node" + (n.children && n.children.length ? "" : " leaf");
-  const line = document.createElement("div");
-  line.className = "line";
-
-  const toggle = document.createElement("div");
-  toggle.className = "toggle";
-  toggle.textContent = (n.children && n.children.length) ? "–" : "•";
-
-  const label = document.createElement("div");
-  const title = document.createElement("div");
-  title.className = "title";
-  title.textContent = n.title;
-  const why = document.createElement("div");
-  why.className = "why";
-  why.textContent = n.why || "";
-  label.appendChild(title);
-  label.appendChild(why);
-
-  line.appendChild(toggle);
-  line.appendChild(label);
-  wrap.appendChild(line);
-
-  const children = document.createElement("div");
-  children.className = "children";
-
-  if ((collapseLarge && !isRoot) && n.children && n.children.length > 5){
-    children.classList.add("hidden");
-    toggle.textContent = "+";
-  }
-
-  if (n.children && n.children.length){
-    for (const c of n.children){
-      children.appendChild(buildNode(c, false, collapseLarge));
-    }
-  }
-  wrap.appendChild(children);
-
-  if (n.children && n.children.length){
-    toggle.addEventListener("click", () => {
-      const hidden = children.classList.toggle("hidden");
-      toggle.textContent = hidden ? "+" : "–";
-    });
-  }
-  return wrap;
-}
-
-function renderTimeline(trace){
-  const el = document.getElementById("timeline");
-  el.innerHTML = "";
-
-  // Ordinal time: each task is 1 unit; naive parallel heuristic:
-  // tasks that only require "permit" and "crew" can run in parallel at t=0.
-  const steps = trace.seq.map(tid => net.transitions.find(t => t.id === tid));
-  const total = Math.max(1, steps.length);
-
-  steps.forEach((t, i) => {
-    const row = document.createElement("div");
-    row.className = "bar";
-    row.innerHTML = `<div class="mono"><b>${t.label}</b><div class="hint">${t.id}</div></div>`;
-    const track = document.createElement("div");
-    track.className = "track";
-
-    const fill = document.createElement("div");
-    fill.className = "fill";
-    fill.style.width = `${Math.round(((i+1)/total)*100)}%`;
-
-    track.appendChild(fill);
-    row.appendChild(track);
-    el.appendChild(row);
-  });
-
-  const note = document.createElement("div");
-  note.className = "hint";
-  note.textContent = "Note: this is an ordinal placeholder. Full prototype should add durations/calendars and true concurrency from token semantics.";
-  el.appendChild(note);
-}
-
-/**
- * App state
- */
-let currentCandidates = [];
-let selectedIdx = null;
-let lastExport = null;
-
-function selectCandidate(idx){
-  selectedIdx = idx;
-  document.querySelectorAll(".cand").forEach((c, i) => c.classList.toggle("active", i===idx));
-
-  const trace = currentCandidates[idx];
-  const wbs = compileWBS(trace);
-
-  renderTree(document.getElementById("wbs"), wbs, true);
-  renderTimeline(trace);
-
-  lastExport = {
-    net,
-    initialMarking: M0,
-    goal: JSON.parse(document.getElementById("goal").value),
-    selected: { idx, trace, wbs }
+function buildEvidence(t, sequence, tBy){
+  const pre=Object.entries(t.pre||{}).map(([k,v])=>`${k}:${v}`).join(", ") || "none";
+  const post=Object.entries(t.post||{}).map(([k,v])=>`${k}:${v}`).join(", ") || "none";
+  const blocks=sequence.filter(id=>id!==t.id && Object.keys(tBy[id].pre||{}).some(p=>p in (t.post||{})));
+  return {
+    fromTransitions:[t.id], fromPlaces:[...new Set([...Object.keys(t.pre||{}),...Object.keys(t.post||{})])],
+    whyText:`Belongs to ${t.annotations?.workPackage||"General"} because it touches shared interface places and advances goal places.`,
+    counterfactualHints:[`Removing ${t.label} would violate preconditions for: ${blocks.join(", ")||"later completion"}.`],
+    preconditions:pre, postconditions:post
   };
-  document.getElementById("meta").textContent = `${currentCandidates.length} candidates · selected ${idx+1}`;
 }
 
-function main(){
-  const btnGen = document.getElementById("btnGen");
-  const btnExplain = document.getElementById("btnExplain");
-  const btnExport = document.getElementById("btnExport");
+function setStatus(msg, kind){ const el=document.getElementById("status"); el.textContent=msg; el.className = `hint ${kind==="bad"?"warn":""}`; }
 
-  btnExplain.addEventListener("click", () => {
-    const el = document.getElementById("explainer");
-    el.style.display = (el.style.display === "none") ? "block" : "none";
+function renderCandidates(){
+  const root=document.getElementById("candidateList"); root.innerHTML="";
+  state.candidates.forEach((c,idx)=>{
+    const d=document.createElement("div"); d.className="cand"+(idx===state.selected?" active":"");
+    d.innerHTML=`<div><b>${idx+1})</b> ${c.trace.sequence.join(" → ")||"(goal already met)"}</div><div class="hint">steps ${c.metrics.steps} · risk ${c.metrics.riskProxy} · cost ${c.metrics.cost}</div>`;
+    d.onclick=()=>{ state.selected=idx; renderAll(); };
+    root.appendChild(d);
   });
+  document.getElementById("meta").textContent = `${state.candidates.length} candidates`;
+}
 
-  btnExport.addEventListener("click", () => {
-    if (!lastExport){
-      alert("Generate candidates and select one first.");
-      return;
-    }
-    const blob = new Blob([JSON.stringify(lastExport, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "constraint_to_plan_export.json";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  });
+function renderTabs(){
+  const el=document.getElementById("tabs"); el.innerHTML="";
+  tabs.forEach(tab=>{ const b=document.createElement("button"); b.className="tab"+(tab===state.tab?" active":""); b.textContent=tab; b.onclick=()=>{state.tab=tab; renderArtefact();}; el.appendChild(b); });
+}
 
-  btnGen.addEventListener("click", () => {
-    setStatus("Searching…", "warn");
+function activityCard(t,e){ return `<div class="activity"><h4>${t.title||t.label}</h4><div class="explain"><b>Requires:</b> ${e.preconditions}<br><b>Produces:</b> ${e.postconditions}<br><b>Justification:</b> ${e.whyText}<br><b>Counterfactual:</b> ${e.counterfactualHints[0]}</div></div>`; }
 
-    let goal;
+function renderArtefact(){
+  const panel=document.getElementById("artefactPanel"), c=state.candidates[state.selected];
+  if(!c){ panel.innerHTML='<div class="hint">Generate and select a candidate.</div>'; return; }
+  if(state.tab==="WBS"){
+    panel.innerHTML = `<div class="tree">` + c.wbs.children.map(w=>`<div><b>${w.title}</b><ul>${w.children.map(t=>`<li>${activityCard({title:t.title},t.evidence)}</li>`).join("")}</ul></div>`).join("") + `</div>`;
+  } else if(state.tab==="Timeline"){
+    const max=Math.max(...c.schedule.map(s=>s.end),1);
+    panel.innerHTML = c.schedule.map(s=>`<div class="timeline-row"><div>${s.title}</div><div class="track"><div class="bar" style="left:${(s.start/max)*100}%;width:${((s.end-s.start)/max)*100}%"></div></div></div>`).join("") + `<div class="hint">Ordinal time semantics layer (prototype).</div>`;
+  } else if(state.tab==="Kanban"){
+    panel.innerHTML = `<div class="kanban">${Object.entries(c.kanban).map(([k,v])=>`<div class="col"><div class="tag">${k} (WIP ${k==='In Progress'? (initialMarking().crew||1):'-'})</div>${v.map(x=>`<div class="activity">${x}</div>`).join('')||'<div class="hint">empty</div>'}</div>`).join("")}</div>`;
+  } else if(state.tab==="Dependencies"){
+    const sccWarning = new Set(c.dependencies.map(d=>d[0])).size < c.dependencies.length ? "Potential SCC/cycle risk in underlying model" : "DAG projection";
+    panel.innerHTML = `<div class="hint ${sccWarning.includes('risk')?'warn':''}">${sccWarning}</div><ul>${c.dependencies.map(d=>`<li class="mono">${d[0]} → ${d[1]}</li>`).join("")}</ul>`;
+  } else {
+    panel.innerHTML = `<div class="grid">${state.decisionLog.map((r,i)=>`<div class="activity"><b>${i+1}. ${r.decision}</b><div class="hint">${r.rationale}</div></div>`).join("") || '<div class="hint">No decision captured yet.</div>'}<button class="btn" id="captureDecision">Capture selected candidate decision</button></div>`;
+    const btn=document.getElementById("captureDecision"); if(btn) btn.onclick=()=>{ const cc=state.candidates[state.selected]; state.decisionLog.push({decision:`Selected ${state.selected+1}`,rationale:`Risk ${cc.metrics.riskProxy}, cost ${cc.metrics.cost}, gates from dependencies reviewed.`}); renderArtefact(); };
+  }
+}
+
+function renderCompare(){
+  const el=document.getElementById("compare");
+  if(state.candidates.length<2){ el.innerHTML='<div class="hint">Select at least two candidates to compare (auto compares first two).</div>'; return; }
+  const [a,b]=state.candidates;
+  el.innerHTML = `<div class="activity"><b>Candidate 1</b><div class="hint">steps ${a.metrics.steps}, risk ${a.metrics.riskProxy}, cost ${a.metrics.cost}</div></div>
+  <div class="activity"><b>Candidate 2</b><div class="hint">steps ${b.metrics.steps}, risk ${b.metrics.riskProxy}, cost ${b.metrics.cost}</div></div>`;
+}
+
+function renderBranchUI(){
+  const cSel=document.getElementById("branchCandidate"), sSel=document.getElementById("branchStep");
+  cSel.innerHTML = state.candidates.map((_,i)=>`<option value="${i}">Candidate ${i+1}</option>`).join("");
+  const ci=Number(cSel.value||0), c=state.candidates[ci];
+  if(!c){ sSel.innerHTML=""; document.getElementById("branchTransition").innerHTML=""; return; }
+  sSel.innerHTML = c.trace.markings.map((_,i)=>`<option value="${i}">marking ${i}</option>`).join("");
+  updateBranchTransitions();
+}
+
+function updateBranchTransitions(){
+  const ci=Number(document.getElementById("branchCandidate").value||0), si=Number(document.getElementById("branchStep").value||0);
+  const c=state.candidates[ci]; if(!c) return;
+  const enabled = enabledTransitions(c.trace.markings[si]||c.trace.markings.at(-1));
+  document.getElementById("branchTransition").innerHTML = enabled.map(t=>`<option value="${t.id}">${t.id} — ${t.label}</option>`).join("");
+  document.getElementById("branchHint").textContent = enabled.length? `Enabled now: ${enabled.map(t=>t.id).join(", ")}` : "No enabled transitions (deadlock).";
+}
+
+function drawNet(){
+  const svg = d3.select("#netSvg"); svg.selectAll("*").remove();
+  const places=state.net.places.map((p,i)=>({id:p.id,label:p.label,x:90+(i%3)*110,y:45+Math.floor(i/3)*120,type:"place"}));
+  const trans=state.net.transitions.map((t,i)=>({id:t.id,label:t.label,x:75+(i%2)*180,y:110+Math.floor(i/2)*95,type:"transition"}));
+  const pBy=Object.fromEntries(places.map(p=>[p.id,p]));
+  const links=[]; trans.forEach(t=>{ Object.keys(t.pre||{}).forEach(pid=>links.push({a:pBy[pid],b:t})); Object.keys(t.post||{}).forEach(pid=>links.push({a:t,b:pBy[pid]})); });
+  svg.selectAll("line").data(links).join("line").attr("x1",d=>d.a.x).attr("y1",d=>d.a.y).attr("x2",d=>d.b.x).attr("y2",d=>d.b.y).attr("stroke","#87a5d7").attr("stroke-opacity",.6);
+  svg.selectAll("circle").data(places).join("circle").attr("cx",d=>d.x).attr("cy",d=>d.y).attr("r",20).attr("fill","#183057").attr("stroke","#9ec8ff");
+  svg.selectAll("rect").data(trans).join("rect").attr("x",d=>d.x-17).attr("y",d=>d.y-26).attr("width",34).attr("height",52).attr("fill","#2f405f").attr("stroke","#9ec8ff");
+  svg.selectAll("text.pl").data(places).join("text").attr("class","pl").attr("x",d=>d.x).attr("y",d=>d.y+35).attr("text-anchor","middle").attr("fill","#d5e5ff").style("font-size","10px").text(d=>`${d.id}(${initialMarking()[d.id]||0})`);
+  svg.selectAll("text.tr").data(trans).join("text").attr("class","tr").attr("x",d=>d.x).attr("y",d=>d.y+40).attr("text-anchor","middle").attr("fill","#d5e5ff").style("font-size","10px").text(d=>d.id);
+}
+
+function drawMiniMap(graph){
+  const svg=d3.select("#miniMap"); svg.selectAll("*").remove();
+  if(!graph){ return; }
+  const nodes=[...graph.seen.keys()].slice(0,60).map(id=>({id}));
+  const nSet=new Set(nodes.map(n=>n.id));
+  const links=graph.edges.filter(e=>nSet.has(e.source)&&nSet.has(e.target)).slice(0,120);
+  const sim=d3.forceSimulation(nodes).force("link",d3.forceLink(links).id(d=>d.id).distance(28)).force("charge",d3.forceManyBody().strength(-65)).force("center",d3.forceCenter(240,110));
+  const l=svg.selectAll("line").data(links).join("line").attr("stroke","#7da2dd").attr("stroke-opacity",.35);
+  const c=svg.selectAll("circle").data(nodes).join("circle").attr("r",4).attr("fill",d=>graph.hits.includes(d.id)?"#38d57b":"#b6ccf7");
+  sim.on("tick",()=>{ l.attr("x1",d=>d.source.x).attr("y1",d=>d.source.y).attr("x2",d=>d.target.x).attr("y2",d=>d.target.y); c.attr("cx",d=>d.x).attr("cy",d=>d.y); });
+}
+
+function renderExplainer(layer){
+  const map={
+    theory:"A marking is a multiset of tokens; reachability asks if any firing sequence leads to a goal marking.",
+    howto:"Edit net/goal, validate, generate candidates, compare traces, inspect artefacts, export JSON.",
+    director:"Use candidates to set governance gates, compare cost/risk proxies, and capture the chosen rationale in the decision log."
+  };
+  document.getElementById("explainer").textContent = map[layer] || "";
+  document.querySelectorAll(".pill").forEach(p=>p.classList.toggle("active", p.dataset.layer===layer));
+}
+
+function renderAll(){ renderCandidates(); renderTabs(); renderArtefact(); renderCompare(); renderBranchUI(); drawNet(); }
+
+function bind(){
+  document.getElementById("btnValidate").onclick=validateNet;
+  document.getElementById("btnReach").onclick=()=>{
+    if(!validateNet()) return;
+    try{ const graph=enumerateCandidates(parseGoal(),{maxDepth:+document.getElementById("maxDepth").value,maxStates:+document.getElementById("maxStates").value}); state.graph=graph; drawMiniMap(graph); setStatus(`Explored ${graph.seen.size} states${graph.truncated?' (truncated)':''}`,'ok'); }
+    catch(e){ setStatus(e.message,'bad'); }
+  };
+  document.getElementById("btnGenerate").onclick=()=>{
+    if(!validateNet()) return;
     try{
-      goal = parseGoal(document.getElementById("goal").value.trim());
-    }catch(e){
-      setStatus("Goal error", "bad");
-      alert(e.message);
-      return;
-    }
-
-    const bounds = {
-      maxDepth: Number(document.getElementById("maxDepth").value),
-      maxStates: Number(document.getElementById("maxStates").value)
-    };
-
-    const res = enumerateCandidates(goal, bounds);
-    const hits = res.hits.slice(0, 12); // cap for demo
-
-    currentCandidates = hits.map(k => reconstructTrace(k, res.seen));
-    selectedIdx = null;
-    lastExport = null;
-
-    renderCandidates(currentCandidates);
-
-    document.getElementById("wbs").innerHTML = `<div class="hint">Select a candidate on the left to compile a WBS.</div>`;
-    document.getElementById("timeline").innerHTML = `<div class="hint">Select a candidate to view the timeline.</div>`;
-    document.getElementById("meta").textContent = `${currentCandidates.length} candidates` + (res.truncated ? " (truncated)" : "");
-
-    if (res.truncated){
-      setStatus("Truncated (bounds)", "warn");
-    } else if (!currentCandidates.length){
-      setStatus("No candidates", "bad");
-    } else {
-      setStatus("Ready", "ok");
-    }
-  });
-
-  // initial render
-  document.getElementById("candidates").innerHTML = `<div class="hint">Click “Generate candidates”.</div>`;
-  document.getElementById("wbs").innerHTML = `<div class="hint">WBS appears after selecting a candidate.</div>`;
-  document.getElementById("timeline").innerHTML = `<div class="hint">Timeline appears after selecting a candidate.</div>`;
+      const graph=enumerateCandidates(parseGoal(),{maxDepth:+document.getElementById("maxDepth").value,maxStates:+document.getElementById("maxStates").value});
+      state.graph=graph;
+      state.candidates = graph.hits.slice(0,12).map(k=>compileTrace(reconstruct(k,graph.seen)));
+      state.selected = 0;
+      drawMiniMap(graph);
+      renderAll();
+      setStatus(state.candidates.length?`Generated ${state.candidates.length} candidates`:'No candidates','ok');
+    }catch(e){ setStatus(e.message,'bad'); }
+  };
+  document.getElementById("btnExport").onclick=()=>{
+    const c=state.candidates[state.selected]; if(!c){ alert("Generate a candidate first"); return; }
+    const payload={net:state.net,trace:c.trace,wbs:c.wbs,schedule:c.schedule,dependencies:c.dependencies,decisionLog:state.decisionLog};
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}), url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download='constraint-to-plan-studio-export.json'; a.click(); URL.revokeObjectURL(url);
+  };
+  document.querySelectorAll(".pill").forEach(p=>p.onclick=()=>renderExplainer(p.dataset.layer));
+  document.getElementById("branchCandidate").onchange=renderBranchUI;
+  document.getElementById("branchStep").onchange=updateBranchTransitions;
+  document.getElementById("btnFork").onclick=()=>{
+    const ci=Number(document.getElementById("branchCandidate").value||0), si=Number(document.getElementById("branchStep").value||0), tid=document.getElementById("branchTransition").value;
+    const c=state.candidates[ci]; if(!c||!tid) return;
+    const t=state.net.transitions.find(x=>x.id===tid), m=c.trace.markings[si];
+    if(!enabledTransitions(m).find(x=>x.id===tid)){ alert("Transition is not enabled at selected step"); return; }
+    const newTrace={traceId:crypto.randomUUID(),sequence:[...c.trace.sequence.slice(0,si),tid],markings:[...c.trace.markings.slice(0,si+1),fire(m,t)]};
+    state.candidates.push(compileTrace(newTrace));
+    renderAll();
+    setStatus("Forked candidate added","ok");
+  };
 }
 
-main();
+function init(){
+  document.getElementById("netEditor").value = JSON.stringify(defaultNet,null,2);
+  renderExplainer("theory");
+  bind();
+  drawNet();
+  renderTabs();
+  renderArtefact();
+}
+init();
 </script>
 </body>
 </html>
