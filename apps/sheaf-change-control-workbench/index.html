@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sheaf Change Control Workbench</title>
+  <link rel="stylesheet" href="../../common.css" />
+  <style>
+    :root{--bg:#0b1324;--panel:#111d33;--line:#284267;--text:#eaf1ff;--muted:#9eb0d0;--good:#28c08a;--warn:#ffbf5a;--bad:#ff6c82;--accent:#68d4ff}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}
+    .back-link{padding:10px 12px}
+    .back-link a{color:var(--accent)}
+    .layout{max-width:1500px;margin:0 auto;padding:10px;display:grid;grid-template-columns:320px 1fr 360px;gap:10px}
+    .col,.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+    .hd{padding:10px;border-bottom:1px solid var(--line);font-weight:700;display:flex;justify-content:space-between;align-items:center}
+    .bd{padding:10px}
+    .stack{display:grid;gap:10px}
+    button,select,input{background:#0d1a30;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:7px 9px}
+    button{cursor:pointer}
+    .row{display:flex;gap:8px;flex-wrap:wrap}
+    .journal{max-height:220px;overflow:auto;display:grid;gap:6px}
+    .entry{border:1px solid var(--line);border-radius:8px;padding:7px;font-size:12px}
+    .entry.active{outline:2px solid rgba(104,212,255,.6)}
+    .small{font-size:12px;color:var(--muted)}
+    .visual{display:grid;gap:10px}
+    svg{width:100%;height:260px;background:#0a1426;border:1px solid var(--line);border-radius:10px}
+    #timeline{height:210px}
+    .banner{padding:12px;border-radius:10px;border:1px solid var(--line);font-weight:700}
+    .ok{background:rgba(40,192,138,.13);border-color:rgba(40,192,138,.45)}
+    .bad{background:rgba(255,108,130,.12);border-color:rgba(255,108,130,.45)}
+    .tab-row{display:flex;gap:8px}
+    .tab-row button[aria-pressed="true"]{outline:2px solid rgba(104,212,255,.6)}
+    table{width:100%;border-collapse:collapse;font-size:12px}
+    th,td{padding:6px;border-bottom:1px solid var(--line);text-align:left}
+    .kpi{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:10px;max-width:1500px;margin:0 auto 12px}
+    .chip{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px}
+    .sev-low{color:var(--warn)} .sev-high{color:var(--bad)}
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:grid;place-items:center}
+    .modal[hidden]{display:none}
+    .dialog{width:min(700px,92vw);max-height:80vh;overflow:auto;background:#0e1930;border:1px solid var(--line);border-radius:12px;padding:14px}
+    @media (max-width:1200px){.layout{grid-template-columns:1fr}.kpi{grid-template-columns:1fr 1fr}}
+  </style>
+</head>
+<body>
+  <div class="back-link"><a href="../../index.html">Back to app index</a></div>
+  <div class="layout">
+    <section class="col">
+      <div class="hd">Change control</div>
+      <div class="bd stack">
+        <label class="small">Baseline selector
+          <select id="branchSel"><option>Baseline</option><option>Current</option><option>Scenario A</option></select>
+        </label>
+        <div>
+          <div class="small">CR journal</div>
+          <div id="journal" class="journal" aria-live="polite"></div>
+          <label class="small">Replay step <input id="replay" type="range" min="0" max="0" value="0" /></label>
+        </div>
+        <div class="row">
+          <button data-edit="local">Add Local View</button>
+          <button data-edit="section">Modify Local Section</button>
+          <button data-edit="overlap">Edit Overlap</button>
+        </div>
+        <div class="panel">
+          <div class="hd">Decide</div>
+          <div class="bd stack">
+            <div class="row"><button>Approve</button><button>Defer</button><button>Reject</button></div>
+            <label class="small">Change budget meter <input id="budget" type="range" min="0" max="100" value="52" /></label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="col visual">
+      <div class="panel">
+        <div class="hd">Interface topology graph <button class="explainBtn">Explain</button></div>
+        <div class="bd"><svg id="topology" aria-label="Interface topology"></svg></div>
+      </div>
+      <div class="panel">
+        <div class="hd">Timeline overlap bands <button class="explainBtn">Explain</button></div>
+        <div class="bd"><svg id="timeline" aria-label="Timeline view"></svg></div>
+      </div>
+      <div class="panel">
+        <div class="hd">Global plan</div>
+        <div class="bd"><div id="globalBanner" class="banner">Computing...</div></div>
+      </div>
+    </section>
+
+    <section class="col">
+      <div class="hd">Inspector + repairs</div>
+      <div class="bd stack">
+        <div class="tab-row">
+          <button class="tab" data-tab="overlap" aria-pressed="true">Overlap inspector</button>
+          <button class="tab" data-tab="local" aria-pressed="false">Local views</button>
+          <button class="tab" data-tab="repair" aria-pressed="false">Repair options</button>
+        </div>
+        <div id="tabBody"></div>
+        <div class="row">
+          <button id="exportJson">Export JSON report</button>
+          <button id="exportHtml">Export HTML report</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <section class="kpi" id="kpis"></section>
+
+  <div id="modal" class="modal" hidden>
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <h2 id="modalTitle">Explain</h2>
+      <div class="tab-row">
+        <button class="explainTab" data-mode="theory" aria-pressed="true">Theoretical</button>
+        <button class="explainTab" data-mode="howto" aria-pressed="false">How-to</button>
+        <button class="explainTab" data-mode="director" aria-pressed="false">Project-director practical</button>
+      </div>
+      <div id="modalBody" style="margin:10px 0"></div>
+      <button id="closeModal">Close</button>
+    </div>
+  </div>
+
+<script>
+const initial = {
+  locals:{Civil:{start:0,end:6,crew:6,cost:110,guard:true}, MEP:{start:4,end:11,crew:5,cost:90,guard:false}, Supplier:{start:2,end:8,crew:3,cost:60,guard:true}},
+  overlaps:[
+    {id:'ov-1',a:'Civil',b:'MEP',constraints:[{id:'cap',type:'capacity',limit:9}]},
+    {id:'ov-2',a:'MEP',b:'Supplier',constraints:[{id:'prec',type:'precedence'}]},
+    {id:'ov-3',a:'Civil',b:'Supplier',constraints:[{id:'compat',type:'compatibility'}]}
+  ],
+  cr:[{label:'Baseline imported',type:'system'}],
+  ui:{selectedOverlapId:'ov-1',tab:'overlap'}
+};
+let state = structuredClone(initial);
+
+const explainText = {
+  theory:'A sheaf-like lens treats each workstream as a local section and each interface as a restriction map. Global coherence exists only if all overlaps agree. Failed constraints are failures to glue local assignments.',
+  howto:'Add CR edits from the left column. Inspect red overlaps in graph/timeline. Open Repair Options, apply a ranked mitigation, compare KPIs, then export a report for approval board records.',
+  director:'Use this to decide whether to approve with mitigation, defer for renegotiation, or escalate. It makes the exact interface conflicts and budget/schedule delta explicit, so governance decisions are auditable.'
+};
+
+function addCR(label, apply){ apply(); state.cr.push({label,ts:new Date().toISOString()}); render(); }
+
+function evaluate(s){
+  const conflicts=[];
+  for(const ov of s.overlaps){
+    const A=s.locals[ov.a];
+    const B=s.locals[ov.b];
+    if(!A || !B) continue;
+    for(const c of ov.constraints){
+      if(c.type==='capacity'){
+        const overlap = Math.max(0, Math.min(A.end,B.end)-Math.max(A.start,B.start));
+        if(overlap>0 && A.crew+B.crew>c.limit) conflicts.push({overlapId:ov.id,constraint:c.type,severity:A.crew+B.crew-c.limit,detail:`${A.crew+B.crew}>${c.limit}`});
+      }
+      if(c.type==='precedence' && !(A.end<=B.start)) conflicts.push({overlapId:ov.id,constraint:c.type,severity:2,detail:`${ov.a} end ${A.end} > ${ov.b} start ${B.start}`});
+      if(c.type==='compatibility' && A.guard!==B.guard) conflicts.push({overlapId:ov.id,constraint:c.type,severity:1,detail:'boolean guard mismatch'});
+    }
+  }
+  const kpis = {
+    conflicts:conflicts.length,
+    peakLoad:Object.values(s.locals).reduce((m,v)=>Math.max(m,v.crew),0),
+    totalCost:Object.values(s.locals).reduce((sum,v)=>sum+v.cost,0),
+    scheduleSlip:Math.max(...Object.values(s.locals).map(v=>v.end))-11,
+    risk:conflicts.reduce((sum,c)=>sum+c.severity,0)
+  };
+  return {ok:conflicts.length===0,conflicts,kpis};
+}
+
+function repairOptions(res){
+  if(res.ok) return [];
+  return [
+    {id:'r1',label:'Relax capacity limit by +2 on highest conflict edge',score:1,apply:(s)=>{ const c=res.conflicts[0]; const ov=s.overlaps.find(o=>o.id===c.overlapId); const cap=ov?.constraints.find(x=>x.type==='capacity'); if(cap) cap.limit+=2;}},
+    {id:'r2',label:'Insert mitigation task: reduce MEP crew by 1, +10 cost',score:2,apply:(s)=>{ if(!s.locals.MEP) return; s.locals.MEP.crew=Math.max(1,s.locals.MEP.crew-1); s.locals.MEP.cost+=10;}},
+    {id:'r3',label:'Re-phase Supplier by +2 days',score:3,apply:(s)=>{ if(!s.locals.Supplier) return; s.locals.Supplier.start+=2; s.locals.Supplier.end+=2;}}
+  ];
+}
+
+function renderTopology(res){
+  const svg=document.getElementById('topology'); svg.innerHTML='';
+  const names=Object.keys(state.locals);
+  const pos={Civil:[120,120],MEP:[330,70],Supplier:[330,190],QA:[500,120]};
+  for(const ov of state.overlaps){
+    if(!pos[ov.a] || !pos[ov.b]) continue;
+    const [x1,y1]=pos[ov.a], [x2,y2]=pos[ov.b];
+    const conflicts = res.conflicts.filter(c=>c.overlapId===ov.id);
+    const sev=conflicts.reduce((s,c)=>s+c.severity,0);
+    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',x1);line.setAttribute('y1',y1);line.setAttribute('x2',x2);line.setAttribute('y2',y2);
+    line.setAttribute('stroke', sev? '#ff6c82':'#4ad1a0'); line.setAttribute('stroke-width', String(2+sev));
+    line.setAttribute('tabindex','0'); line.setAttribute('role','button');
+    line.addEventListener('click',()=>{state.ui.selectedOverlapId=ov.id; state.ui.tab='overlap'; render();});
+    line.addEventListener('keydown',(e)=>{if(e.key==='Enter'){state.ui.selectedOverlapId=ov.id; state.ui.tab='overlap'; render();}});
+    svg.appendChild(line);
+  }
+  for(const n of names){
+    if(!pos[n]) continue;
+    const [x,y]=pos[n];
+    const c=document.createElementNS('http://www.w3.org/2000/svg','circle'); c.setAttribute('cx',x);c.setAttribute('cy',y);c.setAttribute('r',28);c.setAttribute('fill','#16345d');c.setAttribute('stroke','#68d4ff'); svg.appendChild(c);
+    const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.setAttribute('x',x);t.setAttribute('y',y+4);t.setAttribute('text-anchor','middle');t.setAttribute('fill','#eaf1ff');t.textContent=n;svg.appendChild(t);
+  }
+}
+
+function renderTimeline(res){
+  const svg=document.getElementById('timeline'); svg.innerHTML='';
+  const scale=50;
+  Object.entries(state.locals).forEach(([name,v],idx)=>{
+    const y=35+idx*55;
+    const label=document.createElementNS('http://www.w3.org/2000/svg','text'); label.setAttribute('x',8);label.setAttribute('y',y+16); label.setAttribute('fill','#9eb0d0'); label.textContent=name; svg.appendChild(label);
+    const rect=document.createElementNS('http://www.w3.org/2000/svg','rect'); rect.setAttribute('x',110+v.start*scale);rect.setAttribute('y',y);rect.setAttribute('width',Math.max(16,(v.end-v.start)*scale));rect.setAttribute('height',26);rect.setAttribute('rx',8);rect.setAttribute('fill','#68d4ff'); rect.setAttribute('tabindex','0');
+    let drag=null;
+    rect.addEventListener('pointerdown',(ev)=>{rect.setPointerCapture(ev.pointerId); drag={x:ev.clientX,start:v.start,end:v.end};});
+    rect.addEventListener('pointermove',(ev)=>{if(!drag) return; const dt=Math.round((ev.clientX-drag.x)/scale); state.locals[name].start=Math.max(0,drag.start+dt); state.locals[name].end=Math.max(state.locals[name].start+1,drag.end+dt); render();});
+    rect.addEventListener('pointerup',()=>{drag=null;});
+    rect.addEventListener('keydown',(e)=>{if(e.key==='ArrowLeft'){state.locals[name].start=Math.max(0,state.locals[name].start-1);state.locals[name].end=Math.max(state.locals[name].start+1,state.locals[name].end-1);render();}
+      if(e.key==='ArrowRight'){state.locals[name].start+=1;state.locals[name].end+=1;render();}});
+    svg.appendChild(rect);
+  });
+
+  for(const c of res.conflicts){
+    const ov=state.overlaps.find(o=>o.id===c.overlapId); if(!ov) continue;
+    const A=state.locals[ov.a], B=state.locals[ov.b]; if(!A || !B) continue;
+    const sx=110+Math.max(A.start,B.start)*scale, ex=110+Math.min(A.end,B.end)*scale;
+    if(ex>sx){ const r=document.createElementNS('http://www.w3.org/2000/svg','rect'); r.setAttribute('x',sx);r.setAttribute('y',8);r.setAttribute('width',ex-sx);r.setAttribute('height',190);r.setAttribute('fill','rgba(255,108,130,.15)'); svg.appendChild(r);}    
+  }
+}
+
+function renderInspector(res){
+  document.querySelectorAll('.tab').forEach(btn=>btn.setAttribute('aria-pressed', String(btn.dataset.tab===state.ui.tab)));
+  const root=document.getElementById('tabBody');
+  if(state.ui.tab==='overlap'){
+    const ov=state.overlaps.find(o=>o.id===state.ui.selectedOverlapId) || state.overlaps[0];
+    const rows=res.conflicts.filter(c=>c.overlapId===ov.id).map(c=>`<tr><td>${c.constraint}</td><td class="${c.severity>1?'sev-high':'sev-low'}">${c.severity}</td><td>${c.detail}</td></tr>`).join('')||'<tr><td colspan="3">No conflicts on this overlap.</td></tr>';
+    root.innerHTML=`<div class="small"><b>${ov.id}</b> (${ov.a} ↔ ${ov.b})</div><table><thead><tr><th>Constraint</th><th>Severity</th><th>Detail</th></tr></thead><tbody>${rows}</tbody></table>`;
+    return;
+  }
+  if(state.ui.tab==='local'){
+    root.innerHTML = '<table><thead><tr><th>View</th><th>Window</th><th>Crew</th><th>Cost</th></tr></thead><tbody>' + Object.entries(state.locals).map(([k,v])=>`<tr><td>${k}</td><td>${v.start}-${v.end}</td><td>${v.crew}</td><td>${v.cost}</td></tr>`).join('') + '</tbody></table>';
+    return;
+  }
+  const options=repairOptions(res);
+  root.innerHTML = options.length? options.map(o=>`<div class="entry"><b>${o.label}</b><div class="small">rank ${o.score}</div><button data-repair="${o.id}">Apply</button></div>`).join('') : '<div class="small">No repairs needed. Global section exists.</div>';
+  root.querySelectorAll('[data-repair]').forEach(btn=>btn.onclick=()=>addCR(`Repair ${btn.dataset.repair} applied`, ()=>{ const s=structuredClone(state); repairOptions(evaluate(s)).find(o=>o.id===btn.dataset.repair)?.apply(s); state=s; }));
+}
+
+function renderJournal(){
+  const j=document.getElementById('journal'); j.innerHTML='';
+  state.cr.forEach((e,idx)=>{ const d=document.createElement('div'); d.className='entry'+(idx===state.cr.length-1?' active':''); d.textContent=`${idx+1}. ${e.label}`; j.appendChild(d); });
+  const replay=document.getElementById('replay'); replay.max=String(state.cr.length-1); replay.value=String(state.cr.length-1);
+}
+
+function renderKPIs(k){
+  document.getElementById('kpis').innerHTML = [
+    ['Conflicts',k.conflicts],['Peak load',k.peakLoad],['Total cost',k.totalCost],['Schedule slip',k.scheduleSlip],['Risk',k.risk],['Accessibility','Keyboard reachable + drag alternative']
+  ].map(([a,b])=>`<div class="chip"><div class="small">${a}</div><div><b>${b}</b></div></div>`).join('');
+}
+
+function render(){
+  const res=evaluate(state);
+  renderTopology(res); renderTimeline(res); renderInspector(res); renderJournal(); renderKPIs(res.kpis);
+  const banner=document.getElementById('globalBanner'); banner.className='banner '+(res.ok?'ok':'bad');
+  banner.textContent = res.ok ? 'Global section exists: local plans glue coherently.' : `No global section: ${res.conflicts.length} overlap conflicts require repair.`;
+}
+
+document.querySelectorAll('[data-edit]').forEach(btn=>btn.onclick=()=>{
+  if(btn.dataset.edit==='local') addCR('Added local view: QA', ()=>{state.locals.QA={start:6,end:10,crew:2,cost:30,guard:true}; state.overlaps.push({id:'ov-qa',a:'QA',b:'MEP',constraints:[{id:'eq',type:'capacity',limit:6}]});});
+  if(btn.dataset.edit==='section') addCR('MEP crew estimate +2', ()=>{state.locals.MEP.crew+=2; state.locals.MEP.cost+=15;});
+  if(btn.dataset.edit==='overlap') addCR('Changed Civil↔Supplier to strict compatibility', ()=>{const ov=state.overlaps.find(o=>o.id==='ov-3'); ov.constraints=[{id:'compat2',type:'compatibility'}]; state.locals.Supplier.guard=false;});
+});
+
+document.querySelectorAll('.tab').forEach(btn=>btn.onclick=()=>{state.ui.tab=btn.dataset.tab; render();});
+
+document.getElementById('exportJson').onclick=()=>{
+  const payload={state,report:evaluate(state),repairs:repairOptions(evaluate(state))};
+  downloadFile('sheaf-change-report.json', JSON.stringify(payload,null,2), 'application/json');
+};
+
+document.getElementById('exportHtml').onclick=()=>{
+  const res=evaluate(state);
+  const html=`<h1>Sheaf Change Report</h1><p>Conflicts: ${res.conflicts.length}</p><pre>${JSON.stringify(res.conflicts,null,2)}</pre>`;
+  downloadFile('sheaf-change-report.html', html, 'text/html');
+};
+
+function downloadFile(name, text, type){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),500); }
+
+const modal=document.getElementById('modal');
+const modalBody=document.getElementById('modalBody');
+function setExplain(mode){ document.querySelectorAll('.explainTab').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode))); modalBody.textContent=explainText[mode]; }
+document.querySelectorAll('.explainBtn').forEach(btn=>btn.onclick=()=>{modal.hidden=false; setExplain('theory');});
+document.querySelectorAll('.explainTab').forEach(btn=>btn.onclick=()=>setExplain(btn.dataset.mode));
+document.getElementById('closeModal').onclick=()=>modal.hidden=true;
+modal.addEventListener('keydown',(e)=>{if(e.key==='Escape') modal.hidden=true;});
+
+render();
+</script>
+</body>
+</html>
