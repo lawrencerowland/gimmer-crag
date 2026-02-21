@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Constraint-to-Plan Studio — Minimal Demo (Petri → WBS → Timeline)</title>
+  <link rel="stylesheet" href="../../common.css" />
+  <style>
+    :root{
+      --bg:#0b1220; --panel:#101c33; --panel2:#0f1a30; --text:#e7eefc; --muted:#9db0d6;
+      --accent:#6ee7ff; --good:#37d67a; --warn:#ffcc66; --bad:#ff6b6b; --line:rgba(255,255,255,.12);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    }
+    *{box-sizing:border-box}
+    body{margin:0; font-family:var(--sans); background:var(--bg); color:var(--text);}
+    .back-link { padding: 10px 16px; }
+    .back-link a { color: var(--accent); }
+    header{
+      padding:14px 16px;
+      border-bottom:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(16,28,51,.9), rgba(11,18,32,.35));
+      position:sticky; top:0; z-index:10; backdrop-filter: blur(8px);
+    }
+    header h1{margin:0 0 6px; font-size:16px}
+    header p{margin:0; color:var(--muted); font-size:12.5px; line-height:1.35}
+    .wrap{display:grid; grid-template-columns: 390px 1fr; gap:12px; padding:12px; max-width:1200px; margin:0 auto;}
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      border:1px solid var(--line);
+      border-radius:14px;
+      box-shadow:0 10px 30px rgba(0,0,0,.25);
+      overflow:hidden;
+    }
+    .hd{padding:10px 12px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; gap:10px;}
+    .hd .title{font-weight:800}
+    .bd{padding:12px}
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    .btn{
+      appearance:none; border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      color:var(--text);
+      padding:9px 10px; border-radius:10px;
+      cursor:pointer; font-weight:700;
+    }
+    .btn:hover{border-color: rgba(255,255,255,.2)}
+    .btn.primary{border-color: rgba(110,231,255,.45); background:rgba(110,231,255,.10)}
+    .btn.good{border-color: rgba(55,214,122,.45); background:rgba(55,214,122,.08)}
+    .btn.warn{border-color: rgba(255,204,102,.45); background:rgba(255,204,102,.08)}
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 10px; border:1px solid var(--line);
+      border-radius:999px; color:var(--muted); font-size:12px; font-weight:700;
+      background:rgba(255,255,255,.03);
+    }
+    .pill .dot{width:8px; height:8px; border-radius:99px; background:var(--muted)}
+    .pill.ok .dot{background:var(--good)}
+    .pill.bad .dot{background:var(--bad)}
+    .pill.warn .dot{background:var(--warn)}
+    label{font-size:12px; color:var(--muted); font-weight:700}
+    textarea, input, select{
+      width:100%;
+      background:rgba(255,255,255,.03);
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:8px 10px;
+      color:var(--text);
+      font-family:var(--mono);
+      font-size:12px;
+      outline:none;
+    }
+    textarea{min-height:120px; resize:vertical}
+    .hint{font-size:12px; color:var(--muted); line-height:1.35; margin-top:8px}
+    .grid2{display:grid; grid-template-columns: 1fr 1fr; gap:10px}
+    .k{font-family:var(--mono); font-size:11px; padding:2px 6px; border:1px solid var(--line); border-radius:8px; background:rgba(0,0,0,.25)}
+    .list{display:grid; gap:8px}
+    .cand{
+      border:1px solid var(--line); border-radius:12px; padding:10px;
+      background:rgba(0,0,0,.18);
+      cursor:pointer;
+    }
+    .cand:hover{border-color: rgba(110,231,255,.35)}
+    .cand.active{outline:2px solid rgba(110,231,255,.45)}
+    .mono{font-family:var(--mono)}
+    .wbs{
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:10px;
+      background:rgba(0,0,0,.18);
+      max-height: 340px;
+      overflow:auto;
+    }
+    .node{margin:6px 0; padding-left:16px; position:relative}
+    .node:before{content:""; position:absolute; left:6px; top:0; bottom:0; width:1px; background:rgba(255,255,255,.10)}
+    .node > .line{display:flex; gap:8px; align-items:flex-start}
+    .toggle{
+      width:18px; height:18px; border:1px solid var(--line); border-radius:6px;
+      display:flex; align-items:center; justify-content:center;
+      background:rgba(255,255,255,.03); flex:0 0 18px; cursor:pointer; user-select:none;
+      font-weight:900; color:var(--muted);
+      margin-top:2px;
+    }
+    .leaf .toggle{opacity:.35; cursor:default}
+    .children{margin-left:6px; padding-left:10px}
+    .children.hidden{display:none}
+    .title{font-weight:900}
+    .why{margin-top:4px; color:var(--muted); font-size:12px; line-height:1.35}
+    .timeline{
+      margin-top:10px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:10px;
+      background:rgba(0,0,0,.18);
+    }
+    .bar{
+      display:grid;
+      grid-template-columns: 170px 1fr;
+      gap:10px;
+      align-items:center;
+      margin:8px 0;
+    }
+    .track{height:12px; border-radius:99px; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03); position:relative}
+    .fill{height:100%; border-radius:99px; background:rgba(110,231,255,.45)}
+    .footer{padding:10px 12px; border-top:1px solid var(--line); color:var(--muted); font-size:12px}
+    @media (max-width: 980px){
+      .wrap{grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="back-link"><a href="../../index.html">Back to app index</a></div>
+<header>
+  <h1>Constraint-to-Plan Studio — Minimal Demo</h1>
+  <p>
+    Tiny Petri net → generate feasible plan candidates (bounded reachability) → compile to WBS-ish tree + ordinal timeline.
+    This is intentionally “toy-sized” but demonstrates the interaction pattern the full prototype should scale up.
+  </p>
+</header>
+
+<div class="wrap">
+  <!-- Left: model -->
+  <section class="card" aria-label="Model and controls">
+    <div class="hd">
+      <div class="title">Model</div>
+      <div id="status" class="pill ok"><span class="dot"></span><span>Ready</span></div>
+    </div>
+    <div class="bd">
+      <div class="grid2">
+        <div>
+          <label for="maxDepth">Search depth bound</label>
+          <input id="maxDepth" type="number" min="1" max="30" value="10" />
+        </div>
+        <div>
+          <label for="maxStates">State bound</label>
+          <input id="maxStates" type="number" min="50" max="20000" value="4000" />
+        </div>
+      </div>
+
+      <div style="height:10px"></div>
+
+      <label for="goal">Goal marking (JSON)</label>
+      <textarea id="goal" spellcheck="false">{ "complete": 1 }</textarea>
+      <div class="hint">
+        Use place ids as keys. In this toy: <span class="k">permit</span>, <span class="k">crew</span>, <span class="k">site_ready</span>,
+        <span class="k">materials</span>, <span class="k">built</span>, <span class="k">complete</span>.
+      </div>
+
+      <div style="height:10px"></div>
+
+      <div class="row">
+        <button class="btn primary" id="btnGen">Generate candidates</button>
+        <button class="btn warn" id="btnExplain">Explainer</button>
+        <button class="btn" id="btnExport">Export selected artefact JSON</button>
+      </div>
+
+      <div id="explainer" class="hint" style="display:none; margin-top:10px">
+        <div><b>Theory:</b> A marking is “what’s true” (token multiset). A plan candidate is a transition sequence whose firing reaches the goal marking.</div>
+        <div style="margin-top:6px"><b>How‑to:</b> Click “Generate candidates”, pick a candidate trace, then inspect WBS + timeline on the right.</div>
+        <div style="margin-top:6px"><b>Director mode:</b> Treat each candidate as an option. Compare: where are the gates (permit/materials), where is parallelism, what’s the earliest “complete”.</div>
+      </div>
+
+      <div class="footer">
+        Assumptions: ordinal time (each step = 1 unit); concurrency is approximated by grouping steps with disjoint resource prerequisites (toy heuristic).
+      </div>
+    </div>
+  </section>
+
+  <!-- Right: candidates + artefacts -->
+  <section class="card" aria-label="Candidates and artefacts">
+    <div class="hd">
+      <div class="title">Candidates → artefacts</div>
+      <div class="pill"><span class="dot"></span><span class="mono" id="meta">0 candidates</span></div>
+    </div>
+    <div class="bd">
+      <div class="grid2">
+        <div>
+          <div class="mono" style="font-weight:900; margin-bottom:6px">Plan candidates</div>
+          <div id="candidates" class="list" aria-label="Candidate list"></div>
+        </div>
+        <div>
+          <div class="mono" style="font-weight:900; margin-bottom:6px">WBS-ish tree</div>
+          <div id="wbs" class="wbs" aria-label="WBS tree output"></div>
+
+          <div class="mono" style="font-weight:900; margin:10px 0 6px">Timeline (ordinal)</div>
+          <div id="timeline" class="timeline" aria-label="Timeline output"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+/**
+ * Minimal Petri-net reachability + compilation demo.
+ * Net interpretation:
+ * - places: conditions/resources
+ * - transitions: tasks
+ * - marking: current token counts
+ */
+
+const net = {
+  places: [
+    { id: "permit", label: "Permit approved", tokens: 1 },
+    { id: "crew", label: "Crew available", tokens: 2 },
+    { id: "site_ready", label: "Site ready", tokens: 0 },
+    { id: "materials", label: "Materials on site", tokens: 0 },
+    { id: "built", label: "Built", tokens: 0 },
+    { id: "complete", label: "Complete", tokens: 0 }
+  ],
+  transitions: [
+    { id: "tPrepSite", label: "Prepare site", pre: { permit: 1, crew: 1 }, post: { site_ready: 1, permit: 1, crew: 1 }, wp: "Worksite readiness" },
+    { id: "tDeliver",  label: "Deliver materials", pre: { permit: 1, crew: 1 }, post: { materials: 1, permit: 1, crew: 1 }, wp: "Logistics" },
+    { id: "tBuild",    label: "Build", pre: { site_ready: 1, materials: 1, crew: 1 }, post: { built: 1, crew: 1 }, wp: "Construction" },
+    { id: "tClose",    label: "Commission", pre: { built: 1 }, post: { complete: 1 }, wp: "Commissioning" }
+  ]
+};
+
+const placeIds = net.places.map(p => p.id);
+const placeIndex = Object.fromEntries(placeIds.map((id,i)=>[id,i]));
+
+function initialMarking(){
+  const m = {};
+  for (const p of net.places) m[p.id] = p.tokens || 0;
+  return m;
+}
+
+const M0 = initialMarking();
+
+function enabledTransitions(m){
+  return net.transitions.filter(t => Object.entries(t.pre).every(([pid,w]) => (m[pid]||0) >= w));
+}
+
+function fire(m, t){
+  const m2 = structuredClone(m);
+  for (const [pid,w] of Object.entries(t.pre)) m2[pid] -= w;
+  for (const [pid,w] of Object.entries(t.post)) m2[pid] = (m2[pid]||0) + w;
+  return m2;
+}
+
+function keyOf(m){
+  return placeIds.map(pid => m[pid]||0).join(",");
+}
+
+function parseGoal(text){
+  const obj = JSON.parse(text);
+  if (typeof obj !== "object" || obj === null || Array.isArray(obj)) throw new Error("Goal must be a JSON object.");
+  for (const [k,v] of Object.entries(obj)){
+    if (!(k in placeIndex)) throw new Error(`Unknown place id "${k}".`);
+    if (!Number.isInteger(v) || v < 0) throw new Error(`Bad token count for "${k}".`);
+  }
+  return obj;
+}
+
+function meetsGoal(m, goal){
+  return Object.entries(goal).every(([pid,n]) => (m[pid]||0) === n);
+}
+
+/**
+ * Enumerate multiple witness traces (bounded).
+ * Strategy: BFS until bounds; record any hits; also record parent pointers for reconstruction.
+ */
+function enumerateCandidates(goal, bounds){
+  const start = structuredClone(M0);
+  const startKey = keyOf(start);
+
+  const seen = new Map(); // key -> { m, depth, prevKey, viaTid }
+  seen.set(startKey, { m: start, depth: 0, prevKey: null, viaTid: null });
+
+  const q = [startKey];
+  const hits = [];
+
+  while (q.length){
+    const k = q.shift();
+    const node = seen.get(k);
+    if (!node) continue;
+
+    if (meetsGoal(node.m, goal)){
+      hits.push(k);
+      // Keep going to get other hits (until bounds).
+    }
+
+    if (node.depth >= bounds.maxDepth) continue;
+
+    const enabled = enabledTransitions(node.m);
+    for (const t of enabled){
+      const m2 = fire(node.m, t);
+      const k2 = keyOf(m2);
+      if (!seen.has(k2)){
+        if (seen.size >= bounds.maxStates) return { truncated: true, hits, seen };
+        seen.set(k2, { m: m2, depth: node.depth + 1, prevKey: k, viaTid: t.id });
+        q.push(k2);
+      }
+    }
+  }
+  return { truncated: false, hits, seen };
+}
+
+function reconstructTrace(hitKey, seen){
+  const seq = [];
+  const markings = [];
+  let k = hitKey;
+  while (k !== null){
+    const n = seen.get(k);
+    markings.push(n.m);
+    if (n.viaTid) seq.push(n.viaTid);
+    k = n.prevKey;
+  }
+  seq.reverse();
+  markings.reverse();
+  return { seq, markings };
+}
+
+/**
+ * Compile a trace to a WBS-ish tree:
+ * - group transitions by work package (wp)
+ * - each task node carries a "why" (preconditions + what it enables)
+ */
+function compileWBS(trace){
+  const transById = Object.fromEntries(net.transitions.map(t => [t.id, t]));
+  const wpOrder = [];
+  const wpMap = new Map();
+
+  // Build quick “enables” map: which later steps require tokens produced by this step
+  // (toy heuristic: compare post tokens to later pre tokens by place id).
+  const enables = new Map(); // tid -> Set(placeId)
+  trace.seq.forEach((tid, i) => {
+    const t = transById[tid];
+    const produced = new Set(Object.keys(t.post));
+    const laterNeeds = new Set();
+    for (let j=i+1;j<trace.seq.length;j++){
+      const tj = transById[trace.seq[j]];
+      for (const pid of Object.keys(tj.pre)){
+        if (produced.has(pid)) laterNeeds.add(pid);
+      }
+    }
+    enables.set(tid, laterNeeds);
+  });
+
+  for (const tid of trace.seq){
+    const t = transById[tid];
+    const wp = t.wp || "Ungrouped";
+    if (!wpMap.has(wp)){
+      wpMap.set(wp, []);
+      wpOrder.push(wp);
+    }
+    wpMap.get(wp).push(tid);
+  }
+
+  const root = {
+    id: "ROOT",
+    title: "Plan option (compiled)",
+    why: "Groups tasks into work packages; each task shows preconditions and what it enables downstream.",
+    children: []
+  };
+
+  for (const wp of wpOrder){
+    const tids = wpMap.get(wp);
+    const wpNode = {
+      id: "WP:" + wp,
+      title: wp,
+      why: `Contains ${tids.length} tasks from the selected trace.`,
+      children: []
+    };
+
+    tids.forEach((tid, idx) => {
+      const t = transById[tid];
+      const pre = Object.entries(t.pre).map(([p,w]) => `${p}:${w}`).join(", ") || "(none)";
+      const post = Object.entries(t.post).map(([p,w]) => `${p}:${w}`).join(", ") || "(none)";
+      const en = Array.from(enables.get(tid) || []);
+      const why = `Pre: ${pre} | Post: ${post}` + (en.length ? ` | Enables later via: ${en.join(", ")}` : "");
+      wpNode.children.push({
+        id: `${tid}`,
+        title: `${idx+1}. ${t.label}`,
+        why,
+        children: []
+      });
+    });
+
+    root.children.push(wpNode);
+  }
+
+  return root;
+}
+
+/**
+ * Render helpers
+ */
+function setStatus(text, kind){
+  const st = document.getElementById("status");
+  st.querySelector("span:nth-child(2)").textContent = text;
+  st.classList.remove("ok","bad","warn");
+  st.classList.add(kind);
+}
+
+function renderCandidates(candidateTraces){
+  const el = document.getElementById("candidates");
+  el.innerHTML = "";
+  candidateTraces.forEach((c, idx) => {
+    const div = document.createElement("div");
+    div.className = "cand";
+    div.dataset.idx = String(idx);
+    div.innerHTML = `
+      <div style="font-weight:900">${idx+1}) ${c.seq.join(" → ") || "(already at goal)"}</div>
+      <div class="hint">steps: ${c.seq.length} · final: <span class="mono">${keyOf(c.markings[c.markings.length-1])}</span></div>
+    `;
+    div.addEventListener("click", () => selectCandidate(idx));
+    el.appendChild(div);
+  });
+}
+
+function renderTree(container, node, collapseLarge=false){
+  container.innerHTML = "";
+  container.appendChild(buildNode(node, true, collapseLarge));
+}
+
+function buildNode(n, isRoot, collapseLarge){
+  const wrap = document.createElement("div");
+  wrap.className = "node" + (n.children && n.children.length ? "" : " leaf");
+  const line = document.createElement("div");
+  line.className = "line";
+
+  const toggle = document.createElement("div");
+  toggle.className = "toggle";
+  toggle.textContent = (n.children && n.children.length) ? "–" : "•";
+
+  const label = document.createElement("div");
+  const title = document.createElement("div");
+  title.className = "title";
+  title.textContent = n.title;
+  const why = document.createElement("div");
+  why.className = "why";
+  why.textContent = n.why || "";
+  label.appendChild(title);
+  label.appendChild(why);
+
+  line.appendChild(toggle);
+  line.appendChild(label);
+  wrap.appendChild(line);
+
+  const children = document.createElement("div");
+  children.className = "children";
+
+  if ((collapseLarge && !isRoot) && n.children && n.children.length > 5){
+    children.classList.add("hidden");
+    toggle.textContent = "+";
+  }
+
+  if (n.children && n.children.length){
+    for (const c of n.children){
+      children.appendChild(buildNode(c, false, collapseLarge));
+    }
+  }
+  wrap.appendChild(children);
+
+  if (n.children && n.children.length){
+    toggle.addEventListener("click", () => {
+      const hidden = children.classList.toggle("hidden");
+      toggle.textContent = hidden ? "+" : "–";
+    });
+  }
+  return wrap;
+}
+
+function renderTimeline(trace){
+  const el = document.getElementById("timeline");
+  el.innerHTML = "";
+
+  // Ordinal time: each task is 1 unit; naive parallel heuristic:
+  // tasks that only require "permit" and "crew" can run in parallel at t=0.
+  const steps = trace.seq.map(tid => net.transitions.find(t => t.id === tid));
+  const total = Math.max(1, steps.length);
+
+  steps.forEach((t, i) => {
+    const row = document.createElement("div");
+    row.className = "bar";
+    row.innerHTML = `<div class="mono"><b>${t.label}</b><div class="hint">${t.id}</div></div>`;
+    const track = document.createElement("div");
+    track.className = "track";
+
+    const fill = document.createElement("div");
+    fill.className = "fill";
+    fill.style.width = `${Math.round(((i+1)/total)*100)}%`;
+
+    track.appendChild(fill);
+    row.appendChild(track);
+    el.appendChild(row);
+  });
+
+  const note = document.createElement("div");
+  note.className = "hint";
+  note.textContent = "Note: this is an ordinal placeholder. Full prototype should add durations/calendars and true concurrency from token semantics.";
+  el.appendChild(note);
+}
+
+/**
+ * App state
+ */
+let currentCandidates = [];
+let selectedIdx = null;
+let lastExport = null;
+
+function selectCandidate(idx){
+  selectedIdx = idx;
+  document.querySelectorAll(".cand").forEach((c, i) => c.classList.toggle("active", i===idx));
+
+  const trace = currentCandidates[idx];
+  const wbs = compileWBS(trace);
+
+  renderTree(document.getElementById("wbs"), wbs, true);
+  renderTimeline(trace);
+
+  lastExport = {
+    net,
+    initialMarking: M0,
+    goal: JSON.parse(document.getElementById("goal").value),
+    selected: { idx, trace, wbs }
+  };
+  document.getElementById("meta").textContent = `${currentCandidates.length} candidates · selected ${idx+1}`;
+}
+
+function main(){
+  const btnGen = document.getElementById("btnGen");
+  const btnExplain = document.getElementById("btnExplain");
+  const btnExport = document.getElementById("btnExport");
+
+  btnExplain.addEventListener("click", () => {
+    const el = document.getElementById("explainer");
+    el.style.display = (el.style.display === "none") ? "block" : "none";
+  });
+
+  btnExport.addEventListener("click", () => {
+    if (!lastExport){
+      alert("Generate candidates and select one first.");
+      return;
+    }
+    const blob = new Blob([JSON.stringify(lastExport, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "constraint_to_plan_export.json";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  btnGen.addEventListener("click", () => {
+    setStatus("Searching…", "warn");
+
+    let goal;
+    try{
+      goal = parseGoal(document.getElementById("goal").value.trim());
+    }catch(e){
+      setStatus("Goal error", "bad");
+      alert(e.message);
+      return;
+    }
+
+    const bounds = {
+      maxDepth: Number(document.getElementById("maxDepth").value),
+      maxStates: Number(document.getElementById("maxStates").value)
+    };
+
+    const res = enumerateCandidates(goal, bounds);
+    const hits = res.hits.slice(0, 12); // cap for demo
+
+    currentCandidates = hits.map(k => reconstructTrace(k, res.seen));
+    selectedIdx = null;
+    lastExport = null;
+
+    renderCandidates(currentCandidates);
+
+    document.getElementById("wbs").innerHTML = `<div class="hint">Select a candidate on the left to compile a WBS.</div>`;
+    document.getElementById("timeline").innerHTML = `<div class="hint">Select a candidate to view the timeline.</div>`;
+    document.getElementById("meta").textContent = `${currentCandidates.length} candidates` + (res.truncated ? " (truncated)" : "");
+
+    if (res.truncated){
+      setStatus("Truncated (bounds)", "warn");
+    } else if (!currentCandidates.length){
+      setStatus("No candidates", "bad");
+    } else {
+      setStatus("Ready", "ok");
+    }
+  });
+
+  // initial render
+  document.getElementById("candidates").innerHTML = `<div class="hint">Click “Generate candidates”.</div>`;
+  document.getElementById("wbs").innerHTML = `<div class="hint">WBS appears after selecting a candidate.</div>`;
+  document.getElementById("timeline").innerHTML = `<div class="hint">Timeline appears after selecting a candidate.</div>`;
+}
+
+main();
+</script>
+</body>
+</html>
