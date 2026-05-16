@@ -18,12 +18,16 @@ const appDirs = fs
 
 const missingBackLink = [];
 const missingFromIndex = [];
+const missingCommonCss = [];
+const missingViewportMeta = [];
 
 for (const appName of appDirs) {
   const indexPath = path.join(appsDir, appName, 'index.html');
   if (!fs.existsSync(indexPath)) continue;
 
   const html = fs.readFileSync(indexPath, 'utf8');
+  const hasSrcFolder = fs.existsSync(path.join(appsDir, appName, 'src'));
+
   if (!html.includes('../../index.html')) {
     missingBackLink.push(appName);
   }
@@ -31,10 +35,23 @@ for (const appName of appDirs) {
   if (!linkedApps.has(appName)) {
     missingFromIndex.push(appName);
   }
+
+  if (!hasSrcFolder && !html.includes('../../common.css')) {
+    missingCommonCss.push(appName);
+  }
+
+  if (!/name=["']viewport["']/i.test(html)) {
+    missingViewportMeta.push(appName);
+  }
 }
 
-if (missingBackLink.length === 0 && missingFromIndex.length === 0) {
-  console.log('All app index pages are linked in and out.');
+if (
+  missingBackLink.length === 0 &&
+  missingFromIndex.length === 0 &&
+  missingCommonCss.length === 0 &&
+  missingViewportMeta.length === 0
+) {
+  console.log('All app index pages satisfy link and baseline HTML checks.');
   process.exit(0);
 }
 
@@ -46,6 +63,16 @@ if (missingBackLink.length > 0) {
 if (missingFromIndex.length > 0) {
   console.error('Apps missing from app-index.html:');
   for (const app of missingFromIndex) console.error(`- ${app}`);
+}
+
+if (missingCommonCss.length > 0) {
+  console.error('Static apps missing shared ../../common.css stylesheet link:');
+  for (const app of missingCommonCss) console.error(`- ${app}`);
+}
+
+if (missingViewportMeta.length > 0) {
+  console.error('Apps missing viewport meta tag:');
+  for (const app of missingViewportMeta) console.error(`- ${app}`);
 }
 
 process.exit(1);
