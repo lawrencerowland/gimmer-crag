@@ -26,7 +26,13 @@ By default this serves the `wbs-via-pddl` app. The server loads the app at [http
    ```
    The build script iterates over every folder in `apps/` and writes the optimised output under `docs/apps/<app-name>`.
 
-5. **Preview the production build locally**
+5. **Validate app index links and baseline HTML conventions**
+   ```bash
+   npm run check:app-links
+   ```
+   This verifies every app is linked from `app-index.html`, includes a back link, and checks baseline `index.html` conventions.
+
+6. **Preview the production build locally**
    ```bash
    npm run preview
    ```
