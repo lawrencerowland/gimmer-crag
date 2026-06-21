@@ -1253,7 +1253,7 @@
 
     // Fork from current snapshot
     const base = currentSnapshot();
-    const np = newPath(`Path ${String.fromCharCode(65 + paths.length - 1)}`, base);
+    const np = newPath(`Path ${String.fromCharCode(65 + paths.length)}`, base);
     // Fire chosen in the NEW path
     activePathId = np.id;
     stepOne(()=>chosen);
