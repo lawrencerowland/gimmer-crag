@@ -168,6 +168,20 @@
     .modal .content .hd h3{font-size:16px;font-weight:650;margin:0;}
     .modal .content .bd{padding:16px;}
     .modal .close{border:none;background:transparent;color:var(--accent);font-size:20px;font-weight:700;cursor:pointer;line-height:1;}
+    .contractTrace{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;}
+    @media (max-width: 980px){.contractTrace{grid-template-columns:1fr;}}
+    .contractStep{
+      border:1px solid rgba(148,163,184,.15);
+      border-radius:12px;
+      padding:10px;
+      background:rgba(0,0,0,.18);
+      min-width:0;
+    }
+    .contractStep.wide{grid-column:1 / -1;}
+    .contractStep h4{margin:0 0 6px;font-size:13px;color:#e2e8f0;}
+    .contractStep p{font-size:12px;color:var(--muted);margin:4px 0;}
+    .contractStep ul{margin:6px 0 0 18px;padding:0;color:var(--muted);font-size:12px;}
+    .contractStep code{font-family:var(--mono);font-size:11px;color:#dbeafe;word-break:break-word;}
   </style>
 </head>
 <body>
@@ -414,6 +428,12 @@
           </thead>
           <tbody></tbody>
         </table>
+
+        <h3 style="margin-top:12px;">Translation contract</h3>
+        <div class="note">
+          A compact trace from the process fragment to the selected execution and its SMC/WBS views.
+        </div>
+        <div id="translationContract" class="contractTrace"></div>
 
       </div>
     </div>
@@ -1009,8 +1029,18 @@ const ganttSvg = document.getElementById("ganttSvg");
 const smcExprEl = document.getElementById("smcExpr");
 const wbsViewEl = document.getElementById("wbsView");
 const taskTableBody = document.querySelector("#taskTable tbody");
+const translationContractEl = document.getElementById("translationContract");
 
 function formatNumber(x){ return (Math.round(x*100)/100).toString(); }
+
+function escapeHtml(value){
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
 
 function groupByStart(schedule){
   const map = new Map();
@@ -1042,6 +1072,94 @@ function buildScheduleWbs(schedule){
     });
   });
   return lines.join("\n");
+}
+
+function buildTranslationTrace(schedule, candidate){
+  const crewTokens = parseInt(document.getElementById("crewInput").value||"1",10);
+  const toolsTokens = parseInt(document.getElementById("toolsInput").value||"1",10);
+  const liftTokens = parseInt(document.getElementById("liftInput").value||"1",10);
+  const policy = document.getElementById("policySelect").value;
+  const selectedTransitions = schedule.map(s=>s.id);
+  const smcExpression = buildSmcExpression(schedule);
+  const wbsText = buildScheduleWbs(schedule);
+
+  return {
+    processFragment: {
+      title: net.meta.title,
+      placeCount: net.places.length,
+      transitionCount: net.transitions.length,
+      selectedTransitionCount: selectedTransitions.length,
+      selectedTransitions,
+      rule: "The Petri/process net is the invariant constraint skeleton: transitions can only fire when their input places hold enough tokens."
+    },
+    executionWitness: {
+      policy,
+      resources: {crew: crewTokens, tools: toolsTokens, lift: liftTokens},
+      steps: schedule.length,
+      makespan: candidate?.makespan ?? 0,
+      rule: "This schedule is one timed execution witness under the selected resource-token and priority-policy settings."
+    },
+    projection: {
+      smcExpression,
+      wbsText,
+      rule: "Tasks with the same start time become parallel blocks in the SMC expression; ordered blocks become stages in the schedule-derived WBS."
+    },
+    caveats: [
+      "Durations are toy values, not calibrated estimates.",
+      "WBS grouping is schedule-derived and not unique.",
+      "The SMC expression is one textual view, not proof of full formal correctness.",
+      "Weather, access risk, cost, procurement, and uncertainty are not yet modeled."
+    ],
+    localReceiptRequired: "Record-level source provenance stays in the local Portfolio Wave working directory. Public repo artifacts should name only cluster-level anchors."
+  };
+}
+
+function renderTranslationTrace(schedule, candidate){
+  if(!translationContractEl) return;
+  if(!candidate || !candidate.ok || schedule.length===0){
+    translationContractEl.innerHTML = `
+      <div class="contractStep wide">
+        <h4>No valid execution selected</h4>
+        <p>Generate schedules and select a valid candidate to see the process-to-plan translation contract.</p>
+      </div>`;
+    return;
+  }
+
+  const trace = buildTranslationTrace(schedule, candidate);
+  const transitionList = trace.processFragment.selectedTransitions
+    .map(id=>`<li><code>${escapeHtml(id)}</code></li>`)
+    .join("");
+  const caveats = trace.caveats.map(c=>`<li>${escapeHtml(c)}</li>`).join("");
+
+  translationContractEl.innerHTML = `
+    <div class="contractStep">
+      <h4>processFragment</h4>
+      <p><b>${escapeHtml(trace.processFragment.title)}</b></p>
+      <p>${trace.processFragment.placeCount} places/resources; ${trace.processFragment.transitionCount} transitions; ${trace.processFragment.selectedTransitionCount} transitions in this execution.</p>
+      <p>${escapeHtml(trace.processFragment.rule)}</p>
+      <ul>${transitionList}</ul>
+    </div>
+    <div class="contractStep">
+      <h4>executionWitness</h4>
+      <p>Policy: <code>${escapeHtml(trace.executionWitness.policy)}</code></p>
+      <p>Resources: crew ${trace.executionWitness.resources.crew}, tools ${trace.executionWitness.resources.tools}, lift ${trace.executionWitness.resources.lift}</p>
+      <p>Steps: ${trace.executionWitness.steps}; makespan: ${trace.executionWitness.makespan} ${escapeHtml(net.meta.units)}</p>
+      <p>${escapeHtml(trace.executionWitness.rule)}</p>
+    </div>
+    <div class="contractStep">
+      <h4>projection</h4>
+      <p>${escapeHtml(trace.projection.rule)}</p>
+      <p><b>SMC:</b> <code>${escapeHtml(trace.projection.smcExpression || "(empty)")}</code></p>
+      <p><b>WBS first line:</b> <code>${escapeHtml(trace.projection.wbsText.split("\\n")[0] || "(empty)")}</code></p>
+    </div>
+    <div class="contractStep">
+      <h4>caveats</h4>
+      <ul>${caveats}</ul>
+    </div>
+    <div class="contractStep wide">
+      <h4>localReceiptRequired</h4>
+      <p>${escapeHtml(trace.localReceiptRequired)}</p>
+    </div>`;
 }
 
 function renderGantt(schedule){
@@ -1148,6 +1266,7 @@ function renderSelected(){
     const k = document.createElement("div"); k.textContent = "Selected";
     const v = document.createElement("div"); v.textContent = "—";
     scheduleSummaryKv.appendChild(k); scheduleSummaryKv.appendChild(v);
+    renderTranslationTrace([], null);
     return;
   }
   const c = candidates[selectedIdx];
@@ -1175,6 +1294,7 @@ function renderSelected(){
   if(!c.ok){
     smcExprEl.textContent = "(no valid schedule)";
     wbsViewEl.textContent = "(no WBS)";
+    renderTranslationTrace([], c);
     return;
   }
 
@@ -1188,6 +1308,7 @@ function renderSelected(){
 
   const wbs = buildScheduleWbs(schedule);
   wbsViewEl.textContent = wbs || "(empty)";
+  renderTranslationTrace(schedule, c);
 }
 
 /* ---------- Copy net JSON ---------- */
