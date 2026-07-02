@@ -38,6 +38,7 @@
     .muted{color:var(--muted);}
     .pill{display:inline-block;padding:2px 10px;border-radius:999px;background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.25);color:#cfefff;font-size:12px;margin-right:8px;}
     .grid{display:grid;gap:14px;}
+    .grid > *{min-width:0;}
     .grid2{grid-template-columns: 1.25fr .75fr;}
     @media (max-width: 980px){.grid2{grid-template-columns:1fr;}}
     .panel{
@@ -46,6 +47,7 @@
       border-radius:14px;
       padding:14px 14px 12px;
       box-shadow:0 10px 30px rgba(0,0,0,.35);
+      min-width:0;
     }
     .panel header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px;}
     .panel header .title{font-weight:650;}
@@ -81,6 +83,7 @@
       border-radius:12px;
       padding:10px;
       overflow:auto;
+      overflow-wrap:anywhere;
       white-space:pre;
     }
     .note{
@@ -101,6 +104,7 @@
     .badge.warn{border-color:rgba(251,191,36,.25);background:rgba(251,191,36,.10);color:#fef3c7;}
     .badge.bad{border-color:rgba(251,113,133,.25);background:rgba(251,113,133,.10);color:#ffe4e6;}
     .twoCol{display:grid;grid-template-columns: 1fr 1fr;gap:14px;}
+    .twoCol > *{min-width:0;}
     @media (max-width: 980px){.twoCol{grid-template-columns:1fr;}}
     label{font-size:12px;color:var(--muted);}
     input[type="number"], select{
@@ -179,8 +183,8 @@
     }
     .contractStep.wide{grid-column:1 / -1;}
     .contractStep h4{margin:0 0 6px;font-size:13px;color:#e2e8f0;}
-    .contractStep p{font-size:12px;color:var(--muted);margin:4px 0;}
-    .contractStep ul{margin:6px 0 0 18px;padding:0;color:var(--muted);font-size:12px;}
+    .contractStep p{font-size:12px;color:var(--muted);margin:4px 0;overflow-wrap:anywhere;}
+    .contractStep ul{margin:6px 0 0 18px;padding:0;color:var(--muted);font-size:12px;overflow-wrap:anywhere;}
     .contractStep code{font-family:var(--mono);font-size:11px;color:#dbeafe;word-break:break-word;}
   </style>
 </head>
@@ -431,7 +435,8 @@
 
         <h3 style="margin-top:12px;">Translation contract</h3>
         <div class="note">
-          A compact trace from the process fragment to the selected execution and its SMC/WBS views.
+          A compact trace from the process fragment to the selected execution, its SMC/WBS views, and
+          the information the projection deliberately forgets.
         </div>
         <div id="translationContract" class="contractTrace"></div>
 
@@ -1082,6 +1087,11 @@ function buildTranslationTrace(schedule, candidate){
   const selectedTransitions = schedule.map(s=>s.id);
   const smcExpression = buildSmcExpression(schedule);
   const wbsText = buildScheduleWbs(schedule);
+  const stageBlocks = groupByStart(schedule).filter(g=>g.tasks.length>0);
+  const parallelBlocks = stageBlocks.filter(g=>g.tasks.length>1);
+  const firstProjectionLine = wbsText.split("\n").find(line=>line.trim().startsWith("Stage"))
+    || wbsText.split("\n")[0]
+    || "(empty projection)";
 
   return {
     processFragment: {
@@ -1104,6 +1114,31 @@ function buildTranslationTrace(schedule, candidate){
       wbsText,
       rule: "Tasks with the same start time become parallel blocks in the SMC expression; ordered blocks become stages in the schedule-derived WBS."
     },
+    preservedStructure: [
+      `${selectedTransitions.length} selected transition IDs and their execution order.`,
+      `${stageBlocks.length} schedule-derived stage block(s).`,
+      `${parallelBlocks.length} same-start parallel block(s).`,
+      `Resource snapshot: crew ${crewTokens}, tools ${toolsTokens}, lift ${liftTokens}.`,
+      `Makespan ${candidate?.makespan ?? 0} ${net.meta.units} under policy "${policy}".`
+    ],
+    forgottenStructure: [
+      "Unchosen enabled alternatives and why the selected policy skipped them.",
+      "Guard rationale and token/resource provenance beyond the current numeric snapshot.",
+      "Whether a WBS stage boundary is semantically meaningful or only a projection artifact.",
+      "Risk, uncertainty, weather, access, procurement, cost, and failure modes not represented in the toy net."
+    ],
+    nonInvertibilityWitness: {
+      title: "A plan view is too thin to recover the process",
+      visibleProjection: firstProjectionLine.trim(),
+      rule: "The visible WBS/schedule can be produced by more than one process interpretation. Reading it backward would require extra assumptions about guards, resources, policies, and unchosen alternatives."
+    },
+    candidateLiftRequires: [
+      "a chosen process vocabulary for states, places, resources, and transitions;",
+      "guard and enabling rules for every task/dependency;",
+      "resource-consumption or resource-reservation semantics;",
+      "a policy for alternatives, rework, risk, and uncertainty;",
+      "a provenance claim explaining where those added assumptions came from."
+    ],
     caveats: [
       "Durations are toy values, not calibrated estimates.",
       "WBS grouping is schedule-derived and not unique.",
@@ -1129,6 +1164,9 @@ function renderTranslationTrace(schedule, candidate){
   const transitionList = trace.processFragment.selectedTransitions
     .map(id=>`<li><code>${escapeHtml(id)}</code></li>`)
     .join("");
+  const preserved = trace.preservedStructure.map(item=>`<li>${escapeHtml(item)}</li>`).join("");
+  const forgotten = trace.forgottenStructure.map(item=>`<li>${escapeHtml(item)}</li>`).join("");
+  const liftRequires = trace.candidateLiftRequires.map(item=>`<li>${escapeHtml(item)}</li>`).join("");
   const caveats = trace.caveats.map(c=>`<li>${escapeHtml(c)}</li>`).join("");
 
   translationContractEl.innerHTML = `
@@ -1151,6 +1189,27 @@ function renderTranslationTrace(schedule, candidate){
       <p>${escapeHtml(trace.projection.rule)}</p>
       <p><b>SMC:</b> <code>${escapeHtml(trace.projection.smcExpression || "(empty)")}</code></p>
       <p><b>WBS first line:</b> <code>${escapeHtml(trace.projection.wbsText.split("\\n")[0] || "(empty)")}</code></p>
+    </div>
+    <div class="contractStep">
+      <h4>preservedStructure</h4>
+      <p><code>process -> plan</code> keeps the plan-useful part of the process execution.</p>
+      <ul>${preserved}</ul>
+    </div>
+    <div class="contractStep">
+      <h4>forgottenStructure</h4>
+      <p>The projection is useful because it deliberately drops structure the plan view does not need.</p>
+      <ul>${forgotten}</ul>
+    </div>
+    <div class="contractStep wide">
+      <h4>nonInvertibilityWitness</h4>
+      <p><b>${escapeHtml(trace.nonInvertibilityWitness.title)}</b></p>
+      <p>Visible projection: <code>${escapeHtml(trace.nonInvertibilityWitness.visibleProjection)}</code></p>
+      <p>${escapeHtml(trace.nonInvertibilityWitness.rule)}</p>
+    </div>
+    <div class="contractStep wide">
+      <h4>candidateLiftRequires</h4>
+      <p><code>plan -> process</code> is a lift or reconstruction hypothesis, not an inverse.</p>
+      <ul>${liftRequires}</ul>
     </div>
     <div class="contractStep">
       <h4>caveats</h4>
