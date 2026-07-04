@@ -9,13 +9,18 @@ Started: 2026-07-02
 
 `gimmer-crag` is already the most concrete Portfolio Wave receiver for turning process ideas into inspectable planning artefacts. It has small apps for Petri nets, PDDL, WBS paths, schedules, change impact, sheaf-like change control, ontology views, and mountain-refuge / cliff-shed toy cases.
 
-That makes it a good long-running branch for the question:
+That makes it a good long-running branch for the narrower route question:
 
-> Can a source cluster about processes, compositional systems, planning, and dynamic project state become a tiny but credible path from process description to WBS or schedule evidence?
+> Can a source cluster about processes, compositional systems, and planning become a tiny but credible path from process description to WBS or schedule evidence?
 
 This branch should not try to make a grand Portfolio Wave platform. It should make a sequence of small, legible improvements that gradually tighten one practical route:
 
 source cluster -> process fragment -> formal-ish translation -> WBS/schedule fragment -> interactive inspection -> receipt back to the local Portfolio Wave working directory.
+
+2026-07-04 boundary correction: the practical route above is owned primarily by
+`FORAY-WBS-PATHS`. `FORAY-PROCESSES-TO-PLANS` is the parent context, and
+`FORAY-DYNAMIC-PROJECT-STATES` is adjacent/deferred rather than a current app-layer target. See
+`planning/process-to-plan-route-boundary.md`.
 
 ## Private Grounding Kept Outside This Public Repo
 
@@ -25,8 +30,8 @@ Local/private anchors to consult before each increment:
 
 - Portfolio Wave `/best/processes to plans/`
 - Portfolio Wave `/best/Generate WBS paths/`
-- Portfolio Wave `/best/Dynamic project states/`
-- local `FORAY_HANDOFF.md` notes for `processes to plans`, `Generate WBS paths`, and `Dynamic project states`
+- Portfolio Wave `/best/Dynamic project states/`, only as an adjacent boundary check for this branch
+- local `FORAY_HANDOFF.md` notes for `processes to plans`, `Generate WBS paths`, and `Dynamic project states`, preserving the primary/parent/adjacent split
 - the local GitHub repo-domain map that identifies `gimmer-crag` as a receiver for process-to-plan and WBS-path work
 
 Each concrete increment should leave a local receipt in the Portfolio Wave working directory before it claims to have absorbed a DEVONthink source cluster.
@@ -100,20 +105,22 @@ Output:
 
 Done when a user can see the whole route without reading the code.
 
-### 4. Add dynamic-state interpretation
+### 4. Add a non-invertibility witness
 
-Use the dynamic-project-states foray as a second layer, after the WBS path exists.
+Show that the plan view is too thin to recover the original process without extra assumptions.
 
 Output:
 
-- state vocabulary for the slice, such as blocked, constrained, parallelisable, waiting, committed, or rework-risk
-- visible rule for how state changes affect the plan path
+- two different process interpretations, policies, or execution settings that collapse to the same visible plan fragment
+- a short explanation of why `plan -> process` is a lift, not an inverse
+- no scheduler rewrite
 
-Done when the app shows not just a plan, but why the plan is changing.
+Done when the app gives a concrete witness for the non-invertibility already named in the Translation contract.
 
 ### 5. Turn change into a governed experiment
 
-Only after the process-to-plan and dynamic-state pieces are visible, connect the change-control/sheafification demos.
+Only after the process-to-plan route and non-invertibility witness are visible, connect the
+change-control/sheafification demos.
 
 Output:
 
@@ -121,6 +128,12 @@ Output:
 - visible impact on WBS path, interface obligations, or schedule fragment
 
 Done when change control is an inspectable transformation rather than a metaphor.
+
+### Deferred. Dynamic-state interpretation
+
+Dynamic project states are still important, but this branch should not absorb that foray too early.
+The first dynamic-state grammar should be tested in the cylinder/rotunda lane before any labels are
+attached to Gimmer schedules.
 
 ## Branch Rules
 
@@ -130,14 +143,11 @@ Done when change control is an inspectable transformation rather than a metaphor
 - Do not copy private DEVONthink record details into the public repo; keep record-level provenance in local Portfolio Wave receipts.
 - Do not treat generated `docs/` output as the source of truth; source apps and planning notes drive the work.
 
-## First Next Step
+## Current Next Step
 
-Create `planning/app-receiver-map.md` and classify the existing apps into five roles:
+Publicly align the branch boundary before adding another app behavior:
 
-1. process fragment
-2. planning/WBS translation
-3. schedule/timeline inspection
-4. dynamic project state
-5. change-impact governance
-
-That map should nominate one app for the first vertical slice.
+1. add `planning/process-to-plan-route-boundary.md`;
+2. update PR #57 to show the primary/parent/adjacent foray split;
+3. mirror the boundary note into the published Pages repo;
+4. keep the broader hill/travel process-to-plan scenario private until it is reviewed for public use.

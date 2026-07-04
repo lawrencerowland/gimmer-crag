@@ -48,7 +48,9 @@ Apps that can show the output as something closer to project control.
 
 ## Role 4: Dynamic Project State
 
-Apps that can help the branch move beyond static WBS generation.
+Apps that could later help the work move beyond static WBS generation. This role is now deferred for
+the current branch: dynamic-state labels should be tested in the cylinder/rotunda lane before being
+attached to Gimmer schedules.
 
 | App | Current fit | Use in this branch |
 |---|---|---|
@@ -97,3 +99,14 @@ Add an explanation layer to `mountain-refuge-petri-wbs-demo` that makes the vert
 5. Receipt: note in the local Portfolio Wave working directory naming which private source cluster informed the change.
 
 That increment should be small enough to review in one PR update and useful even if the long-running branch later changes direction.
+
+## 2026-07-04 Boundary Update
+
+The first code increment has landed. The current branch boundary is:
+
+- primary route: `FORAY-WBS-PATHS`;
+- parent context: `FORAY-PROCESSES-TO-PLANS`;
+- adjacent/deferred: `FORAY-DYNAMIC-PROJECT-STATES`.
+
+Next app behavior should be a concrete two-process/same-plan or same-plan-fragment witness. Do not
+add dynamic-state labels to the Gimmer app until the cylinder/rotunda state grammar exists elsewhere.
