@@ -14,14 +14,20 @@
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.2.0",
     "react-force-graph-2d": "^1.27.1",
-    "react-router-dom": "^7.6.2",
+    "react-router-dom": "^7.18.0",
     "recharts": "^2.15.3",
     "web-vitals": "^3.1.0"
   },
   "overrides": {
     "@svgr/webpack": "^8.0.1",
     "@adobe/css-tools": "^4.3.1",
-    "postcss": "^8.4.31"
+    "postcss": "^8.4.31",
+    "micromatch": {
+      "picomatch": "2.3.2"
+    },
+    "jest-util": {
+      "picomatch": "2.3.2"
+    }
   },
   "scripts": {
     "start": "BROWSER=none WDS_SOCKET_PORT=0 vite --port 3000",
