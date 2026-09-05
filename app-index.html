@@ -3,52 +3,142 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>App Index (Placeholder)</title>
+  <meta name="description" content="Explore Gimmer's project planning experiments, starting with one mountain refuge and two ways to deliver it." />
+  <title>Gimmer apps — explore how projects work</title>
   <link rel="stylesheet" href="./common.css" />
+  <style>
+    :root { color-scheme: dark; --ink: #101927; --panel: #172436; --line: #34455c; --muted: #b7c5d8; --blue: #99caff; }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 1.5rem; }
+    body { margin: 0; background: var(--ink); color: #f4f7fc; line-height: 1.6; }
+    body > * + * { margin-top: 0; }
+    a { color: inherit; text-underline-offset: .22em; }
+    a:focus-visible { outline: 3px solid #acd3ff; outline-offset: 5px; }
+    .wrap { width: min(1120px, calc(100% - 3rem)); margin-inline: auto; }
+    .skip { position: absolute; left: 1rem; top: -5rem; z-index: 2; padding: .6rem 1rem; background: #fff; color: var(--ink); }
+    .skip:focus { top: 1rem; }
+    header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding-block: 1.6rem; border-bottom: 1px solid var(--line); }
+    .brand { font-weight: 600; letter-spacing: -.035em; font-size: 1.25rem; }
+    .brand span { color: var(--muted); font-weight: 400; letter-spacing: 0; font-size: .9rem; margin-left: .6rem; }
+    header a { color: var(--muted); font-size: .9rem; }
+    .intro { padding-block: 3.5rem 2rem; max-width: 750px; }
+    .eyebrow { color: var(--blue); font-size: .76rem; letter-spacing: .11em; text-transform: uppercase; font-weight: 600; margin: 0 0 .7rem; }
+    h1 { border: 0; padding: 0; margin: 0; font-size: clamp(2.2rem, 5vw, 3.65rem); line-height: 1.12; letter-spacing: -.05em; font-weight: 600; }
+    .intro > p:last-child { margin: 1.2rem 0 0; color: var(--muted); max-width: 650px; font-size: 1.06rem; }
+    .feature { display: grid; grid-template-columns: 1.25fr 1fr; gap: 2rem; padding: clamp(1.5rem, 4vw, 2.7rem); border: 1px solid #52779f; border-radius: 20px; background: linear-gradient(120deg, #203851, #182638); }
+    .feature h2 { font-size: clamp(1.9rem, 3.5vw, 2.65rem); line-height: 1.15; letter-spacing: -.035em; max-width: 480px; margin: 0; }
+    .feature-copy { color: #d2ddea; max-width: 490px; margin: 1rem 0 1.5rem; }
+    .cta { display: inline-flex; align-items: center; gap: 1.3rem; border-radius: 8px; background: #b3d7ff; color: #12263d; padding: .8rem 1.05rem; text-decoration: none; font-weight: 600; }
+    .cta:hover { background: #d7eaff; }
+    .feature-note { color: var(--muted); font-size: .81rem; margin: .8rem 0 0; }
+    .preview { display: flex; flex-direction: column; justify-content: center; gap: .8rem; }
+    .preview-intro { font-size: .85rem; margin: 0 0 .2rem; color: #cad9eb; }
+    .scenario { border: 1px solid #526987; border-radius: 10px; padding: 1rem 1.2rem; background: #122032; }
+    .scenario strong { display: block; font-size: .95rem; }
+    .scenario p { color: var(--muted); margin: .3rem 0 .7rem; font-size: .84rem; }
+    .tracks { display: grid; gap: 5px; }
+    .track { height: 7px; width: 100%; background: #223c56; border-radius: 3px; overflow: hidden; }
+    .track::after { content: ''; display: block; height: 100%; width: 50%; background: #7eb7f6; border-radius: inherit; }
+    .sequential .track:nth-child(2)::after { margin-left: 50%; }
+    .parallel .track::after { width: 50%; background: #8bdbcc; }
+    .preview-caption { color: var(--muted); font-size: .75rem; margin: 0; }
+    .catalogue { margin-block: 3.5rem; }
+    .section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+    .section-heading h2 { font-size: 1.4rem; letter-spacing: -.025em; margin: 0; }
+    .section-heading p { color: var(--muted); font-size: .85rem; margin: 0; }
+    .app-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); list-style: none; margin: 0; padding: 0; gap: 0 1.7rem; }
+    .app-list li { min-width: 0; border-top: 1px solid var(--line); }
+    .app-link { display: grid; grid-template-columns: 2rem minmax(0, 1fr) 1rem; align-items: start; gap: .7rem; padding: 1.1rem .3rem; height: 100%; text-decoration: none; border-radius: 4px; }
+    .app-link:hover { background: var(--panel); }
+    .app-number { color: #9cacc2; font-variant-numeric: tabular-nums; font-size: .77rem; padding-top: .12rem; }
+    h3 { font-size: .95rem; line-height: 1.4; font-weight: 600; margin: 0; }
+    .app-link p { font-size: .78rem; color: var(--muted); line-height: 1.5; margin: .35rem 0 0; }
+    .arrow { color: var(--blue); }
+    footer { padding-block: 1.5rem 2rem; border-top: 1px solid var(--line); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; font-size: .8rem; color: var(--muted); }
+    footer p { margin: 0; }
+    footer nav { display: flex; gap: 1.3rem; flex-wrap: wrap; }
+    @media (max-width: 720px) {
+      .wrap { width: calc(100% - 2rem); }
+      .intro { padding-top: 2.2rem; }
+      .feature { grid-template-columns: 1fr; gap: 1.7rem; }
+      .preview { max-width: none; }
+      .app-list { grid-template-columns: 1fr; }
+      .section-heading { align-items: start; flex-direction: column; gap: .2rem; }
+      .brand span { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  </style>
 </head>
 <body>
-  <p><a href="index.html">Return to site</a></p>
-  <main>
-    <h1>App Index</h1>
-    <p>This index is intentionally sparse while the catalog is refreshed.</p>
-    <section>
-      <h2>Example App</h2>
-      <ul>
-        <li><a href="apps/wbs-via-pddl/index.html">wbs-via-pddl</a></li>
-        <li><a href="apps/half-cliff-shed-ops-console/index.html">half-cliff-shed-ops-console</a></li>
-        <li><a href="apps/temporal-binding-approach/index.html">temporal-binding-approach</a></li>
-        <li><a href="apps/project-binding-experiments/index.html">project-binding-experiments</a></li>
-        <li><a href="apps/active-inference-procurement/index.html">active-inference-procurement</a></li>
-        <li><a href="apps/cliff-shed-binding-prototype/index.html">cliff-shed-binding-prototype</a></li>
-        <li><a href="apps/processes-plans-shed-on-a-cliff/index.html">processes-plans-shed-on-a-cliff</a></li>
-        <li><a href="apps/processes-plans-shed-halfway-up-a-cliff/index.html">processes-plans-shed-halfway-up-a-cliff</a></li>
-        <li><a href="apps/build-a-shed-mini-generator/index.html">build-a-shed-mini-generator</a></li>
-        <li><a href="apps/petri-net-to-wbs-to-schedule-current-working-concept/index.html">petri-net-to-wbs-to-schedule-current-working-concept</a></li>
-        <li><a href="apps/project-process-task-explorer/index.html">project-process-task-explorer</a></li>
-        <li><a href="apps/cliff-shed-event-structure-dual-view/index.html">cliff-shed-event-structure-dual-view</a></li>
-        <li><a href="apps/mountain-shed-wbs-from-petri-net/index.html">mountain-shed-wbs-from-petri-net</a></li>
-        <li><a href="apps/process-first-project-model/index.html">process-first-project-model</a></li>
-        <li><a href="apps/mountain-refuge-change-as-sheafification/index.html">mountain-refuge-change-as-sheafification</a></li>
-        <li><a href="apps/petri-net-checks/index.html">petri-net-checks</a></li>
-        <li><a href="apps/cliff-refuge-mini-generator/index.html">cliff-refuge-mini-generator</a></li>
-        <li><a href="apps/cliff-refuge-petri-smc-wbs/index.html">cliff-refuge-petri-smc-wbs</a></li>
-        <li><a href="apps/build-a-shed-petri-net-split-materials/index.html">build-a-shed-petri-net-split-materials</a></li>
-        <li><a href="apps/operadic-composition-complex-systems/index.html">operadic-composition-complex-systems</a></li>
-        <li><a href="apps/mountain-refuge-petri-wbs-demo/index.html">mountain-refuge-petri-wbs-demo</a></li>
-        <li><a href="apps/gimmer-crag-shed-ontology-explorer/index.html">gimmer-crag-shed-ontology-explorer</a></li>
-        <li><a href="apps/project-change-requests-as-sheafification/index.html">project-change-requests-as-sheafification</a></li>
-        <li><a href="apps/constraint-to-plan-studio-minimal-demo/index.html">constraint-to-plan-studio-minimal-demo</a></li>
-        <li><a href="apps/sheaf-change-control-workbench/index.html">sheaf-change-control-workbench</a></li>
-        <li><a href="apps/sheafified-change-impact-workbench/index.html">sheafified-change-impact-workbench</a></li>
-      </ul>
-    </section>
-    <section>
-      <h2>Example Pages</h2>
-      <ul>
-        <li><a href="apps/website/index.html">Website Home</a></li>
-        <li><a href="apps/website/petri-net-to-wbs">Petri net to WBS</a></li>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="wrap">
+    <div class="brand">Gimmer <span>Apps</span></div>
+    <a href="#catalogue">Browse all 26 apps ↓</a>
+  </header>
+  <main id="main" class="wrap">
+    <div class="intro">
+      <p class="eyebrow">Gimmer apps</p>
+      <h1>Explore how projects work.</h1>
+      <p>Experiments in how projects are planned, connected and changed. Start with a mountain refuge, then explore the ideas behind it.</p>
+    </div>
+    <article class="feature" id="app-20" aria-labelledby="feature-title">
+      <div>
+        <p class="eyebrow">Start here · App 20</p>
+        <h2 id="feature-title">One plan.<br />Two possible projects.</h2>
+        <p class="feature-copy">A mountain refuge needs building. Discover why adding resources changes what can happen together — and what the project can achieve.</p>
+        <a class="cta" href="apps/mountain-refuge-petri-wbs-demo/index.html">Explore the refuge project <span aria-hidden="true">→</span></a>
+        <p class="feature-note">Compare the possibilities. Follow a plan. See why it works.</p>
+      </div>
+      <div class="preview" aria-label="Illustration: shared resources can force work to wait; extra capacity can let work overlap.">
+        <p class="preview-intro">Same work. A different set of possibilities.</p>
+        <div class="scenario sequential">
+          <strong>Share the resources</strong>
+          <p>One activity may have to wait for another.</p>
+          <div class="tracks" aria-hidden="true"><div class="track"></div><div class="track"></div></div>
+        </div>
+        <div class="scenario parallel">
+          <strong>Add capacity</strong>
+          <p>More work may be able to happen together.</p>
+          <div class="tracks" aria-hidden="true"><div class="track"></div><div class="track"></div></div>
+        </div>
+        <p class="preview-caption">Illustrative comparison — explore the app to see the actual plan.</p>
+      </div>
+    </article>
+    <section class="catalogue" id="catalogue" aria-labelledby="catalogue-title">
+      <div class="section-heading"><h2 id="catalogue-title">The collection</h2><p>26 project experiments</p></div>
+      <ul class="app-list">
+        <li><a class="app-link" href="apps/project-process-task-explorer/index.html"><span class="app-number" aria-label="App 1">01</span><span><h3>Project process and task explorer</h3><p>Project process ↔ task explorer with typed port wiring</p></span><span class="arrow" aria-hidden="true">↗</span></a></li>
+        <li><a class="app-link" href="apps/wbs-via-pddl/index.html"><span class="app-number" aria-label="App 2">02</span><span><h3>WBS via PDDL</h3><p>PDDL-driven explainable WBS workbench for Gimmer Crag</p></span><span class="arrow" aria-hidden="true">↗</span></a></li>
+        <li><a class="app-link" href="apps/half-cliff-shed-ops-console/index.html"><span class="app-number" aria-label="App 3">03</span><span><h3>Half-cliff shed operations console</h3><p>Mountain shed ops console prototype</p></span><span class="arrow" aria-hidden="true">↗</span></a></li>
+        <li><a class="app-link" href="apps/temporal-binding-approach/index.html"><span class="app-number" aria-label="App 4">04</span><span><h3>Temporal binding approach</h3><p>Temporal binding approach dashboard</p></span><span class="arrow" aria-hidden="true">↗</span></a></li>
+        <li><a class="app-link" href="apps/cliff-shed-binding-prototype/index.html"><span class="app-number" aria-label="App 5">05</span><span><h3>Cliff shed binding prototype</h3><p>Project binding prototype for the cliff shed scenario</p></span><span class="arrow" aria-hidden="true">↗</span></a></li>
+        <li><a class="app-link" href="apps/active-inference-procurement/index.html"><span class="app-number" aria-label="App 6">06</span><span><h3>Active inference procurement</h3><p>Active inference procurement console for the Cliff Shed</p></span><span class="arrow" aria-hidden="true">↗</span></a></li>
+        <li><a class="app-link" href="apps/project-binding-experiments/index.html"><span class="app-number" aria-label="App 7">07</span><span><h3>Project binding experiments</h3><p>Project binding concurrent experiment prompts</p></span><span class="arrow" aria-hidden="true">↗</span></a></li>
+        <li><a class="app-link" href="apps/processes-plans-shed-on-a-cliff/index.html"><span class="app-number" aria-label="App 8">08</span><span><h3>Processes to plans: shed on a cliff</h3><p>Processes to plans category view for Shed-on-a-Cliff</p></span><span class="arrow" aria-hidden="true">↗</span></a></li>
+        <li><a class="app-link" href="apps/build-a-shed-mini-generator/index.html"><span class="app-number" aria-label="App 9">09</span><span><h3>Build-a-shed mini-generator</h3><p>Build-a-Shed Petri net reachability generator (Julia stdlib)</p></span><span class="arrow" aria-hidden="true">↗</span></a></li>
+        <li><a class="app-link" href="apps/petri-net-to-wbs-to-schedule-current-working-concept/index.html"><span class="app-number" aria-label="App 10">10</span><span><h3>Petri net to WBS to schedule</h3><p>Petri net to WBS to schedule current working concept</p></span><span class="arrow" aria-hidden="true">↗</span></a></li>
+        <li><a class="app-link" href="apps/processes-plans-shed-halfway-up-a-cliff/index.html"><span class="app-number" aria-label="App 11">11</span><span><h3>Processes to plans: halfway up a cliff</h3><p>Processes to plans prototype for a shed halfway up a cliff</p></span><span class="arrow" aria-hidden="true">↗</span></a></li>
+        <li><a class="app-link" href="apps/cliff-shed-event-structure-dual-view/index.html"><span class="app-number" aria-label="App 12">12</span><span><h3>Cliff shed event structure</h3><p>Cliff shed conflict-aware event structure dual view</p></span><span class="arrow" aria-hidden="true">↗</span></a></li>
+        <li><a class="app-link" href="apps/mountain-shed-wbs-from-petri-net/index.html"><span class="app-number" aria-label="App 13">13</span><span><h3>Mountain shed WBS from a Petri net</h3><p>Mountain shed candidate WBS paths generated from a Petri net</p></span><span class="arrow" aria-hidden="true">↗</span></a></li>
+        <li><a class="app-link" href="apps/process-first-project-model/index.html"><span class="app-number" aria-label="App 14">14</span><span><h3>Process-first project model</h3><p>Process-first project model cliff-shed demo</p></span><span class="arrow" aria-hidden="true">↗</span></a></li>
+        <li><a class="app-link" href="apps/mountain-refuge-change-as-sheafification/index.html"><span class="app-number" aria-label="App 15">15</span><span><h3>Mountain refuge change requests</h3><p>Mountain refuge change requests as sheafification prototype</p></span><span class="arrow" aria-hidden="true">↗</span></a></li>
+        <li><a class="app-link" href="apps/petri-net-checks/index.html"><span class="app-number" aria-label="App 16">16</span><span><h3>Petri net checks</h3><p>Petri net workflow demo with checks and explainers</p></span><span class="arrow" aria-hidden="true">↗</span></a></li>
+        <li><a class="app-link" href="apps/build-a-shed-petri-net-split-materials/index.html"><span class="app-number" aria-label="App 17">17</span><span><h3>Build a shed with split materials</h3><p>Build-a-shed Petri net with split materials and parallel prep tasks</p></span><span class="arrow" aria-hidden="true">↗</span></a></li>
+        <li><a class="app-link" href="apps/cliff-refuge-mini-generator/index.html"><span class="app-number" aria-label="App 18">18</span><span><h3>Cliff refuge mini-generator</h3><p>Cliff-refuge reachability mini-generator</p></span><span class="arrow" aria-hidden="true">↗</span></a></li>
+        <li><a class="app-link" href="apps/operadic-composition-complex-systems/index.html"><span class="app-number" aria-label="App 19">19</span><span><h3>Composition of complex systems</h3><p>Operadic composition for complex systems (and shed + Petri net + WBS)</p></span><span class="arrow" aria-hidden="true">↗</span></a></li>
+        <li><a class="app-link" href="apps/mountain-refuge-petri-wbs-demo/index.html"><span class="app-number" aria-label="App 20">20</span><span><h3>Mountain refuge: one plan, two projects</h3><p>Petri net → SMC → WBS demo for a mountain refuge toy project</p></span><span class="arrow" aria-hidden="true">↗</span></a></li>
+        <li><a class="app-link" href="apps/gimmer-crag-shed-ontology-explorer/index.html"><span class="app-number" aria-label="App 21">21</span><span><h3>Gimmer Crag shed ontology explorer</h3><p>Gimmer Crag shed ontology explorer with Turtle graph view</p></span><span class="arrow" aria-hidden="true">↗</span></a></li>
+        <li><a class="app-link" href="apps/project-change-requests-as-sheafification/index.html"><span class="app-number" aria-label="App 22">22</span><span><h3>Project change requests</h3><p>Project change requests as sheafification one-file demo</p></span><span class="arrow" aria-hidden="true">↗</span></a></li>
+        <li><a class="app-link" href="apps/cliff-refuge-petri-smc-wbs/index.html"><span class="app-number" aria-label="App 23">23</span><span><h3>Cliff refuge: Petri net to WBS</h3><p>Petri net → CMC/SMC → WBS/Schedule demo for a cliffside mountain refuge</p></span><span class="arrow" aria-hidden="true">↗</span></a></li>
+        <li><a class="app-link" href="apps/constraint-to-plan-studio-minimal-demo/index.html"><span class="app-number" aria-label="App 24">24</span><span><h3>Constraint-to-Plan Studio</h3><p>Constraint-to-Plan Studio minimal demo (Petri → WBS → timeline)</p></span><span class="arrow" aria-hidden="true">↗</span></a></li>
+        <li><a class="app-link" href="apps/sheaf-change-control-workbench/index.html"><span class="app-number" aria-label="App 25">25</span><span><h3>Sheaf Change Control Workbench</h3><p>Sheaf Change Control Workbench for interface-driven change requests</p></span><span class="arrow" aria-hidden="true">↗</span></a></li>
+        <li><a class="app-link" href="apps/sheafified-change-impact-workbench/index.html"><span class="app-number" aria-label="App 26">26</span><span><h3>Sheafified Change Impact Workbench</h3><p>Sheafified Change Impact Workbench for CR topology edits and glue analysis</p></span><span class="arrow" aria-hidden="true">↗</span></a></li>
       </ul>
     </section>
   </main>
+  <footer class="wrap">
+    <p>Gimmer · Exploratory tools and prototypes</p>
+    <nav aria-label="Related pages"><a href="apps/website/index.html">Website</a><a href="apps/website/petri-net-to-wbs">Petri net to WBS page</a></nav>
+  </footer>
 </body>
 </html>
