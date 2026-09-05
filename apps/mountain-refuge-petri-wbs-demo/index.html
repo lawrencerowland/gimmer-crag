@@ -38,6 +38,7 @@
     .muted{color:var(--muted);}
     .pill{display:inline-block;padding:2px 10px;border-radius:999px;background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.25);color:#cfefff;font-size:12px;margin-right:8px;}
     .grid{display:grid;gap:14px;}
+    .grid > *{min-width:0;}
     .grid2{grid-template-columns: 1.25fr .75fr;}
     @media (max-width: 980px){.grid2{grid-template-columns:1fr;}}
     .panel{
@@ -46,6 +47,7 @@
       border-radius:14px;
       padding:14px 14px 12px;
       box-shadow:0 10px 30px rgba(0,0,0,.35);
+      min-width:0;
     }
     .panel header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px;}
     .panel header .title{font-weight:650;}
@@ -81,6 +83,7 @@
       border-radius:12px;
       padding:10px;
       overflow:auto;
+      overflow-wrap:anywhere;
       white-space:pre;
     }
     .note{
@@ -101,6 +104,7 @@
     .badge.warn{border-color:rgba(251,191,36,.25);background:rgba(251,191,36,.10);color:#fef3c7;}
     .badge.bad{border-color:rgba(251,113,133,.25);background:rgba(251,113,133,.10);color:#ffe4e6;}
     .twoCol{display:grid;grid-template-columns: 1fr 1fr;gap:14px;}
+    .twoCol > *{min-width:0;}
     @media (max-width: 980px){.twoCol{grid-template-columns:1fr;}}
     label{font-size:12px;color:var(--muted);}
     input[type="number"], select{
@@ -168,6 +172,50 @@
     .modal .content .hd h3{font-size:16px;font-weight:650;margin:0;}
     .modal .content .bd{padding:16px;}
     .modal .close{border:none;background:transparent;color:var(--accent);font-size:20px;font-weight:700;cursor:pointer;line-height:1;}
+    .contractTrace{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;}
+    @media (max-width: 980px){.contractTrace{grid-template-columns:1fr;}}
+    .contractStep{
+      border:1px solid rgba(148,163,184,.15);
+      border-radius:12px;
+      padding:10px;
+      background:rgba(0,0,0,.18);
+      min-width:0;
+    }
+    .contractStep.wide{grid-column:1 / -1;}
+    .contractStep h4{margin:0 0 6px;font-size:13px;color:#e2e8f0;}
+    .contractStep p{font-size:12px;color:var(--muted);margin:4px 0;overflow-wrap:anywhere;}
+    .contractStep ul{margin:6px 0 0 18px;padding:0;color:var(--muted);font-size:12px;overflow-wrap:anywhere;}
+    .contractStep code{font-family:var(--mono);font-size:11px;color:#dbeafe;word-break:break-word;}
+
+    #same-plan-witness{margin:24px 0;border-color:rgba(56,189,248,.45);padding:20px;}
+    #same-plan-witness h2{margin:0 0 8px;}
+    #same-plan-witness .witnessIntro{max-width:78ch;}
+    .witnessChoices{border:0;padding:0;margin:18px 0;min-width:0;}
+    .witnessChoices legend{margin-bottom:8px;font-weight:600;}
+    .witnessChoices .btn{min-height:44px;}
+    .witnessChoices .btn[aria-pressed="true"]{background:#174558;border-color:#7dd3fc;color:#fff;}
+    #same-plan-witness :focus-visible{outline:3px solid #fbbf24;outline-offset:4px;}
+    .witnessModels{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    .witnessModels > *{min-width:0;}
+    .witnessModel{border:1px solid var(--line);padding:14px;border-radius:12px;background:rgba(0,0,0,.16);}
+    .witnessModel h3{margin-top:0;}
+    .witnessFlow{font-size:15px;color:#bae6fd;line-height:1.8;}
+    .witnessResult{font-size:18px;font-weight:600;margin:18px 0 8px;}
+    .witnessMetrics{margin:12px 0 0;display:grid;grid-template-columns:1fr auto;gap:6px;font-size:14px;}
+    .witnessMetrics dt{color:#cbd5e1;}
+    .witnessMetrics dd{margin:0;font-variant-numeric:tabular-nums;}
+    #same-plan-witness summary{cursor:pointer;padding:12px 0;font-weight:600;}
+    #same-plan-witness .table{table-layout:fixed;}
+    #same-plan-witness .table th:first-child{width:43%;}
+    #same-plan-witness .table th,#same-plan-witness .table td{overflow-wrap:anywhere;padding:7px 5px;}
+    #same-plan-witness .code{white-space:pre-wrap;word-break:break-word;max-height:340px;overflow:auto;}
+    #same-plan-witness .note{font-size:14px;}
+    @media(max-width:700px){
+      .witnessModels{grid-template-columns:1fr;}
+      #same-plan-witness{padding:14px;}
+      .witnessChoices .row{align-items:stretch;}
+      .witnessChoices .btn{flex:1 1 100%;}
+    }
   </style>
 </head>
 <body>
@@ -190,6 +238,60 @@
       <button class="btn secondary" data-explain="notes">Notes</button>
       <span class="muted smalltxt">Quick explainer for the Petri net → SMC → WBS framing.</span>
     </div>
+
+
+    <section class="panel" id="same-plan-witness" aria-labelledby="witnessTitle">
+      <h2 id="witnessTitle">One plan can hide two different processes</h2>
+      <p class="witnessIntro">Does the roof wait for the walls because a resource is busy, or because the process requires that order?
+        These two fictional models produce the same full baseline plan. Change one assumption to see why the distinction matters.</p>
+      <p class="smalltxt">Built-in experiment · fixed toy durations · temporary results · independent of the controls below.
+        Reload returns to the baseline; nothing is saved or approved.</p>
+      <fieldset class="witnessChoices">
+        <legend>Choose a comparison</legend>
+        <div class="row">
+          <button type="button" class="btn" data-witness="baseline" aria-pressed="true">1. Baseline: one resource set</button>
+          <button type="button" class="btn" data-witness="capacity" aria-pressed="false">2. Add a second resource set</button>
+          <button type="button" class="btn" data-witness="preference" aria-pressed="false">3. Prefer roof first</button>
+        </div>
+      </fieldset>
+      <p id="witnessSettings" class="smalltxt"></p>
+      <p id="witnessStatus" class="witnessResult" role="status" aria-live="polite" aria-atomic="true"></p>
+      <div class="witnessModels">
+        <article class="witnessModel">
+          <h3>A · no added dependency</h3>
+          <p class="witnessFlow">Frame → Walls<br>Frame → Roof</p>
+          <p>Wall and roof work can overlap when all required resources are available.</p>
+          <dl class="witnessMetrics" id="witnessMetricsA"></dl>
+        </article>
+        <article class="witnessModel">
+          <h3>B · added walls-before-roof rule</h3>
+          <p class="witnessFlow">Frame → Walls → Roof</p>
+          <p>Roof work also requires the walls-complete token, which it returns when finished.</p>
+          <dl class="witnessMetrics" id="witnessMetricsB"></dl>
+        </article>
+      </div>
+      <p id="witnessMeaning" class="note"></p>
+      <p><strong>Before promising a shorter delivery date:</strong> ask for the evidence behind the dependency.
+        Is this a shared-resource bottleneck or a required handoff? Confirm the actual method with its owner;
+        a matching plan cannot answer that question.</p>
+      <details id="witnessDetails">
+        <summary>Inspect both complete plans and the hidden rule</summary>
+        <p>Each model runs separately. Equality checks every task ID, label, start, finish and duration;
+          resources, priority, units and makespan; and the full stage/WBS and same-start expression.
+          The process arcs and their rationale are deliberately outside this plan projection.</p>
+        <div class="witnessModels">
+          <div><h3>Plan A</h3><div id="witnessPlanA"></div></div>
+          <div><h3>Plan B</h3><div id="witnessPlanB"></div></div>
+        </div>
+        <h3>Actual roof-transition difference</h3>
+        <pre class="code" id="witnessRule" tabindex="0" aria-label="Roof transition inputs and outputs"></pre>
+        <details><summary>Exact computed plan data</summary>
+          <pre class="code" id="witnessJson" tabindex="0" aria-label="Both computed plan projections"></pre>
+        </details>
+      </details>
+      <p class="smalltxt">This demonstrates information loss in a chosen-execution projection.
+        It does not prove a mathematical functor or validate real construction sequencing, resource estimates or safety.</p>
+    </section>
 
     <div class="panel">
       <header>
@@ -368,7 +470,7 @@
 
             <div class="note">
               Each candidate is a <b>timed execution</b> of the same Petri net.
-              If you keep the net fixed, any schedule produced is automatically “physically compliant” by construction.
+              A completed schedule follows the encoded toy rules. Those rules do not establish real-world physical or safety compliance.
             </div>
 
             <h3 style="margin-top:12px;">Candidate list</h3>
@@ -414,6 +516,13 @@
           </thead>
           <tbody></tbody>
         </table>
+
+        <h3 style="margin-top:12px;">Translation contract</h3>
+        <div class="note">
+          A compact trace from the process fragment to the selected execution, its SMC/WBS views, and
+          the information the projection deliberately forgets.
+        </div>
+        <div id="translationContract" class="contractTrace"></div>
 
       </div>
     </div>
@@ -481,6 +590,205 @@
     </div>
   </div>
 
+<script id="petri-core">
+function enabledTransitions(m, processNet=net){
+  const enabled = [];
+  for(const tr of processNet.transitions){
+    let ok = true;
+    for(const [pid,w] of Object.entries(tr.pre)){
+      if((m[pid]||0) < w){ ok=false; break; }
+    }
+    if(ok) enabled.push(tr);
+  }
+  return enabled;
+}
+
+
+function policyOrder(policy, processNet=net){
+  const ids = processNet.transitions.map(t=>t.id);
+  if(policy==="default"){
+    return ["kickoff","permits","liftMaterials","access","siteprep","foundation","frame","walls","roof","utilities","interior","safety","inspect","open"];
+  }
+  if(policy==="wallsFirst"){
+    return ["kickoff","permits","liftMaterials","access","siteprep","foundation","frame","walls","roof","utilities","interior","safety","inspect","open"];
+  }
+  if(policy==="roofFirst"){
+    return ["kickoff","permits","liftMaterials","access","siteprep","foundation","frame","roof","walls","utilities","interior","safety","inspect","open"];
+  }
+  return ids; // random handled separately
+}
+
+function simulateTimed({crewTokens, toolsTokens, liftTokens, policy, maxSteps}, processNet=net, durationValues=durations){
+  const transitionsById = Object.fromEntries(processNet.transitions.map(tr=>[tr.id, tr]));
+  const m = {};
+  processNet.places.forEach(p=>m[p.id]=p.initial);
+
+  m["crew"] = crewTokens;
+  m["tools"] = toolsTokens;
+  m["lift"] = liftTokens;
+
+  let time = 0;
+  let steps = 0;
+
+  const inProg = []; // {id, end, start}
+  const schedule = []; // {id,label,start,end,duration}
+
+  function isDone(){ return (m["complete"]||0) >= 1; }
+
+  function startIfPossible(){
+    const order = policyOrder(policy, processNet);
+
+    let candidates = enabledTransitions(m, processNet);
+    if(policy==="random"){
+      candidates = candidates.slice().sort(()=>Math.random()-0.5);
+    } else {
+      const idx = Object.fromEntries(order.map((id,i)=>[id,i]));
+      candidates.sort((a,b)=>(idx[a.id]??999)-(idx[b.id]??999));
+    }
+
+    let startedAny = false;
+    for(const tr of candidates){
+      let ok = true;
+      for(const [pid,w] of Object.entries(tr.pre)){
+        if((m[pid]||0) < w){ ok=false; break; }
+      }
+      if(!ok) continue;
+
+      for(const [pid,w] of Object.entries(tr.pre)){
+        m[pid] -= w;
+      }
+      const dur = durationValues[tr.id] ?? tr.duration ?? 0;
+      const end = time + dur;
+
+      schedule.push({id:tr.id,label:tr.label,start:time,end:null,duration:dur});
+
+      if(dur===0){
+        for(const [pid,w] of Object.entries(tr.post)){
+          m[pid] = (m[pid]||0) + w;
+        }
+        schedule[schedule.length-1].end = time;
+      } else {
+        inProg.push({id:tr.id, end, start:time});
+      }
+      startedAny = true;
+      steps += 1;
+      if(steps>=maxSteps) break;
+    }
+    return startedAny;
+  }
+
+  while(!isDone() && steps < maxSteps){
+    const started = startIfPossible();
+    if(isDone()) break;
+
+    if(inProg.length===0){
+      if(!started){
+        return {ok:false, reason:"Deadlock: no enabled work and nothing running.", schedule, makespan: time, marking:m};
+      }
+      continue;
+    }
+
+    const next = Math.min(...inProg.map(e=>e.end));
+    time = next;
+
+    const ending = inProg.filter(e=>e.end===next);
+    for(const e of ending){
+      const tr = transitionsById[e.id];
+      for(const [pid,w] of Object.entries(tr.post)){
+        m[pid] = (m[pid]||0) + w;
+      }
+      const row = schedule.find(s=>s.id===e.id && s.end===null && s.start===e.start);
+      if(row) row.end = next;
+    }
+    for(let i=inProg.length-1;i>=0;i--){
+      if(inProg[i].end===next) inProg.splice(i,1);
+    }
+  }
+
+  if((m["complete"]||0) >= 1){
+    const makespan = Math.max(...schedule.map(s=>s.end ?? 0), 0);
+    return {ok:true, schedule, makespan, marking:m};
+  }
+  return {ok:false, reason:"Stopped (max steps).", schedule, makespan: time, marking:m};
+}
+
+
+function groupByStart(schedule){
+  const map = new Map();
+  for(const s of schedule){
+    if(!map.has(s.start)) map.set(s.start, []);
+    map.get(s.start).push(s.label);
+  }
+  const times = Array.from(map.keys()).sort((a,b)=>a-b);
+  return times.map(t=>({t, tasks: map.get(t)}));
+}
+
+function buildSmcExpression(schedule){
+  const groups = groupByStart(schedule).filter(g=>g.tasks.length>0);
+  const parts = groups.map(g=>{
+    if(g.tasks.length===1) return g.tasks[0];
+    return "(" + g.tasks.join(" ⊗ ") + ")";
+  });
+  return parts.join(" ; ");
+}
+
+function buildScheduleWbs(schedule){
+  const groups = groupByStart(schedule).filter(g=>g.tasks.length>0);
+  const lines = [];
+  lines.push("Build Mountain Refuge");
+  groups.forEach((g,i)=>{
+    lines.push(`  Stage ${i+1} (start t=${g.t})`);
+    g.tasks.forEach(t=>{
+      lines.push(`    - ${t}`);
+    });
+  });
+  return lines.join("\n");
+}
+
+
+/* Two process definitions, independently simulated through the same engine.
+ * The added timed self-loop requires wallsDone and returns it when roof finishes.
+ * These are fictional alternatives, not engineering-approved construction methods.
+ */
+function createWitnessModels(baseNet){
+  const independent = JSON.parse(JSON.stringify(baseNet));
+  const sequenced = JSON.parse(JSON.stringify(baseNet));
+  const roof = sequenced.transitions.find(tr=>tr.id==="roof");
+  roof.pre.wallsDone = 1;
+  roof.post.wallsDone = 1;
+  return {independent, sequenced};
+}
+
+function projectWitnessPlan(run, settings){
+  if(!run.ok || run.schedule.some(row=>!Number.isFinite(row.end))) return null;
+  const tasks = run.schedule.slice()
+    .sort((a,b)=>(a.start-b.start) || a.label.localeCompare(b.label))
+    .map(({id,label,start,end,duration})=>({id,label,start,end,duration}));
+  return {
+    schema:"chosen-execution-plan-v1",
+    units:"days",
+    resources:{crew:settings.crewTokens,tools:settings.toolsTokens,lift:settings.liftTokens},
+    policy:settings.policy,
+    tasks,
+    makespan:run.makespan,
+    smcExpression:buildSmcExpression(tasks),
+    wbsText:buildScheduleWbs(tasks)
+  };
+}
+
+function compareProcessWitness(baseNet, settings, durationValues){
+  const models = createWitnessModels(baseNet);
+  const runA = simulateTimed(settings, models.independent, durationValues);
+  const runB = simulateTimed(settings, models.sequenced, durationValues);
+  const planA = projectWitnessPlan(runA, settings);
+  const planB = projectWitnessPlan(runB, settings);
+  return {
+    models, runA, runB, planA, planB,
+    samePlan:planA!==null && planB!==null && JSON.stringify(planA)===JSON.stringify(planB)
+  };
+}
+
+</script>
 <script>
 
 /**
@@ -600,6 +908,7 @@ const P = byId(net.places);
 const T = byId(net.transitions);
 
 function deepCopy(obj){ return JSON.parse(JSON.stringify(obj)); }
+const witnessBaseNet = deepCopy(net);
 
 function currentMarking(){
   const m = {};
@@ -626,18 +935,6 @@ function resetMarking(toDefaults=false){
     renderDurationEditor();
   }
   renderAll();
-}
-
-function enabledTransitions(m){
-  const enabled = [];
-  for(const tr of net.transitions){
-    let ok = true;
-    for(const [pid,w] of Object.entries(tr.pre)){
-      if((m[pid]||0) < w){ ok=false; break; }
-    }
-    if(ok) enabled.push(tr);
-  }
-  return enabled;
 }
 
 function fireTransition(trId){
@@ -837,113 +1134,6 @@ function renderDurationEditor(){
 
 /* ---------- Timed simulation ---------- */
 
-function policyOrder(policy){
-  const ids = net.transitions.map(t=>t.id);
-  if(policy==="default"){
-    return ["kickoff","permits","liftMaterials","access","siteprep","foundation","frame","walls","roof","utilities","interior","safety","inspect","open"];
-  }
-  if(policy==="wallsFirst"){
-    return ["kickoff","permits","liftMaterials","access","siteprep","foundation","frame","walls","roof","utilities","interior","safety","inspect","open"];
-  }
-  if(policy==="roofFirst"){
-    return ["kickoff","permits","liftMaterials","access","siteprep","foundation","frame","roof","walls","utilities","interior","safety","inspect","open"];
-  }
-  return ids; // random handled separately
-}
-
-function simulateTimed({crewTokens, toolsTokens, liftTokens, policy, maxSteps}){
-  const m = {};
-  net.places.forEach(p=>m[p.id]=p.initial);
-
-  m["crew"] = crewTokens;
-  m["tools"] = toolsTokens;
-  m["lift"] = liftTokens;
-
-  let time = 0;
-  let steps = 0;
-
-  const inProg = []; // {id, end, start}
-  const schedule = []; // {id,label,start,end,duration}
-
-  function isDone(){ return (m["complete"]||0) >= 1; }
-
-  function startIfPossible(){
-    const order = policyOrder(policy);
-
-    let candidates = enabledTransitions(m);
-    if(policy==="random"){
-      candidates = candidates.slice().sort(()=>Math.random()-0.5);
-    } else {
-      const idx = Object.fromEntries(order.map((id,i)=>[id,i]));
-      candidates.sort((a,b)=>(idx[a.id]??999)-(idx[b.id]??999));
-    }
-
-    let startedAny = false;
-    for(const tr of candidates){
-      let ok = true;
-      for(const [pid,w] of Object.entries(tr.pre)){
-        if((m[pid]||0) < w){ ok=false; break; }
-      }
-      if(!ok) continue;
-
-      for(const [pid,w] of Object.entries(tr.pre)){
-        m[pid] -= w;
-      }
-      const dur = durations[tr.id] ?? tr.duration ?? 0;
-      const end = time + dur;
-
-      schedule.push({id:tr.id,label:tr.label,start:time,end:null,duration:dur});
-
-      if(dur===0){
-        for(const [pid,w] of Object.entries(tr.post)){
-          m[pid] = (m[pid]||0) + w;
-        }
-        schedule[schedule.length-1].end = time;
-      } else {
-        inProg.push({id:tr.id, end, start:time});
-      }
-      startedAny = true;
-      steps += 1;
-      if(steps>=maxSteps) break;
-    }
-    return startedAny;
-  }
-
-  while(!isDone() && steps < maxSteps){
-    const started = startIfPossible();
-    if(isDone()) break;
-
-    if(inProg.length===0){
-      if(!started){
-        return {ok:false, reason:"Deadlock: no enabled work and nothing running.", schedule, makespan: time, marking:m};
-      }
-      continue;
-    }
-
-    const next = Math.min(...inProg.map(e=>e.end));
-    time = next;
-
-    const ending = inProg.filter(e=>e.end===next);
-    for(const e of ending){
-      const tr = T[e.id];
-      for(const [pid,w] of Object.entries(tr.post)){
-        m[pid] = (m[pid]||0) + w;
-      }
-      const row = schedule.find(s=>s.id===e.id && s.end===null && s.start===e.start);
-      if(row) row.end = next;
-    }
-    for(let i=inProg.length-1;i>=0;i--){
-      if(inProg[i].end===next) inProg.splice(i,1);
-    }
-  }
-
-  if((m["complete"]||0) >= 1){
-    const makespan = Math.max(...schedule.map(s=>s.end ?? 0), 0);
-    return {ok:true, schedule, makespan, marking:m};
-  }
-  return {ok:false, reason:"Stopped (max steps).", schedule, makespan: time, marking:m};
-}
-
 /* ---------- Candidate generation + selection ---------- */
 
 let candidates = [];
@@ -1009,39 +1199,160 @@ const ganttSvg = document.getElementById("ganttSvg");
 const smcExprEl = document.getElementById("smcExpr");
 const wbsViewEl = document.getElementById("wbsView");
 const taskTableBody = document.querySelector("#taskTable tbody");
+const translationContractEl = document.getElementById("translationContract");
 
 function formatNumber(x){ return (Math.round(x*100)/100).toString(); }
 
-function groupByStart(schedule){
-  const map = new Map();
-  for(const s of schedule){
-    if(!map.has(s.start)) map.set(s.start, []);
-    map.get(s.start).push(s.label);
+function escapeHtml(value){
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function buildTranslationTrace(schedule, candidate){
+  const crewTokens = parseInt(document.getElementById("crewInput").value||"1",10);
+  const toolsTokens = parseInt(document.getElementById("toolsInput").value||"1",10);
+  const liftTokens = parseInt(document.getElementById("liftInput").value||"1",10);
+  const policy = document.getElementById("policySelect").value;
+  const selectedTransitions = schedule.map(s=>s.id);
+  const smcExpression = buildSmcExpression(schedule);
+  const wbsText = buildScheduleWbs(schedule);
+  const stageBlocks = groupByStart(schedule).filter(g=>g.tasks.length>0);
+  const parallelBlocks = stageBlocks.filter(g=>g.tasks.length>1);
+  const firstProjectionLine = wbsText.split("\n").find(line=>line.trim().startsWith("Stage"))
+    || wbsText.split("\n")[0]
+    || "(empty projection)";
+
+  return {
+    processFragment: {
+      title: net.meta.title,
+      placeCount: net.places.length,
+      transitionCount: net.transitions.length,
+      selectedTransitionCount: selectedTransitions.length,
+      selectedTransitions,
+      rule: "The Petri/process net is the invariant constraint skeleton: transitions can only fire when their input places hold enough tokens."
+    },
+    executionWitness: {
+      policy,
+      resources: {crew: crewTokens, tools: toolsTokens, lift: liftTokens},
+      steps: schedule.length,
+      makespan: candidate?.makespan ?? 0,
+      rule: "This schedule is one timed execution witness under the selected resource-token and priority-policy settings."
+    },
+    projection: {
+      smcExpression,
+      wbsText,
+      rule: "Tasks with the same start time become parallel blocks in the SMC expression; ordered blocks become stages in the schedule-derived WBS."
+    },
+    preservedStructure: [
+      `${selectedTransitions.length} selected transition IDs and their execution order.`,
+      `${stageBlocks.length} schedule-derived stage block(s).`,
+      `${parallelBlocks.length} same-start parallel block(s).`,
+      `Resource snapshot: crew ${crewTokens}, tools ${toolsTokens}, lift ${liftTokens}.`,
+      `Makespan ${candidate?.makespan ?? 0} ${net.meta.units} under policy "${policy}".`
+    ],
+    forgottenStructure: [
+      "Unchosen enabled alternatives and why the selected policy skipped them.",
+      "Guard rationale and token/resource provenance beyond the current numeric snapshot.",
+      "Whether a WBS stage boundary is semantically meaningful or only a projection artifact.",
+      "Risk, uncertainty, weather, access, procurement, cost, and failure modes not represented in the toy net."
+    ],
+    nonInvertibilityWitness: {
+      title: "A plan view is too thin to recover the process",
+      visibleProjection: firstProjectionLine.trim(),
+      rule: "A plan projection need not identify its source process. This fragment alone is not a comparison of two processes; reverse reconstruction would require assumptions about guards, resources, policies, and unchosen alternatives."
+    },
+    candidateLiftRequires: [
+      "a chosen process vocabulary for states, places, resources, and transitions;",
+      "guard and enabling rules for every task/dependency;",
+      "resource-consumption or resource-reservation semantics;",
+      "a policy for alternatives, rework, risk, and uncertainty;",
+      "a provenance claim explaining where those added assumptions came from."
+    ],
+    caveats: [
+      "Durations are toy values, not calibrated estimates.",
+      "WBS grouping is schedule-derived and not unique.",
+      "The SMC expression is one textual view, not proof of full formal correctness.",
+      "Weather, access risk, cost, procurement, and uncertainty are not yet modeled."
+    ],
+    localReceiptRequired: "Record-level source provenance stays in the local Portfolio Wave working directory. Public repo artifacts should name only cluster-level anchors."
+  };
+}
+
+function renderTranslationTrace(schedule, candidate){
+  if(!translationContractEl) return;
+  if(!candidate || !candidate.ok || schedule.length===0){
+    translationContractEl.innerHTML = `
+      <div class="contractStep wide">
+        <h4>No valid execution selected</h4>
+        <p>Generate schedules and select a valid candidate to see the process-to-plan translation contract.</p>
+      </div>`;
+    return;
   }
-  const times = Array.from(map.keys()).sort((a,b)=>a-b);
-  return times.map(t=>({t, tasks: map.get(t)}));
-}
 
-function buildSmcExpression(schedule){
-  const groups = groupByStart(schedule).filter(g=>g.tasks.length>0);
-  const parts = groups.map(g=>{
-    if(g.tasks.length===1) return g.tasks[0];
-    return "(" + g.tasks.join(" ⊗ ") + ")";
-  });
-  return parts.join(" ; ");
-}
+  const trace = buildTranslationTrace(schedule, candidate);
+  const transitionList = trace.processFragment.selectedTransitions
+    .map(id=>`<li><code>${escapeHtml(id)}</code></li>`)
+    .join("");
+  const preserved = trace.preservedStructure.map(item=>`<li>${escapeHtml(item)}</li>`).join("");
+  const forgotten = trace.forgottenStructure.map(item=>`<li>${escapeHtml(item)}</li>`).join("");
+  const liftRequires = trace.candidateLiftRequires.map(item=>`<li>${escapeHtml(item)}</li>`).join("");
+  const caveats = trace.caveats.map(c=>`<li>${escapeHtml(c)}</li>`).join("");
 
-function buildScheduleWbs(schedule){
-  const groups = groupByStart(schedule).filter(g=>g.tasks.length>0);
-  const lines = [];
-  lines.push("Build Mountain Refuge");
-  groups.forEach((g,i)=>{
-    lines.push(`  Stage ${i+1} (start t=${g.t})`);
-    g.tasks.forEach(t=>{
-      lines.push(`    - ${t}`);
-    });
-  });
-  return lines.join("\n");
+  translationContractEl.innerHTML = `
+    <div class="contractStep">
+      <h4>processFragment</h4>
+      <p><b>${escapeHtml(trace.processFragment.title)}</b></p>
+      <p>${trace.processFragment.placeCount} places/resources; ${trace.processFragment.transitionCount} transitions; ${trace.processFragment.selectedTransitionCount} transitions in this execution.</p>
+      <p>${escapeHtml(trace.processFragment.rule)}</p>
+      <ul>${transitionList}</ul>
+    </div>
+    <div class="contractStep">
+      <h4>executionWitness</h4>
+      <p>Policy: <code>${escapeHtml(trace.executionWitness.policy)}</code></p>
+      <p>Resources: crew ${trace.executionWitness.resources.crew}, tools ${trace.executionWitness.resources.tools}, lift ${trace.executionWitness.resources.lift}</p>
+      <p>Steps: ${trace.executionWitness.steps}; makespan: ${trace.executionWitness.makespan} ${escapeHtml(net.meta.units)}</p>
+      <p>${escapeHtml(trace.executionWitness.rule)}</p>
+    </div>
+    <div class="contractStep">
+      <h4>projection</h4>
+      <p>${escapeHtml(trace.projection.rule)}</p>
+      <p><b>SMC:</b> <code>${escapeHtml(trace.projection.smcExpression || "(empty)")}</code></p>
+      <p><b>WBS first line:</b> <code>${escapeHtml(trace.projection.wbsText.split("\\n")[0] || "(empty)")}</code></p>
+    </div>
+    <div class="contractStep">
+      <h4>preservedStructure</h4>
+      <p><code>process -> plan</code> keeps the plan-useful part of the process execution.</p>
+      <ul>${preserved}</ul>
+    </div>
+    <div class="contractStep">
+      <h4>forgottenStructure</h4>
+      <p>The projection is useful because it deliberately drops structure the plan view does not need.</p>
+      <ul>${forgotten}</ul>
+    </div>
+    <div class="contractStep wide">
+      <h4>nonInvertibilityWitness</h4>
+      <p><b>${escapeHtml(trace.nonInvertibilityWitness.title)}</b></p>
+      <p>Visible projection: <code>${escapeHtml(trace.nonInvertibilityWitness.visibleProjection)}</code></p>
+      <p>${escapeHtml(trace.nonInvertibilityWitness.rule)}</p>
+      <p><a href="#same-plan-witness">Inspect a computed two-process, full-plan comparison</a>. That built-in example uses fixed settings independently of this selected candidate.</p>
+    </div>
+    <div class="contractStep wide">
+      <h4>candidateLiftRequires</h4>
+      <p><code>plan -> process</code> is a lift or reconstruction hypothesis, not an inverse.</p>
+      <ul>${liftRequires}</ul>
+    </div>
+    <div class="contractStep">
+      <h4>caveats</h4>
+      <ul>${caveats}</ul>
+    </div>
+    <div class="contractStep wide">
+      <h4>localReceiptRequired</h4>
+      <p>${escapeHtml(trace.localReceiptRequired)}</p>
+    </div>`;
 }
 
 function renderGantt(schedule){
@@ -1148,6 +1459,7 @@ function renderSelected(){
     const k = document.createElement("div"); k.textContent = "Selected";
     const v = document.createElement("div"); v.textContent = "—";
     scheduleSummaryKv.appendChild(k); scheduleSummaryKv.appendChild(v);
+    renderTranslationTrace([], null);
     return;
   }
   const c = candidates[selectedIdx];
@@ -1175,6 +1487,7 @@ function renderSelected(){
   if(!c.ok){
     smcExprEl.textContent = "(no valid schedule)";
     wbsViewEl.textContent = "(no WBS)";
+    renderTranslationTrace([], c);
     return;
   }
 
@@ -1188,7 +1501,71 @@ function renderSelected(){
 
   const wbs = buildScheduleWbs(schedule);
   wbsViewEl.textContent = wbs || "(empty)";
+  renderTranslationTrace(schedule, c);
 }
+
+
+/* ---------- Built-in two-process witness (ephemeral, independent controls) ---------- */
+
+const witnessCases = {
+  baseline:{crewTokens:1,toolsTokens:1,liftTokens:1,policy:"wallsFirst",maxSteps:80},
+  capacity:{crewTokens:2,toolsTokens:2,liftTokens:2,policy:"wallsFirst",maxSteps:80},
+  preference:{crewTokens:1,toolsTokens:1,liftTokens:1,policy:"roofFirst",maxSteps:80}
+};
+
+function renderWitnessPlan(plan, target){
+  const el = document.getElementById(target);
+  if(!plan){el.textContent="No completed plan. Equality is not established.";return;}
+  el.innerHTML = `<table class="table"><caption>${plan.tasks.length} tasks · days from start</caption>
+    <thead><tr><th scope="col">Task</th><th scope="col">Start</th><th scope="col">Finish</th><th scope="col">Duration</th></tr></thead>
+    <tbody>${plan.tasks.map(t=>`<tr><th scope="row">${escapeHtml(t.label)}</th><td>${t.start}</td><td>${t.end}</td><td>${t.duration}</td></tr>`).join("")}</tbody></table>
+    <h4>Full WBS</h4><pre class="code" tabindex="0" aria-label="Full WBS for ${target==="witnessPlanA"?"A":"B"}">${escapeHtml(plan.wbsText)}</pre>`;
+}
+
+function renderProcessWitness(caseName){
+  const settings = witnessCases[caseName];
+  const result = compareProcessWitness(witnessBaseNet, settings, defaultDurations);
+  document.querySelectorAll("[data-witness]").forEach(button=>{
+    button.setAttribute("aria-pressed", String(button.dataset.witness===caseName));
+  });
+  document.getElementById("witnessSettings").textContent =
+    `Both models: ${settings.crewTokens} crew, ${settings.toolsTokens} tools, ${settings.liftTokens} lift token(s); ${settings.policy==="wallsFirst"?"walls-first":"roof-first"} preference. Fixed default durations in days.`;
+  const complete = result.planA!==null && result.planB!==null;
+  document.getElementById("witnessStatus").textContent = !complete
+    ? "Comparison incomplete — no equality claim."
+    : result.samePlan
+      ? `Full plans match. Both finish on day ${result.planA.makespan}.`
+      : `Full plans differ. A finishes on day ${result.planA.makespan}; B on day ${result.planB.makespan}.`;
+  for(const [name,run] of [["A",result.runA],["B",result.runB]]){
+    const rows = ["walls","roof"].map(id=>{
+      const task=run.schedule.find(t=>t.id===id);
+      return [id==="walls"?"Walls":"Roof",task?`${task.start}–${task.end??"unfinished"} days`:"Not started"];
+    });
+    rows.push(["Project finish",run.ok?`Day ${run.makespan}`:"Incomplete"]);
+    document.getElementById("witnessMetrics"+name).innerHTML = rows
+      .map(([label,value])=>`<dt>${label}</dt><dd>${value}</dd>`).join("");
+  }
+  const messages = {
+    baseline:"One resource set forces A to work in sequence too. Its plan hides the difference between waiting for capacity and waiting for the added process rule in B.",
+    capacity:"A second crew alone would still be constrained by tools and lift. Here all three capacities are doubled: A can overlap walls and roof, while B must still respect its added sequencing rule.",
+    preference:"The resource counts stay at one. A can choose roof before walls; B cannot. Even when the finish date matches, the complete task plans can differ."
+  };
+  document.getElementById("witnessMeaning").textContent = complete?messages[caseName]:"At least one run did not complete. Inspect the models before drawing a comparison.";
+  renderWitnessPlan(result.planA,"witnessPlanA");
+  renderWitnessPlan(result.planB,"witnessPlanB");
+  const roofA=result.models.independent.transitions.find(tr=>tr.id==="roof");
+  const roofB=result.models.sequenced.transitions.find(tr=>tr.id==="roof");
+  document.getElementById("witnessRule").textContent=JSON.stringify({
+    A:{requires:roofA.pre,returnsWhenFinished:roofA.post},
+    B:{requires:roofB.pre,returnsWhenFinished:roofB.post}
+  },null,2);
+  document.getElementById("witnessJson").textContent=JSON.stringify({samePlan:result.samePlan,planA:result.planA,planB:result.planB},null,2);
+}
+
+document.querySelectorAll("[data-witness]").forEach(button=>{
+  button.addEventListener("click",()=>renderProcessWitness(button.dataset.witness));
+});
+renderProcessWitness("baseline");
 
 /* ---------- Copy net JSON ---------- */
 
@@ -1197,13 +1574,13 @@ const btnCopyJson = document.getElementById("btnCopyJson");
 const copyStatus = document.getElementById("copyStatus");
 const EXPLAIN = {
   notes: [
-    "• The Petri net is the source of truth for physical logic (what depends on what; what resources gate parallelism).",
-    "• Schedules are generated as executions of that same net (different priorities, resource-token counts, and durations ⇒ different valid schedules).",
+    "• The Petri net encodes this toy example's dependency and resource assumptions. It does not validate a real construction method.",
+    "• Schedules are generated as executions of that same net (different priorities, resource-token counts, and durations can produce different schedules that satisfy the encoded rules).",
     "• WBS is treated as a view/projection of the same underlying process: one schedule ⇒ one “schedule-derived elementary WBS”, plus an SMC-style expression that exposes ⊗ (parallel) vs ; (sequential).",
     "",
-    "Petri net (fundamentals): places/tokens = project state & resource availability; transitions = work. This captures the “physics” of what is possible independent of any particular schedule.",
-    "• SMC (compositional schedule syntax): the same plan can be written as different string diagrams / compositions—vertical composition for sequencing and horizontal composition for parallelism—which is exactly the lens you want for “different schedules as different (but equivalent) composites.”",
-    "• Elementary WBS (hierarchical): when you have an SMC expression / execution trace, an operad-style decomposition viewpoint tells you how to “break down and reconstitute the whole” while keeping correctness under substitution—this is a good mathematical fit for WBS factoring choices."
+    "Petri net (fundamentals): places/tokens represent modeled state and resource availability; transitions represent work. Missing real-world constraints remain outside the model.",
+    "• SMC-style notation: ⊗ groups tasks with the same start time; ; orders those groups. This is an illustrative projection, not a proof that whole groups execute sequentially or that different schedules are categorically equivalent.",
+    "• Elementary WBS: the execution trace provides one possible hierarchy of stages and tasks. An operad-style decomposition is a candidate interpretation; this app has not established a substitution-correctness guarantee."
   ].join("\n")
 };
 
