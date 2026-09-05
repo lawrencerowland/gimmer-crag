@@ -2,6 +2,7 @@
 
 Status: branch contract for `codex/process-to-plan-lab`
 Created: 2026-07-02
+Updated: 2026-09-05 — computed two-process/full-plan witness
 
 This contract names the minimal shape a Gimmer Crag process-to-plan slice should expose. It is not a
 full schema yet; it is a reviewable agreement about what the app must make visible.
@@ -97,6 +98,17 @@ Minimum contents:
 - one visible plan or WBS fragment;
 - statement that multiple process interpretations could have produced that visible fragment;
 - statement that reverse reconstruction needs additional assumptions.
+
+The app now also includes a stronger, independently computed example: two explicitly different
+process models produce the same complete 14-task plan at fixed baseline settings. Adding a second
+set of resources separates their plans and completion dates. Reversing the priority separates their
+plans even though the completion dates still match.
+
+See [Two processes, one chosen plan](two-process-same-plan-witness.md) for the exact projection,
+model difference, outcomes and tests. The built-in example is independent of the main scheduler's
+selected candidate. Its result is not a claim that every generated candidate has been matched to a
+second process. The selected-candidate panel retains its fragment as an explanation and links to
+the computed comparison as evidence.
 
 ### `candidateLiftRequires`
 
