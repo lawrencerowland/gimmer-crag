@@ -34,6 +34,7 @@ for (const app of apps) {
 
 cpSync(join(root, 'index.html'), join(docsDir, 'index.html'));
 cpSync(join(root, 'app-index.html'), join(docsDir, 'app-index.html'));
+cpSync(join(root, 'petri-smc-wbs.html'), join(docsDir, 'petri-smc-wbs.html'));
 cpSync(join(root, 'app-index.csv'), join(docsDir, 'app-index.csv'));
 cpSync(join(root, 'pics'), join(docsDir, 'pics'), { recursive: true });
 cpSync(join(root, 'common.css'), join(docsDir, 'common.css'));

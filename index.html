@@ -1,21 +1,65 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Innovation Collaboration Hub (Placeholder)</title>
-  <link rel="stylesheet" href="common.css" />
-</head>
-<body>
-  <nav>
-    <a href="apps/website/index.html">Home</a> |
-    <a href="apps/website/petri-net-to-wbs">Petri net to WBS</a> |
-    <a href="site-context.html">Site context</a> |
-    <a href="app-index.html">App Index</a>
-  </nav>
-  <main>
-    <h1>Placeholder Home</h1>
-    <p>This landing page is intentionally minimal while the apps and pages are being rebuilt.</p>
-  </main>
-</body>
-</html>
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Choose the main processes-to-plans work, the higher-autonomy experiments, or the broader collection."><title>Gimmer collections · Gimmer</title><link rel="stylesheet" href="common.css"><style>
+    :root { color-scheme: dark; --ink: #101927; --panel: #172436; --line: #34455c; --muted: #b7c5d8; --blue: #99caff; }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 1.5rem; }
+    body { margin: 0; background: var(--ink); color: #f4f7fc; line-height: 1.6; }
+    body > * + * { margin-top: 0; }
+    a { color: inherit; text-underline-offset: .22em; }
+    a:focus-visible { outline: 3px solid #acd3ff; outline-offset: 5px; }
+    .wrap { width: min(1120px, calc(100% - 3rem)); margin-inline: auto; }
+    .skip { position: absolute; left: 1rem; top: -5rem; z-index: 2; padding: .6rem 1rem; background: #fff; color: var(--ink); }
+    .skip:focus { top: 1rem; }
+    header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding-block: 1.6rem; border-bottom: 1px solid var(--line); }
+    .brand { font-weight: 600; letter-spacing: -.035em; font-size: 1.25rem; }
+    .brand span { color: var(--muted); font-weight: 400; letter-spacing: 0; font-size: .9rem; margin-left: .6rem; }
+    header a { color: var(--muted); font-size: .9rem; }
+    .intro { padding-block: 3.5rem 2rem; max-width: 750px; }
+    .eyebrow { color: var(--blue); font-size: .76rem; letter-spacing: .11em; text-transform: uppercase; font-weight: 600; margin: 0 0 .7rem; }
+    h1 { border: 0; padding: 0; margin: 0; font-size: clamp(2.2rem, 5vw, 3.65rem); line-height: 1.12; letter-spacing: -.05em; font-weight: 600; }
+    .intro > p:last-child { margin: 1.2rem 0 0; color: var(--muted); max-width: 650px; font-size: 1.06rem; }
+    .feature { display: grid; grid-template-columns: 1.25fr 1fr; gap: 2rem; padding: clamp(1.5rem, 4vw, 2.7rem); border: 1px solid #52779f; border-radius: 20px; background: linear-gradient(120deg, #203851, #182638); }
+    .feature h2 { font-size: clamp(1.9rem, 3.5vw, 2.65rem); line-height: 1.15; letter-spacing: -.035em; max-width: 480px; margin: 0; }
+    .feature-copy { color: #d2ddea; max-width: 490px; margin: 1rem 0 1.5rem; }
+    .cta { display: inline-flex; align-items: center; gap: 1.3rem; border-radius: 8px; background: #b3d7ff; color: #12263d; padding: .8rem 1.05rem; text-decoration: none; font-weight: 600; }
+    .cta:hover { background: #d7eaff; }
+    .feature-note { color: var(--muted); font-size: .81rem; margin: .8rem 0 0; }
+    .preview { display: flex; flex-direction: column; justify-content: center; gap: .8rem; }
+    .preview-intro { font-size: .85rem; margin: 0 0 .2rem; color: #cad9eb; }
+    .scenario { border: 1px solid #526987; border-radius: 10px; padding: 1rem 1.2rem; background: #122032; }
+    .scenario strong { display: block; font-size: .95rem; }
+    .scenario p { color: var(--muted); margin: .3rem 0 .7rem; font-size: .84rem; }
+    .tracks { display: grid; gap: 5px; }
+    .track { height: 7px; width: 100%; background: #223c56; border-radius: 3px; overflow: hidden; }
+    .track::after { content: ''; display: block; height: 100%; width: 50%; background: #7eb7f6; border-radius: inherit; }
+    .sequential .track:nth-child(2)::after { margin-left: 50%; }
+    .parallel .track::after { width: 50%; background: #8bdbcc; }
+    .preview-caption { color: var(--muted); font-size: .75rem; margin: 0; }
+    .catalogue { margin-block: 3.5rem; }
+    .section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+    .section-heading h2 { font-size: 1.4rem; letter-spacing: -.025em; margin: 0; }
+    .section-heading p { color: var(--muted); font-size: .85rem; margin: 0; }
+    .app-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); list-style: none; margin: 0; padding: 0; gap: 0 1.7rem; }
+    .app-list li { min-width: 0; border-top: 1px solid var(--line); }
+    .app-link { display: grid; grid-template-columns: 2rem minmax(0, 1fr) 1rem; align-items: start; gap: .7rem; padding: 1.1rem .3rem; height: 100%; text-decoration: none; border-radius: 4px; }
+    .app-link:hover { background: var(--panel); }
+    .app-number { color: #9cacc2; font-variant-numeric: tabular-nums; font-size: .77rem; padding-top: .12rem; }
+    h3 { font-size: .95rem; line-height: 1.4; font-weight: 600; margin: 0; }
+    .app-link p { font-size: .78rem; color: var(--muted); line-height: 1.5; margin: .35rem 0 0; }
+    .arrow { color: var(--blue); }
+    footer { padding-block: 1.5rem 2rem; border-top: 1px solid var(--line); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; font-size: .8rem; color: var(--muted); }
+    footer p { margin: 0; }
+    footer nav { display: flex; gap: 1.3rem; flex-wrap: wrap; }
+    @media (max-width: 720px) {
+      .wrap { width: calc(100% - 2rem); }
+      .intro { padding-top: 2.2rem; }
+      .feature { grid-template-columns: 1fr; gap: 1.7rem; }
+      .preview { max-width: none; }
+      .app-list { grid-template-columns: 1fr; }
+      .section-heading { align-items: start; flex-direction: column; gap: .2rem; }
+      .brand span { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  </style></head><body><a class="skip" href="#main">Skip to content</a><header class="wrap"><div class="brand">Gimmer</div><a href="https://lawrencerowland.github.io/side-projects.html#gimmer-projects">Side projects</a></header><main id="main" class="wrap"><nav aria-label="Gimmer collections" style="display:flex;flex-wrap:wrap;gap:1rem;padding:1rem 0"><a href="petri-smc-wbs.html">Processes to plans</a><a href="https://lawrencerowland.github.io/gimmer-crag-project-mountain-refuge/">Higher-autonomy experiments</a><a href="app-index.html">Broader collection</a><a href="https://lawrencerowland.github.io/side-projects.html#gimmer-projects">Side projects</a></nav><div class="intro"><p class="eyebrow">Gimmer collection</p><h1>Gimmer collections</h1><p>Choose the main processes-to-plans work, the higher-autonomy experiments, or the broader collection.</p></div><section class="catalogue" id="catalogue"><div class="section-heading"><h2>Three distinct collections</h2></div><ul class="app-list">
+
+</ul></section></main><footer class="wrap"><p>Exploratory tools and prototypes · Original app numbers retained</p><nav aria-label="Gimmer collections" style="display:flex;flex-wrap:wrap;gap:1rem;padding:1rem 0"><a href="petri-smc-wbs.html">Processes to plans</a><a href="https://lawrencerowland.github.io/gimmer-crag-project-mountain-refuge/">Higher-autonomy experiments</a><a href="app-index.html">Broader collection</a><a href="https://lawrencerowland.github.io/side-projects.html#gimmer-projects">Side projects</a></nav></footer></body></html>

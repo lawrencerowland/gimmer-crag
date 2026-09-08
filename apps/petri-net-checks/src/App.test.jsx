@@ -34,7 +34,7 @@ describe('Petri Net Workflow Demo React shell user stories', () => {
     expect(screen.getByText('Decision checkpoints')).toBeInTheDocument();
     expect(screen.getByText('Static fallback')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open static fallback' })).toHaveAttribute('href', './static.html');
-    expect(screen.getByRole('link', { name: 'Back to app index' })).toHaveAttribute('href', '../../index.html');
+    expect(screen.getByRole('link', { name: 'Back to processes to plans' })).toHaveAttribute('href', '../../petri-smc-wbs.html');
     expect(screen.getByTitle('Petri Net Workflow Demo')).toHaveAttribute('src', './static.html');
   });
 });
@@ -45,7 +45,7 @@ describe('Petri Net Workflow Demo static app user stories', () => {
     const doc = window.document;
 
     expect(within(doc.body).getByRole('link', { name: 'React version' })).toHaveAttribute('href', './index.html');
-    expect(within(doc.body).getByRole('link', { name: 'Back to app index' })).toHaveAttribute('href', '../../index.html');
+    expect(within(doc.body).getByRole('link', { name: 'Back to processes to plans' })).toHaveAttribute('href', '../../petri-smc-wbs.html');
     expect(doc.getElementById('statusText').textContent).toBe('Ready');
     expect(doc.getElementById('tabs').textContent).toContain('Path A');
     expect(doc.querySelectorAll('#markingRows tr')).toHaveLength(15);

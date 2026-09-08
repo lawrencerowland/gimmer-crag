@@ -21,7 +21,7 @@ export default function App() {
       </section>
       <div className="petri-net-actions">
         <a className="btn" href="./static.html">Open static fallback</a>
-        <a className="btn btn-subtle" href="../../index.html">Back to app index</a>
+        <a className="btn btn-subtle" href="../../petri-smc-wbs.html">Back to processes to plans</a>
       </div>
       <section className="petri-net-frame">
         <iframe

@@ -5,7 +5,7 @@ const repoRoot = process.cwd();
 const appsDir = path.join(repoRoot, 'apps');
 const appIndexPath = path.join(repoRoot, 'app-index.html');
 const featuredApp = 'mountain-refuge-petri-wbs-demo';
-const featuredReturn = '../../app-index.html#app-20';
+const featuredReturn = '../../petri-smc-wbs.html#app-20';
 
 // Check actual links rather than strings that could occur in comments or scripts.
 function anchorHrefs(html) {
@@ -17,9 +17,11 @@ function anchorHrefs(html) {
   );
 }
 
-const appIndexHtml = fs.readFileSync(appIndexPath, 'utf8');
+const broaderHtml = fs.readFileSync(appIndexPath, 'utf8');
+const appIndexHtml = fs.readFileSync(path.join(repoRoot, 'petri-smc-wbs.html'), 'utf8');
+const allIndexHtml = appIndexHtml + broaderHtml;
 const linkedApps = new Set(
-  anchorHrefs(appIndexHtml)
+  anchorHrefs(allIndexHtml)
     .map((href) => href.match(/^apps\/([^/]+)\/index\.html$/)?.[1])
     .filter(Boolean),
 );
@@ -35,11 +37,15 @@ const missingFromIndex = [];
 const missingCommonCss = [];
 const missingViewportMeta = [];
 const journeyErrors = [];
+const mainLinks = anchorHrefs(appIndexHtml).filter(href => href.startsWith('apps/'));
+const broadLinks = anchorHrefs(broaderHtml).filter(href => href.startsWith('apps/'));
+if (mainLinks.some(href => broadLinks.includes(href))) journeyErrors.push('Collections overlap.');
+if (new Set(mainLinks).size !== 16 || new Set(broadLinks).size !== 10) journeyErrors.push('Expected 16 main and 10 broader apps.');
 
 const featuredCards = [...appIndexHtml.matchAll(/<article\b[^>]*\bid=["']app-20["'][^>]*>([\s\S]*?)<\/article>/gi)];
 const featuredAnchors = [...appIndexHtml.matchAll(/\bid=["']app-20["']/g)];
 if (featuredCards.length !== 1 || featuredAnchors.length !== 1) {
-  journeyErrors.push('app-index.html must have one featured article with the unique id app-20.');
+  journeyErrors.push('petri-smc-wbs.html must have one featured article with the unique id app-20.');
 } else if (!anchorHrefs(featuredCards[0][1]).includes(`apps/${featuredApp}/index.html`)) {
   journeyErrors.push('The app-20 featured card must link directly to the mountain refuge app.');
 }
@@ -60,8 +66,15 @@ for (const appName of appDirs) {
   const hasSrcFolder = fs.existsSync(path.join(appsDir, appName, 'src'));
   const hrefs = anchorHrefs(html);
 
-  if (!hrefs.some((href) => /^\.\.\/\.\.\/(?:app-index|index)\.html(?:#.*)?$/.test(href))) {
+  if (!hrefs.some((href) => /^\.\.\/\.\.\/(?:app-index|petri-smc-wbs|index)\.html(?:#.*)?$/.test(href))) {
     missingBackLink.push(appName);
+  }
+
+  if (appName !== 'website') {
+    const collection = mainLinks.includes(`apps/${appName}/index.html`) ? 'petri-smc-wbs.html' : 'app-index.html';
+    if (!hrefs.some(href => href === `../../${collection}` || href.startsWith(`../../${collection}#`))) {
+      journeyErrors.push(`${appName} must return to ${collection}.`);
+    }
   }
 
   if (appName === featuredApp) {
@@ -73,7 +86,7 @@ for (const appName of appDirs) {
     }
   }
 
-  if (!linkedApps.has(appName)) {
+  if (appName !== 'website' && !linkedApps.has(appName)) {
     missingFromIndex.push(appName);
   }
 
@@ -103,7 +116,7 @@ if (missingBackLink.length > 0) {
 }
 
 if (missingFromIndex.length > 0) {
-  console.error('Apps missing from app-index.html:');
+  console.error('Apps missing from both collection pages:');
   for (const app of missingFromIndex) console.error(`- ${app}`);
 }
 
