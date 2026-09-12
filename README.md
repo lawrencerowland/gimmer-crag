@@ -30,7 +30,7 @@ By default this serves the `wbs-via-pddl` app. The server loads the app at [http
    ```bash
    npm run check:app-links
    ```
-   This verifies every app is linked from `app-index.html`, includes a back link, and checks baseline `index.html` conventions.
+   This verifies every app is linked from its collection, includes a return link, and checks baseline HTML conventions and App 20’s two purpose entries.
 
 6. **Preview the production build locally**
    ```bash
@@ -77,3 +77,7 @@ https://<org>.github.io/<repo>/<app-folder>/
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
+
+## Refuge app entrances
+
+[Generate refuge schedules from process rules](apps/mountain-refuge-petri-wbs-demo/index.html?view=scheduler) is the Processes to plans entrance. [Why one plan can hide different process rules](apps/mountain-refuge-petri-wbs-demo/index.html?view=comparison) is the broader collection’s inherited comparison. Both use one canonical App 20; headings, visible tools and collection returns follow the selected view. Existing plain URLs and deep links remain usable. See [collection boundaries](planning/gimmer-collections.md) for the route contract and illustrative SMC/WBS limits.

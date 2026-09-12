@@ -2,7 +2,7 @@
 
 Implemented 5 September 2026, continuing the complete-plan witness in PR #57.
 
-The apps catalogue is the entry and return point. Its featured `app-20` card links directly to the mountain-refuge app; both app return links go to `../../app-index.html#app-20`. The old placeholder homepage is outside that journey. All 26 catalogue apps and the two existing website links are retained.
+The comparison journey described below is retained. Since 12 September 2026, it opens from the broader collection through `?view=comparison` and returns to `../../app-index.html#app-20-comparison`. The Processes to plans App 20 entrance uses `?view=scheduler` and returns to `../../petri-smc-wbs.html#app-20`. Both purposes share one canonical implementation; see [collection boundaries](gimmer-collections.md). All 26 apps remain available.
 
 ## Opening and progression
 
