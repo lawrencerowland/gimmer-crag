@@ -6,6 +6,9 @@ const appsDir = path.join(repoRoot, 'apps');
 const appIndexPath = path.join(repoRoot, 'app-index.html');
 const featuredApp = 'mountain-refuge-petri-wbs-demo';
 const featuredReturn = '../../petri-smc-wbs.html#app-20';
+const schedulerEntry = `apps/${featuredApp}/index.html?view=scheduler`;
+const comparisonEntry = `apps/${featuredApp}/index.html?view=comparison`;
+const appNameFromHref = href => href.match(/^apps\/([^/]+)\/index\.html(?:[?#].*)?$/)?.[1];
 
 // Check actual links rather than strings that could occur in comments or scripts.
 function anchorHrefs(html) {
@@ -22,7 +25,7 @@ const appIndexHtml = fs.readFileSync(path.join(repoRoot, 'petri-smc-wbs.html'), 
 const allIndexHtml = appIndexHtml + broaderHtml;
 const linkedApps = new Set(
   anchorHrefs(allIndexHtml)
-    .map((href) => href.match(/^apps\/([^/]+)\/index\.html$/)?.[1])
+    .map(appNameFromHref)
     .filter(Boolean),
 );
 
@@ -39,15 +42,25 @@ const missingViewportMeta = [];
 const journeyErrors = [];
 const mainLinks = anchorHrefs(appIndexHtml).filter(href => href.startsWith('apps/'));
 const broadLinks = anchorHrefs(broaderHtml).filter(href => href.startsWith('apps/'));
-if (mainLinks.some(href => broadLinks.includes(href))) journeyErrors.push('Collections overlap.');
-if (new Set(mainLinks).size !== 16 || new Set(broadLinks).size !== 10) journeyErrors.push('Expected 16 main and 10 broader apps.');
+const collections = JSON.parse(fs.readFileSync(path.join(repoRoot, 'planning/gimmer-collections.json'), 'utf8'));
+const appSlugs = Object.fromEntries(fs.readFileSync(path.join(repoRoot, 'app-index.csv'), 'utf8').trim().split(/\r?\n/).slice(1).map(line => line.split(',').slice(0, 2)));
+const expectedMain = collections.processes_to_plans.map(number => collections.process_entry_overrides?.[number] || `apps/${appSlugs[number]}/index.html`);
+const expectedBroad = [...collections.broader_collection.map(number => `apps/${appSlugs[number]}/index.html`), ...(collections.broader_references || []).map(reference => reference.href)];
+const sameRoutes = (actual, expected) => JSON.stringify([...new Set(actual)].sort()) === JSON.stringify([...new Set(expected)].sort());
+if (!sameRoutes(mainLinks, expectedMain) || !sameRoutes(broadLinks, expectedBroad)) journeyErrors.push('Collection links must match the declared app memberships and purpose references.');
+if (mainLinks.some(href => broadLinks.includes(href))) journeyErrors.push('The collection purpose routes must differ.');
+if (new Set(mainLinks).size !== 16 || new Set(broadLinks).size !== 11 || linkedApps.size !== 26) journeyErrors.push('Expected 16 main entries, 10 broader apps plus one comparison reference, and 26 unique apps.');
+const sharedApps = [...new Set(mainLinks.map(appNameFromHref))].filter(app => broadLinks.some(href => appNameFromHref(href) === app));
+if (sharedApps.length !== 1 || sharedApps[0] !== featuredApp) journeyErrors.push('Only App 20 may have separate purpose entrances in both collections.');
+if (!mainLinks.includes(schedulerEntry) || !broadLinks.includes(comparisonEntry)) journeyErrors.push('App 20 must have the explicit scheduler and comparison entrances.');
+if ((broaderHtml.match(/\bid=["']app-20-comparison["']/g) || []).length !== 1) journeyErrors.push('The comparison return anchor must be unique.');
 
 const featuredCards = [...appIndexHtml.matchAll(/<article\b[^>]*\bid=["']app-20["'][^>]*>([\s\S]*?)<\/article>/gi)];
 const featuredAnchors = [...appIndexHtml.matchAll(/\bid=["']app-20["']/g)];
 if (featuredCards.length !== 1 || featuredAnchors.length !== 1) {
   journeyErrors.push('petri-smc-wbs.html must have one featured article with the unique id app-20.');
-} else if (!anchorHrefs(featuredCards[0][1]).includes(`apps/${featuredApp}/index.html`)) {
-  journeyErrors.push('The app-20 featured card must link directly to the mountain refuge app.');
+} else if (!anchorHrefs(featuredCards[0][1]).includes(schedulerEntry)) {
+  journeyErrors.push('The app-20 featured card must link directly to the forward scheduler entrance.');
 }
 
 if (anchorHrefs(appIndexHtml).includes('index.html')) {
@@ -71,7 +84,7 @@ for (const appName of appDirs) {
   }
 
   if (appName !== 'website') {
-    const collection = mainLinks.includes(`apps/${appName}/index.html`) ? 'petri-smc-wbs.html' : 'app-index.html';
+    const collection = mainLinks.some(href => appNameFromHref(href) === appName) ? 'petri-smc-wbs.html' : 'app-index.html';
     if (!hrefs.some(href => href === `../../${collection}` || href.startsWith(`../../${collection}#`))) {
       journeyErrors.push(`${appName} must return to ${collection}.`);
     }
@@ -81,6 +94,7 @@ for (const appName of appDirs) {
     if (!hrefs.includes(featuredReturn)) {
       journeyErrors.push(`The mountain refuge app must link back to ${featuredReturn}.`);
     }
+    if (!hrefs.includes('../../app-index.html#app-20-comparison')) journeyErrors.push('The comparison must retain its broader collection return.');
     if (hrefs.some((href) => /^\.\.\/\.\.\/index\.html(?:#.*)?$/.test(href))) {
       journeyErrors.push('The mountain refuge app still links to the legacy placeholder home.');
     }

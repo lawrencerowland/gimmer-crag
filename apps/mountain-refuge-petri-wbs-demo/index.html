@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>One plan. Two possible projects. · Gimmer</title>
+  <title>Why one plan can hide different process rules · Gimmer</title>
   <link rel="stylesheet" href="../../common.css" />
   <style>
     :root{
@@ -233,6 +233,10 @@
     .heroCopy{font-size:19px;max-width:650px;line-height:1.5;color:#c0ccda;}
     .heroCopy strong{color:#fff;}
     .heroMeta{font-size:12px;color:#91a3b7;margin-top:16px;}
+    .viewNav{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 24px;}
+    .viewNav a{padding:9px 13px;border:1px solid #35506a;border-radius:8px;text-decoration:none;font-size:14px;}
+    .viewNav a[aria-current="page"]{background:#21425a;border-color:#81d7f1;color:#fff;}
+    .collectionNav{display:flex;flex-wrap:wrap;gap:16px;margin-top:16px;font-size:12px;color:#91a3b7;}
     #same-plan-witness{margin:0 0 28px;padding:24px;background:#111d2b;border-color:#294257;box-shadow:none;}
     .witnessChoices{margin:0 0 24px;}
     .journeySteps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
@@ -306,13 +310,18 @@
 </head>
 <body>
   <div class="wrap">
-    <nav class="pageNav" aria-label="Page navigation"><a href="../../petri-smc-wbs.html#app-20">← Gimmer apps</a><a href="#schedule-lab" data-open-workbench>Open the editable model ↗</a></nav>
+    <nav class="pageNav" aria-label="Page navigation"><a data-collection-return href="../../app-index.html#app-20-comparison">← Broader collection</a><a href="#schedule-lab" data-open-workbench>Open the editable model ↗</a></nav>
     <header class="journeyHero">
-      <p class="eyebrow">Gimmer · a process-to-plan experiment</p>
-      <h1>One plan.<br><span>Two possible projects.</span></h1>
+      <p class="eyebrow" id="entryEyebrow">Gimmer · a comparison of process rules</p>
+      <h1 id="entryTitle" tabindex="-1">Why one plan can hide<br><span>different process rules.</span></h1>
       <p class="heroCopy">You’re asked to finish a mountain refuge sooner. Two teams show the same <strong>36-day plan</strong>. Would extra resources help them equally?</p>
       <p class="heroMeta">Three short comparisons · a fictional build · no setup</p>
     </header>
+    <nav class="viewNav" aria-label="Refuge app views">
+      <a href="?view=comparison" data-entry-view="comparison" aria-current="page">Compare two process rules</a>
+      <a href="?view=scheduler" data-entry-view="scheduler">Generate refuge schedules</a>
+    </nav>
+    <noscript><p class="note">Both views are retained below. Open the editable model for schedule controls. Interactive calculations require JavaScript.</p></noscript>
 
     <section class="panel journey" id="same-plan-witness" aria-labelledby="witnessTitle">
       <fieldset class="witnessChoices">
@@ -374,10 +383,10 @@
     </section>
 
     <details id="workbench" class="workbench">
-      <summary><span>Go further</span> Open the editable model <small>Resources · durations · schedules · WBS · manual Petri net</small></summary>
+      <summary><span>Schedule workbench</span> Set assumptions and generate plans <small>Resources · durations · schedules · WBS · manual Petri net</small></summary>
       <div class="workbenchBody">
-        <h2 id="schedule-lab" tabindex="-1">Try your own assumptions</h2>
-        <p class="workbenchIntro"><strong>Your sandbox is model A.</strong> Change its resources, durations and priority, generate schedules, then inspect a candidate’s Gantt, task list and WBS. This is independent of the fixed A/B comparison above. Results are temporary; changing settings clears earlier candidates and reload resets the page.</p>
+        <h2 id="schedule-lab" tabindex="-1">Choose your process assumptions</h2>
+        <p class="workbenchIntro"><strong>This model allows walls and roof to overlap when resources permit.</strong> Change resources, durations and priority, generate schedules, then inspect a candidate’s Gantt, task list and WBS. The SMC-style expression and WBS group tasks by start time: they are illustrative views, not a proof of equivalent process behaviour. Results are temporary; changing settings clears earlier candidates and reload resets the page.</p>
         <nav class="toolNav" aria-label="Modelling tools"><a href="#schedule-lab">Schedules & WBS</a><a href="#process-lab">Manual Petri net</a><a href="#netJson">Model JSON</a><a href="#model-notes">How the method works</a></nav>
     <div class="grid grid2">
       <div class="panel">
@@ -671,7 +680,8 @@
         </details>
       </div>
     </details>
-    <footer class="pageFooter"><a href="../../petri-smc-wbs.html#app-20">← Back to processes to plans</a><span>One plan. Two possible projects. · Experiment 20</span></footer>
+    <footer class="pageFooter"><a data-collection-return href="../../app-index.html#app-20-comparison">← Broader collection</a><span>One refuge model · two views · App 20</span></footer>
+    <nav class="collectionNav" aria-label="Gimmer collections"><a href="../../petri-smc-wbs.html#app-20">Processes to plans</a><a href="../../app-index.html#app-20-comparison">Broader collection</a></nav>
 
   </div>
 
@@ -1701,12 +1711,50 @@ document.getElementById("journeyNext").addEventListener("click",()=>{
 document.getElementById("journeyBack").addEventListener("click",()=>renderProcessWitness(journeyOrder[Math.max(0,journeyOrder.indexOf(journeyCase)-1)]));
 document.getElementById("journeyRestart").addEventListener("click",()=>renderProcessWitness("baseline"));
 function openWorkbench(withStartingPlan=false){
-  document.getElementById("workbench").open=true;
+  const url=new URL(location.href);
+  url.searchParams.set("view","scheduler");url.hash="schedule-lab";
+  if(url.href!==location.href)history.pushState(null,"",url);
+  applyEntryView();
   if(withStartingPlan && !candidates.length){generateSchedules();if(candidates.length)scheduleList.querySelector("button").click();}
   renderSelected();
-  const heading=document.getElementById("schedule-lab");heading.focus();heading.scrollIntoView({block:"start"});
+  revealTarget(location.hash);
+}
+function routeView(){
+  let id="";try{id=decodeURIComponent(location.hash.slice(1));}catch{}
+  const target=document.getElementById(id);
+  if(target?.closest("#workbench"))return "scheduler";
+  if(target?.closest("#same-plan-witness"))return "comparison";
+  return new URL(location.href).searchParams.get("view")==="scheduler"?"scheduler":"comparison";
+}
+function applyEntryView(){
+  const view=routeView(),scheduler=view==="scheduler";
+  document.body.dataset.entryView=view;
+  document.getElementById("same-plan-witness").hidden=scheduler;
+  document.getElementById("workbench").hidden=!scheduler;
+  if(scheduler)document.getElementById("workbench").open=true;
+  document.getElementById("entryTitle").innerHTML=scheduler
+    ? "Generate refuge schedules<br><span>from process rules.</span>"
+    : "Why one plan can hide<br><span>different process rules.</span>";
+  document.title=(scheduler?"Generate refuge schedules from process rules":"Why one plan can hide different process rules")+" · Gimmer";
+  document.getElementById("entryEyebrow").textContent=scheduler?"Gimmer · processes to plans":"Gimmer · a comparison of process rules";
+  document.querySelector(".heroCopy").innerHTML=scheduler
+    ? "Start with the refuge’s Petri model. Set available resources, task durations and a priority, then generate candidate schedules that follow its encoded rules."
+    : "You’re asked to finish a mountain refuge sooner. Two teams show the same <strong>36-day plan</strong>. Would extra resources help them equally?";
+  document.querySelector(".heroMeta").textContent=scheduler
+    ? "A fictional build · generated schedules · illustrative SMC and WBS views"
+    : "Three short comparisons · a fictional build · no setup";
+  document.querySelectorAll("[data-collection-return]").forEach(a=>{
+    a.href=scheduler?"../../petri-smc-wbs.html#app-20":"../../app-index.html#app-20-comparison";
+    a.textContent=scheduler?"← Processes to plans":"← Broader collection";
+  });
+  document.querySelectorAll("[data-entry-view]").forEach(a=>{
+    const url=new URL(location.href);url.searchParams.set("view",a.dataset.entryView);url.hash="";
+    a.href=url.search;
+    if(a.dataset.entryView===view)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current");
+  });
 }
 function revealTarget(hash){
+  applyEntryView();
   let id;try{id=decodeURIComponent(hash.slice(1));}catch{return;}
   const target=document.getElementById(id);if(!target)return;
   if(target.matches("details"))target.open=true;
@@ -1715,14 +1763,28 @@ function revealTarget(hash){
   requestAnimationFrame(()=>{target.scrollIntoView({block:"start"});if(target.matches("h2,h3"))target.focus();});
 }
 document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener("click",event=>{
+  if(event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
   const hash=a.getAttribute("href");
   if(!document.getElementById(hash.slice(1)))return;
   event.preventDefault();
-  if(a.hasAttribute("data-open-workbench"))openWorkbench(true);
+  if(a.hasAttribute("data-open-workbench")){openWorkbench(true);return;}
   if(location.hash!==hash)history.pushState(null,"",hash);
   revealTarget(hash);
 }));
-window.addEventListener("hashchange",()=>revealTarget(location.hash));
+document.querySelectorAll("[data-entry-view]").forEach(a=>a.addEventListener("click",event=>{
+  if(event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
+  event.preventDefault();
+  const url=new URL(a.href);
+  if(url.href!==location.href)history.pushState(null,"",url);
+  applyEntryView();renderSelected();
+  const title=document.getElementById("entryTitle");title.focus({preventScroll:true});window.scrollTo({top:0,behavior:"instant"});
+}));
+function restoreEntryRoute(){
+  if(location.hash)revealTarget(location.hash);
+  else {applyEntryView();window.scrollTo({top:0,behavior:"instant"});}
+}
+window.addEventListener("hashchange",restoreEntryRoute);
+window.addEventListener("popstate",restoreEntryRoute);
 document.getElementById("workbench").addEventListener("toggle",()=>{if(document.getElementById("workbench").open)renderSelected();});
 renderProcessWitness("baseline");
 
@@ -1866,7 +1928,7 @@ renderDurationEditor();
 renderAll();
 renderCandidates();
 renderSelected();
-if(location.hash)revealTarget(location.hash);
+restoreEntryRoute();
 </script>
 </body>
 </html>

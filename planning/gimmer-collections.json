@@ -29,5 +29,15 @@
     25,
     26
   ],
-  "higher_autonomy_repository": "lawrencerowland/gimmer-crag-project-mountain-refuge"
+  "higher_autonomy_repository": "lawrencerowland/gimmer-crag-project-mountain-refuge",
+  "broader_references": [
+    {
+      "app": 20,
+      "purpose": "Why one plan can hide different process rules",
+      "href": "apps/mountain-refuge-petri-wbs-demo/index.html?view=comparison"
+    }
+  ],
+  "process_entry_overrides": {
+    "20": "apps/mountain-refuge-petri-wbs-demo/index.html?view=scheduler"
+  }
 }
