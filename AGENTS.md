@@ -31,4 +31,4 @@ This repository contains a basic React/Vite setup that can host many small appli
 ## Collection navigation (8 September 2026)
 The user split the directory: direct Petri/SMC/WBS apps return to `../../petri-smc-wbs.html`; broader apps return to `../../app-index.html`. This supersedes the earlier universal app-index return rule. Use `planning/gimmer-collections.json` and keep both source and generated pages consistent.
 
-On 12 September 2026 the user retained App 20's forward scheduler in Processes to plans and placed its inherited comparison in the broader collection. The 26 numbered primary memberships remain disjoint; the broader App 20 entrance is an explicit purpose reference, not another app or implementation. Keep the manifest, entrance copy and route checks consistent.
+On 12 September 2026 the user retained App 20's forward scheduler in Processes to plans and placed its inherited comparison in the broader collection. The 27 numbered primary memberships remain disjoint; the broader App 20 entrance is an explicit purpose reference, not another app or implementation. Keep the manifest, entrance copy and route checks consistent.

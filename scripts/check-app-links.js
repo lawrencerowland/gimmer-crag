@@ -49,7 +49,7 @@ const expectedBroad = [...collections.broader_collection.map(number => `apps/${a
 const sameRoutes = (actual, expected) => JSON.stringify([...new Set(actual)].sort()) === JSON.stringify([...new Set(expected)].sort());
 if (!sameRoutes(mainLinks, expectedMain) || !sameRoutes(broadLinks, expectedBroad)) journeyErrors.push('Collection links must match the declared app memberships and purpose references.');
 if (mainLinks.some(href => broadLinks.includes(href))) journeyErrors.push('The collection purpose routes must differ.');
-if (new Set(mainLinks).size !== 16 || new Set(broadLinks).size !== 11 || linkedApps.size !== 26) journeyErrors.push('Expected 16 main entries, 10 broader apps plus one comparison reference, and 26 unique apps.');
+if (new Set(mainLinks).size !== 16 || new Set(broadLinks).size !== 12 || linkedApps.size !== 27) journeyErrors.push('Expected 16 main entries, 11 broader apps plus one comparison reference, and 27 unique apps.');
 const sharedApps = [...new Set(mainLinks.map(appNameFromHref))].filter(app => broadLinks.some(href => appNameFromHref(href) === app));
 if (sharedApps.length !== 1 || sharedApps[0] !== featuredApp) journeyErrors.push('Only App 20 may have separate purpose entrances in both collections.');
 if (!mainLinks.includes(schedulerEntry) || !broadLinks.includes(comparisonEntry)) journeyErrors.push('App 20 must have the explicit scheduler and comparison entrances.');

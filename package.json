@@ -34,7 +34,8 @@
     "build": "node scripts/build-all.js",
     "preview": "vite preview",
     "test": "vitest",
-    "check:app-links": "node scripts/check-app-links.js"
+    "check:app-links": "node scripts/check-app-links.js",
+    "test:resource-heaps": "node tests/resource-heaps.test.cjs && node tests/resource-heaps-ui.test.cjs"
   },
   "eslintConfig": {
     "extends": [
