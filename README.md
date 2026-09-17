@@ -81,3 +81,7 @@ This project is licensed under the [MIT License](LICENSE).
 ## Refuge app entrances
 
 [Generate refuge schedules from process rules](apps/mountain-refuge-petri-wbs-demo/index.html?view=scheduler) is the Processes to plans entrance. [Why one plan can hide different process rules](apps/mountain-refuge-petri-wbs-demo/index.html?view=comparison) is the broader collection’s inherited comparison. Both use one canonical App 20; headings, visible tools and collection returns follow the selected view. Existing plain URLs and deep links remain usable. See [collection boundaries](planning/gimmer-collections.md) for the route contract and illustrative SMC/WBS limits.
+
+## Resource Heaps
+
+[Resource Heaps](apps/resource-heaps/index.html) is App 27 in the broader collection: a visual resource-allocation companion for supplied refuge tasks. Read its [declared model, exact-search argument and sources](apps/resource-heaps/method.md). Run `npm run test:resource-heaps` for the independent scheduling oracle, witness checks and browser-control integration tests. These checks and the collection-link check run before the Pages build.
