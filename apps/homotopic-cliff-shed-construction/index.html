@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Explore three imagined cliff-shed construction approaches through a playable path interpolation. A visual homotopy analogy, with explicit limits.">
+  <title>Homotopic Cliff Shed Construction · Gimmer</title>
+  <link rel="stylesheet" href="../../common.css">
+  <link rel="stylesheet" href="style.css">
+  <script src="model.js" defer></script>
+  <script src="app.js" defer></script>
+  <script src="field-model.js" defer></script>
+  <script src="field-app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to experiment</a>
+  <header class="wrap masthead"><a href="../../app-index.html#app-28">← Broader Gimmer collection</a><span>Gimmer / 28</span></header>
+  <main class="wrap" id="main">
+    <section class="intro">
+      <p class="eyebrow">Homotopic cliff shed construction · a visual analogy</p>
+      <h1>Three ways to build<br>a cliff shed.</h1>
+      <p class="lede">Imagine a small climbers’ shelter halfway up a cliff. Airlift it, haul materials by rope, or build in place. The intended result stays the same; the work changes.</p>
+      <p class="question">Can one way of reaching a goal be continuously changed into another?</p>
+    </section>
+
+    <section class="experiment" aria-label="Compare construction approaches">
+      <figure class="drawing">
+        <div class="drawing-head"><span>Same drawn start. Same drawn finish.</span><span class="drawing-badge">Schematic</span></div>
+        <svg id="diagram" viewBox="0 0 440 410" role="img" aria-labelledby="diagram-title diagram-description">
+          <title id="diagram-title">A path between the ground and a cliff shelter</title>
+          <desc id="diagram-description">Two dashed reference paths and a solid interpolated path share their first and last points. Numbered dots show four corresponding drawing vertices. This is not a physical route map.</desc>
+          <defs><pattern id="rock" width="28" height="34" patternUnits="userSpaceOnUse"><path d="M0 20L20 12L28 24M15 0L20 12" fill="none" stroke="#ffffff" stroke-opacity=".09"/></pattern></defs>
+          <path d="M300 410L300 0H440V410Z" fill="#4b6263"/>
+          <path d="M300 410L300 0H440V410Z" fill="url(#rock)"/>
+          <path d="M0 376Q100 366 175 382T300 379V410H0Z" fill="#d3d9c8"/>
+          <text x="390" y="242" class="rock-label" transform="rotate(-90 390 242)">IMAGINED CLIFF</text>
+          <circle cx="350" cy="50" r="25" fill="#edd2a2" fill-opacity=".3"/>
+          <g fill="#efd7af" stroke="#243f40" stroke-width="2"><path d="M337 42H363V59H337Z"/><path d="M333 42L350 29L367 42Z"/><path d="M347 59V48H353V59"/></g>
+          <g id="reference-paths" fill="none" stroke-width="2.5" stroke-dasharray="5 6"></g>
+          <polyline id="blend-path" points="100,350 150,250 250,200 350,50" fill="none" stroke="#173f42" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+          <g id="vertices"></g>
+          <text x="48" y="391" class="endpoint-label">START</text>
+          <text x="326" y="20" class="goal-label">SHELTER</text>
+        </svg>
+        <figcaption><span class="line-key" aria-hidden="true"></span>Solid: current blend. Dashed: chosen reference drawings.<br>Dots match by position in the sequence, not by equivalent work. Geometry is illustrative, with no physical scale.</figcaption>
+      </figure>
+
+      <div class="controls">
+        <p class="eyebrow">Explore the drawing</p>
+        <h2>Choose two approaches</h2>
+        <div class="selectors">
+          <label for="from-path">From<select id="from-path"><option value="0">Helicopter Assembly</option><option value="1">Rope &amp; Pulley System</option><option value="2">Climbing Construction</option></select></label>
+          <label for="to-path">To<select id="to-path"><option value="0">Helicopter Assembly</option><option value="1" selected>Rope &amp; Pulley System</option><option value="2">Climbing Construction</option></select></label>
+        </div>
+        <div class="blend-heading"><label for="blend">Drawing blend</label><output id="blend-value" for="blend">0%</output></div>
+        <input id="blend" type="range" min="0" max="100" step="1" value="0" aria-describedby="blend-help">
+        <div class="range-labels"><span id="from-label">Helicopter</span><span id="to-label">Rope &amp; pulley</span></div>
+        <p id="blend-help" class="small">Drag or use arrow keys. This changes the drawing, not project progress.</p>
+        <div class="playback"><button type="button" id="play" aria-pressed="false">Play blend</button><button type="button" id="reset" class="secondary">Reset blend</button></div>
+        <p id="playback-status" class="small" role="status">Paused at the starting drawing.</p>
+        <div class="boundary"><strong>A smooth picture is not a feasible plan.</strong><p>The two endpoints stay fixed by construction. Intermediate drawings do not establish that crews could switch between these methods.</p></div>
+        <noscript><p>JavaScript is needed for the controls. The three approaches and the limits below remain readable.</p></noscript>
+      </div>
+    </section>
+
+    <section class="milestone-section" aria-labelledby="milestone-heading">
+      <div class="section-head"><h2 id="milestone-heading">What the four dots stand for</h2><p>The correspondence is supplied for the drawing.</p></div>
+      <ol id="milestones" class="milestones"><li>1 · Start on the ground</li><li>2 · Establish an approach</li><li>3 · Bring work to the cliff</li><li>4 · Complete the shelter</li></ol>
+    </section>
+
+    <section aria-labelledby="approaches-heading" class="approaches-section">
+      <h2 id="approaches-heading">Three imagined approaches</h2>
+      <div class="approaches">
+        <article><p class="card-number">01 / AIR</p><h3>Helicopter Assembly</h3><p>Assemble modules on the ground, wait for a weather window, then airlift and install them.</p><p class="card-note">Questions left open: lift capacity, wind limits, access and installation loads.</p></article>
+        <article><p class="card-number">02 / ROPE</p><h3>Rope &amp; Pulley System</h3><p>Establish a base camp, install a pulley system, haul materials and build on the cliff.</p><p class="card-note">Questions left open: anchor design, hauling loads, crew access and staging.</p></article>
+        <article><p class="card-number">03 / CLIMB</p><h3>Climbing Construction</h3><p>Stage a team, establish a route, build a platform and assemble the shelter in place.</p><p class="card-note">Questions left open: fall protection, rescue, platform stability and exposure.</p></article>
+      </div>
+    </section>
+
+    <section class="claims" aria-labelledby="claims-heading">
+      <div><p class="eyebrow">What survives the change?</p><h2 id="claims-heading">A question to investigate,<br>not a set of green ticks.</h2><p>The drawing contains no engineering, cost or time model. These original prototype claims remain unmodelled:</p></div>
+      <dl><div><dt>Storm protection</dt><dd>Unknown · not modelled</dd></div><div><dt>Cliff safety</dt><dd>Unknown · not modelled</dd></div><div><dt>Winter deadline</dt><dd>Unknown · not modelled</dd></div><div><dt>$50,000 budget</dt><dd>Unknown · not modelled</dd></div></dl>
+    </section>
+
+    <section class="explanation" aria-labelledby="intuition-heading">
+      <h2 id="intuition-heading">The homotopy intuition—and its limit</h2>
+      <p>In mathematics, a homotopy is a continuous deformation between maps within a specified space. For paths, one can require the endpoints to remain fixed. Here, corresponding vertices are linearly interpolated: <code>H(s, t) = (1 − t)A(s) + tB(s)</code>, where <code>s</code> runs along the equally partitioned segments and <code>t</code> is the blend. This gives a homotopy of these drawn paths in the unrestricted plane, with the same first and last coordinates.</p>
+      <p>A space of <em>feasible project plans</em> has not been defined. Nor have allowable transitions, obstacles, resources, costs or deadlines. So this is <strong>not a proof that the construction approaches are homotopic as feasible plans</strong>, or that safety, budget or completion dates are preserved. Matching the second dot in two drawings does not make “Weather Window” and “Pulley Install” interchangeable activities.</p>
+      <p>The useful project question is: what would have to remain true while a team changed method? A stronger model would need explicit feasible states and constraints, and would test every intermediate state against them.</p>
+    </section>
+
+    <details id="task-field" class="task-field">
+      <summary><span>Explore the companion task-field experiment</span><small>Sixteen tasks, supplied affinities and a reproducible spatial layout</small></summary>
+      <div class="field-content">
+        <p class="eyebrow">Optional second experiment · heuristic spatial grouping</p>
+        <h2>What happens when related task dots attract?</h2>
+        <p>The earlier prototype also let sixteen construction tasks move under attraction and repulsion. This version keeps their names, types and supplied priorities. It turns those labels into a repeatable drawing rule, with no claim that a construction sequence emerges.</p>
+        <div class="field-workbench">
+          <figure>
+            <svg id="field-diagram" viewBox="0 0 400 400" role="group" aria-labelledby="field-title field-description">
+              <title id="field-title">Sixteen numbered construction task dots</title>
+              <desc id="field-description">Task dots move under heuristic layout forces. Select a dot with a click or Enter or use the task selector. Dashed links show nearby positive-affinity pairs, not construction dependencies.</desc>
+              <g id="field-links" stroke="#6a8f83" stroke-opacity=".35" stroke-width="1.5" stroke-dasharray="3 4"></g>
+              <g id="field-nodes"></g>
+            </svg>
+            <figcaption>Dashed links = positive affinity and separation below 100 drawing units. Larger dots with a pale ring = supplied “critical” priority. Neither size nor distance represents duration or construction risk.</figcaption>
+          </figure>
+          <div class="field-controls">
+            <div class="blend-heading"><label for="field-strength">Attraction strength</label><output id="field-strength-value" for="field-strength">0.5</output></div>
+            <input id="field-strength" type="range" min="0.1" max="2" step="0.1" value="0.5" aria-describedby="field-strength-help">
+            <p class="small" id="field-strength-help">0.1–2.0. Reset after changing strength to compare from identical starting positions. Repulsion remains active at every setting.</p>
+            <div class="playback"><button id="field-play" type="button" aria-pressed="false">Play layout</button><button id="field-reset" type="button" class="secondary">Reset layout</button></div>
+            <p class="small" id="field-status" role="status">Paused. Seed 190 fixes the starting positions.</p>
+            <p id="field-steps" class="field-counter">0 / 600 steps</p>
+            <label for="field-task">Inspect a task<select id="field-task"></select></label>
+            <div class="field-inspection" role="status"><strong id="field-task-name">Drill anchor points</strong><p id="field-task-description">Foundation / anchoring · supplied priority: critical.</p></div>
+            <ul class="field-legend" aria-label="Task types"><li><span style="background:#74539c"></span>Foundation / anchoring</li><li><span style="background:#9e6427"></span>Structural</li><li><span style="background:#267862"></span>Weatherproofing</li><li><span style="background:#b64f4f"></span>Safety systems</li></ul>
+          </div>
+        </div>
+        <div class="field-notes">
+          <div><h3>The supplied drawing rules</h3><p>Within 150 drawing units, same-type pairs attract with weight 1.2; foundation–structure pairs with 0.8; structure–weatherproofing with 0.6; other safety pairs with 0.4. Remaining pairs mildly repel (−0.3). A pair involving a supplied critical task has 1.5 times that influence. Short-range repulsion limits overlap.</p><p>All positions update from the same prior snapshot, in fixed steps with damping, speed caps and a bounded square. Seed 190 reproduces the start. The same strength and number of steps reproduce the layout. The 600-step stop is an illustration limit, not evidence of convergence.</p></div>
+          <div><h3>Attraction is not a dependency</h3><p>A foundation dot drawing a structural dot closer does not enforce “foundation before structure.” There are no directed prerequisites, start or finish times, crew capacities, loads or completion checks. These are proximity links, not a schedule or construction phases.</p><p><strong>Spatial grouping does not prove feasible construction, optimal scheduling or real project self-organisation.</strong> The original “optimal phases” and “no central scheduler needed” claims are withdrawn. This experiment can prompt questions about relationships that a separate planning model would need to encode.</p></div>
+        </div>
+      </div>
+    </details>
+  </main>
+  <footer class="wrap"><p>Adapted from the earlier <a href="https://github.com/lawrencerowland/gimmer-crag-project-mountain-refuge/blob/c9481a81a731682906837b500602948407d5f630/input/homotopic-cliff-shed-construction.tsx">Homotopic Cliff Shed Construction source</a> (pinned recovery copy). The three paths and sixteen task records are retained. The original invariant ticks and optimal construction-phase claims are withdrawn; the companion field uses corrected, reproducible layout rules.</p><a href="../../app-index.html#app-28">Back to the broader collection ↑</a></footer>
+</body>
+</html>

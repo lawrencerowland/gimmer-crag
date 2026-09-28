@@ -35,7 +35,8 @@
     "preview": "vite preview",
     "test": "vitest",
     "check:app-links": "node scripts/check-app-links.js",
-    "test:resource-heaps": "node tests/resource-heaps.test.cjs && node tests/resource-heaps-ui.test.cjs"
+    "test:resource-heaps": "node tests/resource-heaps.test.cjs && node tests/resource-heaps-ui.test.cjs",
+    "test:cliff-paths": "node --test tests/cliff-paths.test.cjs tests/cliff-paths-ui.test.cjs"
   },
   "eslintConfig": {
     "extends": [

@@ -22,6 +22,7 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npm run test:resource-heaps
+      - run: npm run test:cliff-paths
       - run: npm run check:app-links
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
